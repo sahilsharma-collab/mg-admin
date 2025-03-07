@@ -177,7 +177,7 @@ const EventForm: React.FC<EventFormProps> = ({ eventId }) => {
     );
 
     return (
-        <section className="px-4 md:px-10 py-4 md:py-5">
+        <section className="container-padding">
             <div className="flex items-center justify-between">
                 <h1 className="font-semibold text-2xl my-3">{title}</h1>
             </div>

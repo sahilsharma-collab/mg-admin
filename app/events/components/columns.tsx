@@ -44,7 +44,7 @@ export const columns: ColumnDef<EventColumn>[] = [
     },
     {
         accessorKey: "imgUrl",
-        header: "Country Flag",
+        header: "Image",
         cell: ({ row }) => {
             const imgUrl = row.original.imgUrl;
             return (
@@ -58,8 +58,8 @@ export const columns: ColumnDef<EventColumn>[] = [
                             sizes="48px"
                         />
                     ) : (
-                        <div className="flex items-center justify-center h-full w-full bg-gray-100">
-                            <span className="text-gray-400 text-xs">No image</span>
+                        <div className="flex items-center justify-center h-full w-full">
+                            <span className="text-xs">N/A</span>
                         </div>
                     )}
                 </div>

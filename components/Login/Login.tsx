@@ -65,23 +65,23 @@ const Login = () => {
             <section className='hidden md:block lg:w-[65vw] h-full relative'>
                 <Image
                     src="/Images/login-banner.jpg"
-                    layout="fill"
-                    objectFit="cover"
                     alt='banner'
                     priority
+                    fill
+                    className="object-cover"
                 />
             </section>
 
             <section className='bg-[#DBE7F7] flex flex-col px-6 md:px-12 py-12 w-full lg:w-[35vw] h-full'>
                 <div className="flex items-center w-full justify-center mb-8">
                     <Image
-                        src="/Images/logo.svg"
+                        src="/Images/logo.png"
                         height={60}
                         width={60}
                         alt="logo"
                     />
                     <Image
-                        src="/Images/logo-text.svg"
+                        src="/Images/logo-text.png"
                         height={100}
                         width={100}
                         alt="logo-text"
