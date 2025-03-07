@@ -106,8 +106,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         <>
             <motion.aside
                 className={cn(
-                    "h-screen bg-[#DBE7F7] text-white p-4 flex flex-col transition-all shadow-xl border",
-                    !isExpanded && "fixed z-10"
+                    "h-screen bg-[#DBE7F7] text-white p-4 flex flex-col transition-all shadow-xl border fixed z-10",
                 )}
                 animate={{
                     width: isExpanded ? "18rem" : isHovered ? "18rem" : "5.5rem",
@@ -225,7 +224,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                 </nav>
 
             </motion.aside>
-            <div className={`${isExpanded ? "" : "w-[5.3rem]"}`}></div>
+            <motion.div
+                className={`h-full`}
+                animate={{
+                    width: isExpanded ? "18rem" : "5.3rem",
+                }}
+
+            >
+            </motion.div>
         </>
 
     );

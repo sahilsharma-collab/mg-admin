@@ -4,13 +4,20 @@ import React, { useState } from 'react';
 import { IconBellFilled, IconMenu2 } from '@tabler/icons-react';
 import { cn } from "@/lib/utils";
 import Sidebar from '../Sidebar/Sidebar';
+import { usePathname } from 'next/navigation';
 
 const Navbar = () => {
+    const pathname = usePathname();
+    const isLoginPage = pathname === '/login';
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
     const toggleMobileSidebar = () => {
         setIsMobileSidebarOpen(!isMobileSidebarOpen);
     };
+
+    if (isLoginPage) {
+        return null;
+    }
 
     return (
         <>

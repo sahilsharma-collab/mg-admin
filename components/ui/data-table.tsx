@@ -52,6 +52,10 @@ export function DataTable<TData, TValue>({
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [visiblePageButtons, setVisiblePageButtons] = useState<(number | string)[]>([]);
     const [rowsPerPage, setRowsPerPage] = useState<number>(10);
+    const [pagination, setPagination] = useState({
+        pageIndex: 0,
+        pageSize: rowsPerPage,
+    });
 
     const table = useReactTable({
         data,
@@ -60,17 +64,15 @@ export function DataTable<TData, TValue>({
         getPaginationRowModel: getPaginationRowModel(),
         onColumnFiltersChange: setColumnFilters,
         getFilteredRowModel: getFilteredRowModel(),
+        onPaginationChange: setPagination,
         state: {
             columnFilters,
-            pagination: {
-                pageIndex: 0,
-                pageSize: rowsPerPage,
-            },
+            pagination,
         },
     });
 
     const router = useRouter();
-    const currentPage = table.getState().pagination.pageIndex + 1;
+    const currentPage = pagination.pageIndex + 1;
     const totalPages = table.getPageCount();
     const filteredRows = table.getFilteredRowModel().rows.length;
 
@@ -79,8 +81,12 @@ export function DataTable<TData, TValue>({
     }, [currentPage, totalPages]);
 
     useEffect(() => {
-        table.setPageSize(rowsPerPage);
-    }, [rowsPerPage, table]);
+        setPagination(prev => ({
+            ...prev,
+            pageSize: rowsPerPage,
+            pageIndex: 0, // Reset to first page when changing page size
+        }));
+    }, [rowsPerPage]);
 
     const updateVisiblePageButtons = () => {
         const maxButtons = 5;
@@ -122,7 +128,10 @@ export function DataTable<TData, TValue>({
     };
 
     const goToPage = (page: number) => {
-        table.setPageIndex(page - 1);
+        setPagination(prev => ({
+            ...prev,
+            pageIndex: page - 1,
+        }));
     };
 
     // Calculate entry range information
@@ -139,7 +148,7 @@ export function DataTable<TData, TValue>({
         } else {
             setRowsPerPage(parseInt(value));
         }
-        table.setPageIndex(0);
+        // Page index is reset in the useEffect
     };
 
     return (
@@ -249,21 +258,28 @@ export function DataTable<TData, TValue>({
                 {/* Pagination controls */}
                 <div className="flex items-center space-x-2">
                     <div
-                        className={`flex items-center justify-center w-8 h-8 rounded-full  ${!table.getCanPreviousPage() ? 'bg-[#353535] text-white cursor-not-allowed' : 'bg-[#0ABAB5] cursor-pointer text-white hover:opacity-90'
+                        className={`flex items-center justify-center w-8 h-8 rounded-full  ${!table.getCanPreviousPage() ? 'bg-[#353535] text-white cursor-not-allowed' : 'bg-[#0ABAB5] hover:bg-[#089e99] transition-colors duration-200 cursor-pointer text-white'
                             }`}
-                        onClick={() => table.getCanPreviousPage() && table.previousPage()}
+                        onClick={() => {
+                            if (table.getCanPreviousPage()) {
+                                setPagination(prev => ({
+                                    ...prev,
+                                    pageIndex: prev.pageIndex - 1,
+                                }));
+                            }
+                        }}
                     >
                         <ChevronLeft size={16} />
                     </div>
 
-                    <div className="flex items-center space-x-2 mx-2">
+                    <div className="flex items-center space-x-2">
                         {visiblePageButtons.map((pageNumber, index) =>
                             typeof pageNumber === 'number' ? (
                                 <div
                                     key={index}
                                     className={`flex items-center justify-center w-8 h-8 cursor-pointer text-sm ${pageNumber === currentPage
-                                        ? 'bg-[#0ABAB5] text-white rounded-sm'
-                                        : 'hover:bg-gray-100 rounded-sm'
+                                        ? 'bg-[#0ABAB5] text-white rounded-sm hover:bg-[#089e99] duration-200 transition-all'
+                                        : 'hover:bg-gray-100 rounded-sm border border-black'
                                         }`}
                                     onClick={() => goToPage(pageNumber)}
                                 >
@@ -278,9 +294,16 @@ export function DataTable<TData, TValue>({
                     </div>
 
                     <div
-                        className={`flex items-center justify-center w-8 h-8 rounded-full  ${!table.getCanNextPage() ? 'bg-[#353535] text-white cursor-not-allowed' : 'bg-[#0ABAB5] cursor-pointer text-white hover:opacity-90'
+                        className={`flex items-center justify-center w-8 h-8 rounded-full  ${!table.getCanNextPage() ? 'bg-[#353535] text-white cursor-not-allowed' : 'bg-[#0ABAB5] hover:bg-[#089e99] cursor-pointer duration-200 text-white transition-colors'
                             }`}
-                        onClick={() => table.getCanNextPage() && table.nextPage()}
+                        onClick={() => {
+                            if (table.getCanNextPage()) {
+                                setPagination(prev => ({
+                                    ...prev,
+                                    pageIndex: prev.pageIndex + 1,
+                                }));
+                            }
+                        }}
                     >
                         <ChevronRight size={16} />
                     </div>
