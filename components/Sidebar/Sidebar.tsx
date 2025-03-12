@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { IconX, IconLayoutDashboard, IconChartArcs3, IconMessages, IconChartAreaLine, IconCalendarEvent, IconDeviceAnalytics, IconUserSquareRounded, IconBell, IconQuestionMark, IconFileBroken, IconCrown } from '@tabler/icons-react';
+import { IconX, IconLayoutDashboard, IconChartArcs3, IconMessages, IconChartAreaLine, IconCalendarEvent, IconDeviceAnalytics, IconUserSquareRounded, IconBell, IconQuestionMark, IconFileBroken, IconCrown, IconChevronDown, IconBrandYoutube } from '@tabler/icons-react';
 
 interface SidebarProps {
     onClose?: () => void;
@@ -18,6 +18,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
 
     const [isExpanded, setIsExpanded] = useState(true);
     const [isHovered, setIsHovered] = useState(false);
+    const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
 
     const routes = [
         {
@@ -33,12 +34,17 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         {
             href: "/trader-community",
             label: "Traders Community",
-            icon: <IconChartArcs3 stroke={2} />
-        },
-        {
-            href: "/reported-issues",
-            label: "Reported Issues",
-            icon: <IconMessages stroke={2} />
+            icon: <IconChartArcs3 stroke={2} />,
+            subLinks: [
+                {
+                    href: "/trader-community/get-all",
+                    label: "All Post",
+                },
+                {
+                    href: "/trader-community/get-my-post",
+                    label: "My Post",
+                },
+            ],
         },
         {
             href: "/live-trade",
@@ -49,6 +55,26 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             href: "/events",
             label: "Events",
             icon: <IconCalendarEvent stroke={2} />
+        },
+        {
+            href: "/youtube",
+            label: "Youtube",
+            icon: <IconBrandYoutube stroke={2} />,
+            subLinks: [
+                {
+                    href: "/youtube/general",
+                    label: "General Vedio",
+                },
+                {
+                    href: "/youtube/tutorial",
+                    label: "Tutorial Vedio",
+                }
+            ]
+        },
+        {
+            href: "/reported-issues",
+            label: "Reported Issues",
+            icon: <IconMessages stroke={2} />
         },
         {
             href: "/referral-request",
@@ -96,6 +122,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         if (!isExpanded) {
             setIsHovered(false);
         }
+    };
+
+    const toggleDropdown = (href: string) => {
+        setOpenDropdowns(prev => ({
+            ...prev,
+            [href]: !prev[href]
+        }));
     };
 
     if (isLoginPage) {
@@ -190,35 +223,89 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                             pathname === route.href ||
                             (pathname.startsWith(route.href) && route.href !== "/");
 
+                        const isDropdownOpen = !!openDropdowns[route.href];
+
                         return (
-                            <Link
-                                key={route.href}
-                                href={route.href}
-                                className={cn(
-                                    "flex items-center py-2 px-3 font-semibold rounded-md transition-all hover:bg-[#353535] hover:text-white whitespace-nowrap",
-                                    isActive ? "bg-[#353535] font-medium text-white" : "text-[#353535]",
-                                )}
-                                onClick={onClose}
-                            >
-                                <div className="flex items-center">
-                                    <div className={cn("flex items-center justify-center w-6 h-6")}>
-                                        {route.icon}
+                            <div key={route.href}>
+                                <Link
+                                    href={route.href}
+                                    className={cn(
+                                        "flex items-center py-2 px-3 font-semibold rounded-md transition-all hover:bg-[#353535] hover:text-white whitespace-nowrap",
+                                        isActive ? "bg-[#353535] font-medium text-white" : "text-[#353535]",
+                                    )}
+                                    onClick={(e) => {
+                                        if (route.subLinks) {
+                                            e.preventDefault();
+                                            toggleDropdown(route.href);
+                                        } else {
+                                            onClose?.();
+                                        }
+                                    }}
+                                >
+                                    <div className="flex items-center">
+                                        <div className={cn("flex items-center justify-center w-6 h-6")}>
+                                            {route.icon}
+                                        </div>
+                                        <AnimatePresence>
+                                            {(isExpanded || isHovered) && (
+                                                <motion.span
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    exit={{ opacity: 0 }}
+                                                    transition={{ duration: 0.2, delay: 0.3 }}
+                                                    className="ml-3"
+                                                >
+                                                    {route.label}
+                                                </motion.span>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
-                                    <AnimatePresence>
-                                        {(isExpanded || isHovered) && (
-                                            <motion.span
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1 }}
-                                                exit={{ opacity: 0 }}
-                                                transition={{ duration: 0.2, delay: 0.3 }}
-                                                className="ml-3"
+                                    {route.subLinks && (isExpanded || isHovered) && (
+                                        <div className="ml-auto">
+                                            <motion.div
+                                                animate={{ rotate: isDropdownOpen ? 180 : 0 }}
+                                                transition={{ duration: 0.3 }}
+                                                className="flex items-center justify-center "
                                             >
-                                                {route.label}
-                                            </motion.span>
+                                                <IconChevronDown size={18} stroke={2} />
+                                            </motion.div>
+                                        </div>
+                                    )}
+                                </Link>
+
+                                {route.subLinks && (
+                                    <AnimatePresence mode="wait">
+                                        {isDropdownOpen && (isExpanded || isHovered) && (
+                                            <motion.div
+                                                key="sublinks-container"
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: "auto", opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                transition={{ duration: 0.3 }}
+                                                className="pl-8 overflow-hidden"
+                                            >
+                                                {route.subLinks.map((subLink) => (
+                                                    <Link
+                                                        key={subLink.href}
+                                                        href={subLink.href}
+                                                        className={cn(
+                                                            "flex items-center py-2 px-3 font-semibold my-1 rounded-md transition-all hover:bg-[#353535] hover:text-white whitespace-nowrap",
+                                                            pathname === subLink.href ? "bg-[#353535] font-medium text-white" : "text-[#353535]",
+                                                        )}
+                                                        onClick={onClose}
+                                                    >
+                                                        <div className="flex items-center">
+                                                            <span className="ml-3">
+                                                                {subLink.label}
+                                                            </span>
+                                                        </div>
+                                                    </Link>
+                                                ))}
+                                            </motion.div>
                                         )}
                                     </AnimatePresence>
-                                </div>
-                            </Link>
+                                )}
+                            </div>
                         );
                     })}
                 </nav>
@@ -233,7 +320,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             >
             </motion.div>
         </>
-
     );
 }
 
