@@ -14,6 +14,7 @@ const YouTubeGeneralClient = () => {
     const router = useRouter();
     const token = Cookies.get('auth_token');
     const [refreshCounter, setRefreshCounter] = useState(0);
+    
 
     useEffect(() => {
         const fetchYouTubeVideos = async () => {
