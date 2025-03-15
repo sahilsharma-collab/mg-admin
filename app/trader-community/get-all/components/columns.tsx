@@ -25,18 +25,18 @@ export interface PostResponse {
     content: string;
     imageUrl: string | null;
     author: {
-      userName: string;
-      imgUrl: string | null;
+        userName: string;
+        imgUrl: string | null;
     };
     createdAt: string;
     updatedAt: string;
     _count: {
-      reactions: number;
-      replies: number;
+        reactions: number;
+        replies: number;
     };
-    reactions: ReactionCount[]; 
+    reactions: ReactionCount[];
     myReaction: Reaction | null;
-  }
+}
 
 export type CommunityPostColumn = {
     id: number;
@@ -128,10 +128,10 @@ export const columns: ColumnDef<CommunityPostColumn>[] = [
             return (
                 <div className="relative h-6 w-8 rounded-md overflow-hidden">
                     {imageUrl ? (
-                        <Image
-                            src={imageUrl || "/Images/no-image.png"}
+                        <img
+                            src={imageUrl}
                             alt={row.original.title || "Post image"}
-                            fill
+                            // fill
                             className="object-cover"
                             sizes="48px"
                         />

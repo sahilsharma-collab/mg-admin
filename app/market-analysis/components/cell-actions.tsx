@@ -14,6 +14,7 @@ import {
 import { MarketAnalysisColumn } from "./columns";
 import { toast } from "react-toastify";
 import Cookies from 'js-cookie';
+import { DeleteConfirmationModal } from "@/components/Modal/DeleteConformationModal";
 
 interface CellActionProps {
     data: MarketAnalysisColumn;
@@ -25,10 +26,11 @@ export const CellAction: React.FC<CellActionProps> = ({
     onDelete,
 }) => {
     const [loading, setLoading] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const router = useRouter();
     const token = Cookies.get('auth_token');
 
-    const onConfirm = async () => {
+    const handleDelete = async () => {
         try {
             setLoading(true);
 
@@ -46,6 +48,7 @@ export const CellAction: React.FC<CellActionProps> = ({
             console.error(error);
         } finally {
             setLoading(false);
+            setIsModalOpen(false);
         }
     };
 
@@ -60,11 +63,7 @@ export const CellAction: React.FC<CellActionProps> = ({
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-[27px] w-[27px] p-0 border-2 rounded-full border-black ">
                         <span className="sr-only">Open menu</span>
-                        {loading ? (
-                            <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                        ) : (
-                            <MoreHorizontal className="h-5 w-5" />
-                        )}
+                        <MoreHorizontal className="h-5 w-5" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -79,12 +78,20 @@ export const CellAction: React.FC<CellActionProps> = ({
                         <Edit className="mr-2 h-4 w-4" /> Update
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                        onClick={() => onConfirm()}
+                        onClick={() => setIsModalOpen(true)}
                     >
                         <Trash className="mr-2 h-4 w-4" /> Delete
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Confirmation Modal */}
+            <DeleteConfirmationModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onConfirm={handleDelete}
+                loading={loading}
+            />
         </>
     );
 };

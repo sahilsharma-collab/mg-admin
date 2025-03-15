@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { IconX, IconLayoutDashboard, IconChartArcs3, IconMessages, IconChartAreaLine, IconCalendarEvent, IconDeviceAnalytics, IconUserSquareRounded, IconBell, IconQuestionMark, IconFileBroken, IconCrown, IconChevronDown, IconBrandYoutube } from '@tabler/icons-react';
+import { IconX, IconLayoutDashboard, IconChartArcs3, IconMessages, IconChartAreaLine, IconCalendarEvent, IconDeviceAnalytics, IconUserSquareRounded, IconBell, IconQuestionMark, IconFileBroken, IconCrown, IconChevronDown, IconBrandYoutube, IconUsers, IconFocus } from '@tabler/icons-react';
 
 interface SidebarProps {
     onClose?: () => void;
@@ -80,6 +80,21 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             href: "/referral-request",
             label: "Referral Requests",
             icon: <IconDeviceAnalytics stroke={2} />
+        },
+        {
+            href: "/community-request",
+            label: "Community Requests",
+            icon: <IconUsers stroke={2} />,
+            subLinks: [
+                {
+                    href: "/community-request/post",
+                    label: "Post Requests",
+                },
+                {
+                    href: "/community-request/reply",
+                    label: "Reply Requests",
+                },
+            ],
         },
         {
             href: "/users",
@@ -217,7 +232,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                 </div>
 
                 {/* Sidebar Links */}
-                <nav className="mt-3 space-y-2 flex-1 overflow-y-scroll scrollbar-none">
+                <nav className="mt-3 space-y-2 flex-1 overflow-y-auto scrollbar-none">
                     {routes.map((route) => {
                         const isActive =
                             pathname === route.href ||
@@ -295,9 +310,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                                                         onClick={onClose}
                                                     >
                                                         <div className="flex items-center">
-                                                            <span className="ml-3">
-                                                                {subLink.label}
-                                                            </span>
+                                                            <IconFocus className="inline-block w-3.5 h-3.5 mr-2" stroke={3}/>
+                                                            {subLink.label}
                                                         </div>
                                                     </Link>
                                                 ))}
@@ -316,7 +330,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                 animate={{
                     width: isExpanded ? "18rem" : "5.3rem",
                 }}
-
             >
             </motion.div>
         </>
