@@ -1,25 +1,25 @@
-"use client";
-import { DataTable } from "@/components/ui/data-table";
-import React, { useEffect, useState } from "react";
-import { columns, EventColumn } from "./columns";
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+"use client"
+import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/ui/data-table';
+import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
-import { CellAction } from "./cell-action";
+import { columns, EventCategoryColumn, EventCategoryResponseColumn } from './columns';
+import { CellAction } from './cell-actions';
 import { Row } from "@tanstack/react-table";
 
-const EventsClient = () => {
-    const [formattedEvents, setFormattedEvents] = useState<EventColumn[]>([]);
+const EventCategoryClient = () => {
+    const [formattedEventCategories, setFormattedEventCategories] = useState<EventCategoryColumn[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const router = useRouter();
     const token = Cookies.get('auth_token');
     const [refreshCounter, setRefreshCounter] = useState(0);
 
     useEffect(() => {
-        const fetchEvents = async () => {
+        const fetchEventCategories = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`${process.env.NEXT_PUBLIC_PROD_URL}/api/event`, {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_PROD_URL}/api/event/category`, {
                     method: "GET",
                     headers: {
                         "Authorization": `Bearer ${token}`,
@@ -32,7 +32,7 @@ const EventsClient = () => {
                 }
 
                 const data = await response.json();
-                console.log("Event Data:", data);
+                console.log("Event Categories Data:", data);
 
                 const formatDateTime = (dateString: string) => {
                     const date = new Date(dateString);
@@ -45,26 +45,26 @@ const EventsClient = () => {
                     return `${formattedDate} ${formattedTime}`;
                 };
 
-                const formattedData: EventColumn[] = data.events.map((event: EventColumn) => ({
-                    id: event.id,
-                    title: event.title,
-                    description: event.description,
-                    currencyPair: event.currencyPair,
-                    date: formatDateTime(event.date),
-                    imgUrl: event.imgUrl,
-                    createdAt: formatDateTime(event.createdAt),
+                const formattedData: EventCategoryColumn[] = data.eventCategory.map((category: EventCategoryResponseColumn) => ({
+                    id: category.id,
+                    title: category.name,
+                    description: category.description,
+                    imgUrl: category.imgUrl,
+                    currencyPair: category.currencyPair,
+                    createdAt: formatDateTime(category.createdAt),
+                    updatedAt: formatDateTime(category.updatedAt),
                 }));
 
-                setFormattedEvents(formattedData);
+                setFormattedEventCategories(formattedData);
             } catch (error) {
-                console.error("Error fetching events:", error);
+                console.error("Error fetching event categories:", error);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchEvents();
-    }, [refreshCounter]);
+        fetchEventCategories();
+    }, [refreshCounter, token]);
 
     const refreshData = () => {
         setRefreshCounter(prev => prev + 1);
@@ -74,7 +74,7 @@ const EventsClient = () => {
         if (col.id === "actions") {
             return {
                 ...col,
-                cell: ({ row }: { row: Row<EventColumn> }) => (
+                cell: ({ row }: { row: Row<EventCategoryColumn> }) => (
                     <CellAction data={row.original} onDelete={refreshData} />
                 ),
             };
@@ -88,15 +88,15 @@ const EventsClient = () => {
                 redirectUrl=""
                 searchKey="title"
                 columns={columnsWithRefresh}
-                data={formattedEvents}
+                data={formattedEventCategories}
                 loading={loading}
-                title={<h1 className="text-xl font-semibold">Events List</h1>}
+                title={<h1 className="text-xl font-semibold">Event Categories</h1>}
                 actionButton={
                     <Button
-                        onClick={() => router.push(`/events/new`)}
-                        className="bg-[#0ABAB5] rounded-full px-6 hover:bg-[#089e99] transition-colors"
+                        onClick={() => router.push(`/events/event-category/new`)}
+                        className="bg-[#0ABAB5] rounded-full px-6 hover:bg-[#089e99] transition-colors dark:text-white"
                     >
-                        Add Event
+                        Add Event Category
                     </Button>
                 }
             />
@@ -104,4 +104,4 @@ const EventsClient = () => {
     );
 };
 
-export default EventsClient;
+export default EventCategoryClient;

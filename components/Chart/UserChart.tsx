@@ -1,4 +1,5 @@
 "use client"
+import { useTheme } from '@/context/theme-context';
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -118,8 +119,10 @@ const CustomCursor: React.FC<CustomCursorProps> = (props) => {
 };
 
 const UserChart: React.FC = () => {
+    const { theme } = useTheme();
+
     return (
-        <div style={{ width: '100%', height: 450 }} className='bg-[#4A87D833] border border-[#00000033] py-3 rounded-2xl'>
+        <div style={{ width: '100%', height: 450 }} className='bg-[#4A87D833] border dark:border-[#FFFFFF33] border-[#00000033] py-3 rounded-2xl'>
             {/* custom legend */}
             <div className="flex flex-wrap gap-4 ml-10 my-4">
                 <div className="flex items-center">
@@ -149,9 +152,27 @@ const UserChart: React.FC = () => {
                         bottom: 50,
                     }}
                 >
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-                    <XAxis dataKey="month" tick={{ fill: 'black' }} axisLine={{ stroke: 'black' }} />
-                    <YAxis tick={{ fill: 'black' }} axisLine={{ stroke: 'black' }} />
+                    <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke={theme === 'dark' ? 'rgba(179, 165, 198, 0.2)' : 'rgba(0, 0, 0, 0.1)'}
+                    />
+                    <XAxis
+                        dataKey="month"
+                        tick={{
+                            fill: theme === 'dark' ? '#B3A5C6' : 'black'
+                        }}
+                        axisLine={{
+                            stroke: theme === 'dark' ? '#B3A5C6' : 'black'
+                        }}
+                    />
+                    <YAxis
+                        tick={{
+                            fill: theme === 'dark' ? '#B3A5C6' : 'black'
+                        }}
+                        axisLine={{
+                            stroke: theme === 'dark' ? '#B3A5C6' : 'black'
+                        }}
+                    />
                     <Tooltip
                         content={<CustomTooltip />}
                         cursor={<CustomCursor />}

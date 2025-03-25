@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { IconX, IconLayoutDashboard, IconChartArcs3, IconMessages, IconChartAreaLine, IconCalendarEvent, IconDeviceAnalytics, IconUserSquareRounded, IconBell, IconQuestionMark, IconFileBroken, IconCrown, IconChevronDown, IconBrandYoutube, IconUsers, IconFocus } from '@tabler/icons-react';
+import { useTheme } from "@/context/theme-context";
 
 interface SidebarProps {
     onClose?: () => void;
@@ -15,10 +16,10 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     const pathname = usePathname();
     const isLoginPage = pathname === '/login';
-
     const [isExpanded, setIsExpanded] = useState(true);
     const [isHovered, setIsHovered] = useState(false);
     const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
+    const { theme } = useTheme();
 
     const routes = [
         {
@@ -54,7 +55,17 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         {
             href: "/events",
             label: "Events",
-            icon: <IconCalendarEvent stroke={2} />
+            icon: <IconCalendarEvent stroke={2} />,
+            subLinks: [
+                {
+                    href: "/events/all-event",
+                    label: "All Events",
+                },
+                {
+                    href: "/events/event-category",
+                    label: "Event Category",
+                },
+            ],
         },
         {
             href: "/youtube",
@@ -154,7 +165,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         <>
             <motion.aside
                 className={cn(
-                    "h-screen bg-[#DBE7F7] text-white p-4 flex flex-col transition-all shadow-xl border fixed z-10",
+                    "h-screen bg-[#DBE7F7] dark:bg-[#191E49] text-white p-4 flex flex-col transition-all shadow-xl border fixed z-10",
                 )}
                 animate={{
                     width: isExpanded ? "18rem" : isHovered ? "18rem" : "5.5rem",
@@ -168,7 +179,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                         <Link href="/">
                             <div className="flex items-center">
                                 <Image
-                                    src="/Images/logo.svg"
+                                    src={theme === 'dark' ? "/Images/logo-dark.png" : "/Images/logo.svg"}
                                     height={40}
                                     width={40}
                                     alt="logo"
@@ -184,7 +195,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                                         className="overflow-hidden"
                                     >
                                         <Image
-                                            src="/Images/logo-text.svg"
+                                            src={theme === 'dark' ? "/Images/logo-text-dark.png" : "/Images/logo-text.svg"}
                                             height={80}
                                             width={80}
                                             alt="logo-text"
@@ -209,24 +220,26 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                             {/* Toggle Button */}
                             <button
                                 onClick={toggleSidebar}
-                                className="mt-1 w-4 h-4 rounded-full border-[#353535] border-2 flex items-center justify-center self-end cursor-pointer"
+                                className="mt-1 w-4 h-4 rounded-full border-[#353535] dark:bg-[#191E49] dark:border-[#B3A5C6] border-2 flex items-center justify-center self-end cursor-pointer"
                             >
                                 <motion.div
                                     animate={{
                                         scale: isExpanded ? 0.8 : 1,
-                                        backgroundColor: isExpanded ? "#353535" : "#DBE7F7",
+                                        backgroundColor: isExpanded
+                                            ? (theme === 'dark' ? "#B3A5C6" : "#353535")
+                                            : (theme === 'dark' ? "#121212" : "#DBE7F7"),
                                     }}
                                     transition={{
                                         duration: 0.3,
                                     }}
-                                    className="w-2 h-2 rounded-full bg-[#353535]"
+                                    className="w-2 h-2 rounded-full dark:bg-[#B3A5C6] bg-[#353535]"
                                 />
                             </button>
                         </motion.div>
                     )}
 
                     <IconX
-                        className="h-6 w-6 cursor-pointer text-gray-700 block xl:hidden"
+                        className="h-6 w-6 cursor-pointer text-gray-700 dark:text-[#B3A5C6] block xl:hidden"
                         onClick={onClose}
                     />
                 </div>
@@ -245,8 +258,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                                 <Link
                                     href={route.href}
                                     className={cn(
-                                        "flex items-center py-2 px-3 font-semibold rounded-md transition-all hover:bg-[#353535] hover:text-white whitespace-nowrap",
-                                        isActive ? "bg-[#353535] font-medium text-white" : "text-[#353535]",
+                                        "flex items-center py-2 px-3 font-semibold rounded-md transition-all hover:bg-[#353535] dark:hover:bg-[#B3A5C6] hover:text-white dark:hover:text-[#191E49] dark:text-[#B3A5C6] whitespace-nowrap",
+                                        isActive ? "bg-[#353535] dark:bg-[#B3A5C6] font-medium dark:text-[#191E49] text-white" : "text-[#353535]",
                                     )}
                                     onClick={(e) => {
                                         if (route.subLinks) {
@@ -304,13 +317,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                                                         key={subLink.href}
                                                         href={subLink.href}
                                                         className={cn(
-                                                            "flex items-center py-2 px-3 font-semibold my-1 rounded-md transition-all hover:bg-[#353535] hover:text-white whitespace-nowrap",
-                                                            pathname === subLink.href ? "bg-[#353535] font-medium text-white" : "text-[#353535]",
+                                                            "flex items-center py-2 px-3 font-semibold my-1 rounded-md transition-all hover:bg-[#353535] dark:hover:bg-[#B3A5C6] hover:text-white dark:hover:text-[#191E49] whitespace-nowrap",
+                                                            pathname === subLink.href ? "bg-[#353535] dark:bg-[#B3A5C6] font-medium text-white dark:text-[#191E49]" : "text-[#353535] dark:text-[#B3A5C6]",
                                                         )}
                                                         onClick={onClose}
                                                     >
                                                         <div className="flex items-center">
-                                                            <IconFocus className="inline-block w-3.5 h-3.5 mr-2" stroke={3}/>
+                                                            <IconFocus className="inline-block w-3.5 h-3.5 mr-2" stroke={3} />
                                                             {subLink.label}
                                                         </div>
                                                     </Link>

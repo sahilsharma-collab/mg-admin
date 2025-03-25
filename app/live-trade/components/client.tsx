@@ -94,7 +94,7 @@ const LiveTradeClient = () => {
                 actionButton={
                     <Button
                         onClick={() => router.push(`/live-trade/new`)}
-                        className="bg-[#0ABAB5] rounded-full px-6 hover:bg-[#089e99] transition-colors"
+                        className="bg-[#0ABAB5] rounded-full px-6 hover:bg-[#089e99] transition-colors dark:text-white"
                     >
                         Add Live Trade
                     </Button>

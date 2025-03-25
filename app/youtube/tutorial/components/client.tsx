@@ -78,7 +78,7 @@ const YouTubeTutorialClient = () => {
                 actionButton={
                     <Button
                         onClick={() => router.push(`/youtube/tutorial/new`)}
-                        className="bg-[#0ABAB5] rounded-full px-6 hover:bg-[#089e99] transition-colors"
+                        className="bg-[#0ABAB5] rounded-full px-6 hover:bg-[#089e99] transition-colors dark:text-white"
                     >
                         Add Tutorial YouTube Video
                     </Button>

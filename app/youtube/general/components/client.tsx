@@ -79,7 +79,7 @@ const YouTubeGeneralClient = () => {
                 actionButton={
                     <Button
                         onClick={() => router.push(`/youtube/general/new`)}
-                        className="bg-[#0ABAB5] rounded-full px-6 hover:bg-[#089e99] transition-colors"
+                        className="bg-[#0ABAB5] rounded-full px-6 hover:bg-[#089e99] transition-colors dark:text-white"
                     >
                         Add General YouTube Video
                     </Button>

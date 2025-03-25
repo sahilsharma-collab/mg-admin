@@ -1,7 +1,6 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-// import { CellAction } from "./cell-actions";
 import {
     Select,
     SelectTrigger,
@@ -9,6 +8,7 @@ import {
     SelectContent,
     SelectItem,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { useState } from "react";
@@ -41,13 +41,17 @@ export type ReferralRequestColumn = {
     userEmail: string;
     userExnessId: string;
     exnessVerified: boolean;
+    isSelected?: boolean;
 };
 
-// Create a separate component for the status cell
-const StatusCell = ({ value, userId, refreshData }: { 
-    value: string, 
-    userId: number, 
-    refreshData: () => void 
+const StatusCell = ({
+    value,
+    requestId,
+    refreshData
+}: {
+    value: string,
+    requestId: number,
+    refreshData: () => void
 }) => {
     const [isUpdating, setIsUpdating] = useState(false);
     const token = Cookies.get('auth_token');
@@ -55,10 +59,12 @@ const StatusCell = ({ value, userId, refreshData }: {
     const handleStatusChange = async (newStatus: string) => {
         try {
             setIsUpdating(true);
-            // Call the API to update the status
             await axios.post(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/exness/verify?userId=${userId}`,
-                // { status: newStatus },
+                `${process.env.NEXT_PUBLIC_PROD_URL}/api/exness/verify`,
+                {
+                    requestId: requestId,
+                    status: newStatus
+                },
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -67,10 +73,10 @@ const StatusCell = ({ value, userId, refreshData }: {
                 }
             );
 
-            toast.success(`Status updated to ${newStatus}.`);
+            toast.success(`Status updated to ${newStatus}`);
             refreshData();
         } catch (error) {
-            toast.error("Failed to update status.");
+            toast.error("Failed to update status");
             console.error(error);
         } finally {
             setIsUpdating(false);
@@ -116,38 +122,91 @@ const StatusCell = ({ value, userId, refreshData }: {
     );
 };
 
-export const Columns = (refreshData: () => void): ColumnDef<ReferralRequestColumn>[] => [
-    {
-        accessorKey: "exnessId",
-        header: "Exness ID",
-    },
-    {
-        accessorKey: "userName",
-        header: "User Name",
-    },
-    {
-        accessorKey: "userEmail",
-        header: "User Email",
-    },
-    {
-        accessorKey: "userExnessId",
-        header: "User Exness ID",
-    },
-    {
-        accessorKey: "exnessVerified",
-        header: "Exness Verified",
-    },
-    {
-        accessorKey: "status",
-        header: "Status",
-        cell: ({ row }) => {
-            return (
-                <StatusCell 
+export const Columns = (
+    refreshData: () => void,
+    selectedRowIds: number[],
+    setSelectedRowIds: (ids: number[]) => void
+): ColumnDef<ReferralRequestColumn>[] => [
+        {
+            id: "select",
+            header: ({ table }) => {
+                const pageRowIds = table.getRowModel().rows.map(row => row.original.id);
+                const allPageRowsSelected = pageRowIds.every(id => selectedRowIds.includes(id));
+
+                return (
+                    <Checkbox
+                        checked={allPageRowsSelected && pageRowIds.length > 0}
+                        indeterminate={
+                            selectedRowIds.some(id => pageRowIds.includes(id)) &&
+                            !allPageRowsSelected
+                        }
+                        onCheckedChange={(value) => {
+                            table.toggleAllPageRowsSelected(!!value);
+                            if (!!value) {
+                                // Add all page row IDs to selected rows
+                                setSelectedRowIds([...new Set([...selectedRowIds, ...pageRowIds])]);
+                            } else {
+                                // Remove current page row IDs from selected rows
+                                setSelectedRowIds(selectedRowIds.filter(id => !pageRowIds.includes(id)));
+                            }
+                        }}
+                        aria-label="Select all"
+                        className="translate-y-[2px]"
+                    />
+                );
+            },
+            cell: ({ row }) => (
+                <Checkbox
+                    checked={selectedRowIds.includes(row.original.id)}
+                    onCheckedChange={(value) => {
+                        row.toggleSelected(!!value);
+                        if (!!value) {
+                            setSelectedRowIds([...new Set([...selectedRowIds, row.original.id])]);
+                        } else {
+                            setSelectedRowIds(selectedRowIds.filter(id => id !== row.original.id));
+                        }
+                    }}
+                    aria-label="Select row"
+                    className="translate-y-[2px]"
+                />
+            ),
+            enableSorting: false,
+            enableHiding: false,
+        },
+        {
+            accessorKey: "exnessId",
+            header: "Exness ID",
+        },
+        {
+            accessorKey: "userName",
+            header: "User Name",
+        },
+        {
+            accessorKey: "userEmail",
+            header: "User Email",
+        },
+        {
+            accessorKey: "userExnessId",
+            header: "User Exness ID",
+        },
+        {
+            accessorKey: "exnessVerified",
+            header: "Exness Verified",
+            cell: ({ row }) => (
+                <div className="capitalize">
+                    {row.original.exnessVerified ? "Verified" : "Not Verified"}
+                </div>
+            ),
+        },
+        {
+            accessorKey: "status",
+            header: "Status",
+            cell: ({ row }) => (
+                <StatusCell
                     value={row.original.status}
-                    userId={row.original.userId}
+                    requestId={row.original.id}
                     refreshData={refreshData}
                 />
-            );
-        },
-    },
-];
+            ),
+        }
+    ];

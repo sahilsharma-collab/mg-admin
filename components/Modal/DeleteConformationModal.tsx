@@ -31,7 +31,7 @@ export const DeleteConfirmationModal: React.FC<ConfirmationModalProps> = ({
                         initial={{ scale: 0.8 }}
                         animate={{ scale: 1 }}
                         exit={{ scale: 0.8 }}
-                        className="bg-white p-6 rounded-lg shadow-lg w-[90%] max-w-md"
+                        className="bg-white dark:bg-black p-6 rounded-lg shadow-lg w-[90%] max-w-md"
                     >
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-2">
@@ -40,7 +40,7 @@ export const DeleteConfirmationModal: React.FC<ConfirmationModalProps> = ({
                             </div>
                             <button
                                 onClick={onClose}
-                                className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                                className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                             >
                                 <X className="h-5 w-5" />
                             </button>
