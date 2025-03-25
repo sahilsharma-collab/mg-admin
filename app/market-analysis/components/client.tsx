@@ -94,7 +94,7 @@ const MarketAnalysisClient = () => {
                 actionButton={
                     <Button
                         onClick={() => router.push(`/market-analysis/new`)}
-                        className="bg-[#0ABAB5] rounded-full px-6 hover:bg-[#089e99] transition-colors"
+                        className="bg-[#0ABAB5] rounded-full px-6 hover:bg-[#089e99] transition-colors dark:text-white"
                     >
                         Add Market Analysis
                     </Button>

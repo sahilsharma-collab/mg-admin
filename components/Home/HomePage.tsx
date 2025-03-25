@@ -28,31 +28,31 @@ const HomePage = () => {
                     </div>
                 ) : (
                     <>
-                        <div className='bg-[#4A87D833] border border-[#00000033] p-3 rounded-2xl space-y-4'>
+                        <div className='bg-[#4A87D833] border border-[#00000033] dark:border-[#FFFFFF33] p-3 rounded-2xl space-y-4'>
                             <span className='flex justify-between'>
-                                <h2 className='font-medium'>Total Users</h2>
-                                <IconUsers stroke={2} />
+                                <h2 className='font-medium dark:text-[#B3A5C6]'>Total Users</h2>
+                                <IconUsers stroke={2} className='dark:text-[#B3A5C6]'/>
                             </span>
                             <p className='font-semibold text-3xl'>14273</p>
                         </div>
-                        <div className='bg-[#4A87D833] border border-[#00000033] p-3 rounded-2xl space-y-4'>
+                        <div className='bg-[#4A87D833] border border-[#00000033] dark:border-[#FFFFFF33] p-3 rounded-2xl space-y-4'>
                             <span className='flex justify-between'>
-                                <h2 className='font-medium'>Active Users</h2>
-                                <IconUserBolt stroke={2} />
+                                <h2 className='font-medium dark:text-[#B3A5C6]'>Active Users</h2>
+                                <IconUserBolt stroke={2} className='dark:text-[#B3A5C6]'/>
                             </span>
                             <p className='font-semibold text-3xl'>14273</p>
                         </div>
-                        <div className='bg-[#4A87D833] border border-[#00000033] p-3 rounded-2xl space-y-4'>
+                        <div className='bg-[#4A87D833] border border-[#00000033] dark:border-[#FFFFFF33] p-3 rounded-2xl space-y-4'>
                             <span className='flex justify-between'>
-                                <h2 className='font-medium'>Approved Users</h2>
-                                <IconUserCheck stroke={2} />
+                                <h2 className='font-medium dark:text-[#B3A5C6]'>Approved Users</h2>
+                                <IconUserCheck stroke={2} className='dark:text-[#B3A5C6]'/>
                             </span>
                             <p className='font-semibold text-3xl'>14273</p>
                         </div>
-                        <div className='bg-[#4A87D833] border border-[#00000033] p-3 rounded-2xl space-y-4'>
+                        <div className='bg-[#4A87D833] border border-[#00000033] dark:border-[#FFFFFF33] p-3 rounded-2xl space-y-4'>
                             <span className='flex justify-between'>
-                                <h2 className='font-medium'>Guest Users</h2>
-                                <IconUserExclamation stroke={2} />
+                                <h2 className='font-medium dark:text-[#B3A5C6]'>Guest Users</h2>
+                                <IconUserExclamation stroke={2} className='dark:text-[#B3A5C6]'/>
                             </span>
                             <p className='font-semibold text-3xl'>14273</p>
                         </div>

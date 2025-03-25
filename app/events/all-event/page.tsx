@@ -1,10 +1,10 @@
 import React from 'react'
-import EventsClient from './components/client'
+import EventClient from './components/client'
 
 const EventPage = () => {
     return (
         <div>
-            <EventsClient />
+            <EventClient />
         </div>
     )
 }

@@ -1,25 +1,22 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { CellAction } from "./cell-action";
 import Image from "next/image";
 import { Tooltip, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { CellAction } from "./cell-actions";
 
 export type EventColumn = {
     id: number;
     title: string;
     description: string;
     date: string;
+    imgUrl: string | null;
     currencyPair: string;
-    imgUrl: string;
     createdAt: string;
+    updatedAt: string;
 };
 
 export const columns: ColumnDef<EventColumn>[] = [
-    // {
-    //     accessorKey: "id",
-    //     header: "ID",
-    // },
     {
         accessorKey: "title",
         header: "Title",
@@ -43,6 +40,14 @@ export const columns: ColumnDef<EventColumn>[] = [
         }
     },
     {
+        accessorKey: "date",
+        header: "Date & Time",
+    },
+    {
+        accessorKey: "currencyPair",
+        header: "Currency Pair",
+    },
+    {
         accessorKey: "imgUrl",
         header: "Image",
         cell: ({ row }) => {
@@ -51,7 +56,7 @@ export const columns: ColumnDef<EventColumn>[] = [
                 <div className="relative h-6 w-8 rounded-md overflow-hidden">
                     {imgUrl ? (
                         <Image
-                            src={imgUrl}
+                            src={imgUrl || "/Images/no-image.png"}
                             alt={row.original.title || "Event image"}
                             fill
                             className="object-cover"
@@ -66,18 +71,6 @@ export const columns: ColumnDef<EventColumn>[] = [
             );
         }
     },
-    {
-        accessorKey: "currencyPair",
-        header: "Currency Pair",
-    },
-    {
-        accessorKey: "date",
-        header: "Event Date",
-    },
-    // {
-    //     accessorKey: "createdAt",
-    //     header: "Created Date",
-    // },
     {
         header: "Actions",
         id: "actions",

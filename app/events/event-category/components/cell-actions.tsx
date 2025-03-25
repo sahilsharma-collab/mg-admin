@@ -11,13 +11,13 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { EventColumn } from "./columns";
+import { EventCategoryColumn } from "./columns";
 import { toast } from "react-toastify";
 import Cookies from 'js-cookie';
 import { DeleteConfirmationModal } from "@/components/Modal/DeleteConformationModal";
 
 interface CellActionProps {
-    data: EventColumn;
+    data: EventCategoryColumn;
     onDelete: () => void;
 }
 
@@ -34,17 +34,17 @@ export const CellAction: React.FC<CellActionProps> = ({
         try {
             setLoading(true);
 
-            await axios.delete(`${process.env.NEXT_PUBLIC_PROD_URL}/api/event/${data.id}`, {
+            await axios.delete(`${process.env.NEXT_PUBLIC_PROD_URL}/api/event/category/${data.id}`, {
                 headers: {
                     "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/json",
                 }
             });
 
-            toast.success('Event deleted successfully.');
+            toast.success('Event category deleted successfully.');
             onDelete();
         } catch (error) {
-            toast.error('Failed to delete event.');
+            toast.error('Failed to delete event category.');
             console.error(error);
         } finally {
             setLoading(false);
@@ -54,14 +54,14 @@ export const CellAction: React.FC<CellActionProps> = ({
 
     const onCopy = (id: string) => {
         navigator.clipboard.writeText(id);
-        toast.success('Event ID copied to clipboard.');
+        toast.success('Event category ID copied to clipboard.');
     }
 
     return (
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-[27px] w-[27px] p-0 border-2 rounded-full border-black ">
+                    <Button variant="ghost" className="h-[27px] w-[27px] p-0 border-2 rounded-full border-black dark:border-[#B3A5C6] dark:text-[#B3A5C6]">
                         <span className="sr-only">Open menu</span>
                         <MoreHorizontal className="h-5 w-5" />
                     </Button>
@@ -73,7 +73,7 @@ export const CellAction: React.FC<CellActionProps> = ({
                         <Copy className="mr-2 h-4 w-4" /> Copy Id
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                        onClick={() => router.push(`/events/${data.id}`)}
+                        onClick={() => router.push(`/events/event-category/${data.id}`)}
                     >
                         <Edit className="mr-2 h-4 w-4" /> Update
                     </DropdownMenuItem>

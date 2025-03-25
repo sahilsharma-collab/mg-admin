@@ -161,20 +161,20 @@ export function DataTable<TData, TValue>({
                     onChange={(event) =>
                         table.getColumn(searchKey)?.setFilterValue(event.target.value)
                     }
-                    className="max-w-sm rounded-lg border bg-card text-card-foreground shadow-sm"
+                    className="max-w-sm rounded-lg border bg-card text-card-foreground shadow-sm dark:bg-[#8080804D]"
                 />
             </div>
 
             {/* Header with title, dropdown and action button */}
-            <div className="bg-[#DBE7F7] p-4 rounded-t-lg flex flex-col  mb-0 border-t border-x border-[#00000033]">
+            <div className="bg-[#DBE7F7] dark:bg-[#4A87D833] dark:border-[#FFFFFF33] p-4 rounded-t-lg flex flex-col  mb-0 border-t border-x border-[#00000033]">
                 <div className="flex items-center space-x-2 justify-between">
                     {title && <div>{title}</div>}
                     {actionButton && <div>{actionButton}</div>}
                 </div>
                 <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2 border-[#00000033] rounded-full mt-3 border">
+                    <div className="flex items-center space-x-2 border-[#00000033] dark:border-[#0ABAB533] rounded-full mt-3 border">
                         <Select value={rowsPerPage === filteredRows ? "All" : rowsPerPage.toString()} onValueChange={handleRowsPerPageChange}>
-                            <SelectTrigger className="w-[4.5rem] h-8 border-none shadow-none bg-[#0ABAB533] rounded-full">
+                            <SelectTrigger className="w-[4.5rem] h-8 border-none shadow-none bg-[#0ABAB533] dark:border-[#0ABAB533] rounded-full">
                                 <SelectValue placeholder="10" />
                             </SelectTrigger>
                             <SelectContent>
@@ -190,14 +190,14 @@ export function DataTable<TData, TValue>({
             </div>
 
             {/* Table */}
-            <div className="bg-[#DBE7F7] border-x border-[#00000033] max-w-[calc(100vw-30px)] md:max-w-[calc(100vw-80px)] lg:max-w-full">
+            <div className="bg-[#DBE7F7] dark:bg-[#4A87D833] dark:border-[#FFFFFF33] border-x border-[#00000033] max-w-[calc(100vw-30px)] md:max-w-[calc(100vw-80px)] lg:max-w-full">
                 <Table className="">
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => {
                                     return (
-                                        <TableHead key={header.id} className="text-black first:pl-5 last:pr-5 ">
+                                        <TableHead key={header.id} className="text-black dark:text-[#B3A5C6] first:pl-5 last:pr-5 ">
                                             {header.isPlaceholder
                                                 ? null
                                                 : flexRender(
@@ -231,7 +231,7 @@ export function DataTable<TData, TValue>({
                                     className="hover:cursor-pointer"
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id} className="first:pl-5 last:pr-5 border-y border-[#00000033]">
+                                        <TableCell key={cell.id} className="first:pl-5 last:pr-5 border-y dark:border-[#FFFFFF33] border-[#00000033]">
                                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                         </TableCell>
                                     ))}
@@ -249,7 +249,7 @@ export function DataTable<TData, TValue>({
             </div>
 
             {/* Pagination footer */}
-            <div className="flex items-center justify-between py-4 px-4 bg-[#DBE7F7] rounded-b-2xl border-x border-b border-[#00000033]">
+            <div className="flex items-center justify-between py-4 px-4 bg-[#DBE7F7] dark:bg-[#4A87D833] dark:border-[#FFFFFF33] rounded-b-2xl border-x border-b border-[#00000033]">
                 {/* Entry information */}
                 <div className="text-sm px-1 font-medium">
                     Showing {startEntry} to {endEntry} of {filteredRows} entries
@@ -258,7 +258,7 @@ export function DataTable<TData, TValue>({
                 {/* Pagination controls */}
                 <div className="flex items-center space-x-2">
                     <div
-                        className={`flex items-center justify-center w-8 h-8 rounded-full  ${!table.getCanPreviousPage() ? 'bg-[#353535] text-white cursor-not-allowed' : 'bg-[#0ABAB5] hover:bg-[#089e99] transition-colors duration-200 cursor-pointer text-white'
+                        className={`flex items-center justify-center w-8 h-8 rounded-full  ${!table.getCanPreviousPage() ? 'bg-[#353535]  text-white cursor-not-allowed' : 'bg-[#0ABAB5] hover:bg-[#089e99] transition-colors duration-200 cursor-pointer text-white'
                             }`}
                         onClick={() => {
                             if (table.getCanPreviousPage()) {
@@ -279,7 +279,7 @@ export function DataTable<TData, TValue>({
                                     key={index}
                                     className={`flex items-center justify-center w-8 h-8 cursor-pointer text-sm ${pageNumber === currentPage
                                         ? 'bg-[#0ABAB5] text-white rounded-sm hover:bg-[#089e99] duration-200 transition-all'
-                                        : 'hover:bg-gray-100 rounded-sm border border-black'
+                                        : 'hover:bg-gray-100 dark:hover:bg-gray-600 rounded-sm border border-black dark:border-[#B3A5C6]'
                                         }`}
                                     onClick={() => goToPage(pageNumber)}
                                 >

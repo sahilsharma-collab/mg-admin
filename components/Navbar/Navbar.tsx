@@ -5,6 +5,7 @@ import { IconBellFilled, IconMenu2 } from '@tabler/icons-react';
 import { cn } from "@/lib/utils";
 import Sidebar from '../Sidebar/Sidebar';
 import { usePathname } from 'next/navigation';
+import { ThemeToggle } from './ThemeToggleButton';
 
 const Navbar = () => {
     const pathname = usePathname();
@@ -24,12 +25,13 @@ const Navbar = () => {
             <section className='w-full flex justify-between xl:justify-end pt-4 px-4 md:px-10'>
                 <div className='flex items-center xl:hidden'>
                     <IconMenu2
-                        className="h-7 w-7 cursor-pointer text-gray-700"
+                        className="h-7 w-7 cursor-pointer text-gray-700 dark:text-[#B3A5C6]"
                         onClick={toggleMobileSidebar}
                     />
                 </div>
                 <div className='flex gap-4 items-center'>
-                    <IconBellFilled className="h-8 w-8" />
+                    <ThemeToggle />
+                    <IconBellFilled className="h-8 w-8 dark:text-[#B3A5C6]" />
                     <div className='h-6 md:h-7 w-6 md:w-7 bg-gray-300 rounded-full'></div>
                 </div>
             </section>

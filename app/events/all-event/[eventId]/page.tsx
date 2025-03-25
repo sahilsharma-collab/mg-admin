@@ -1,5 +1,5 @@
 import React from 'react'
-import EventForm from '../form/event-form'
+import EventForm from '../form/event-form';
 
 type Props = {
     params: Promise<{ eventId: string }>
