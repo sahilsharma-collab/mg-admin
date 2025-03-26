@@ -91,6 +91,7 @@ export const CellAction: React.FC<CellActionProps> = ({
                 onClose={() => setIsModalOpen(false)}
                 onConfirm={handleDelete}
                 loading={loading}
+                warningNote="Deleting this category will also remove all associated event permanently."
             />
         </>
     );
