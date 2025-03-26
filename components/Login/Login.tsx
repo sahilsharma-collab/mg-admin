@@ -61,7 +61,7 @@ const Login = () => {
     };
 
     return (
-        <main className='flex h-screen w-full'>
+        <main className='flex h-screen w-full dark:text-black'>
             <section className='hidden md:block lg:w-[65vw] h-full relative'>
                 <Image
                     src={"https://booming-bulls.s3.ap-south-1.amazonaws.com/uploads/f9eabd3d-74f1-4457-a112-5c9a29d448b5.jpg"}

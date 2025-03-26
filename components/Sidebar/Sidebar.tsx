@@ -74,11 +74,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             subLinks: [
                 {
                     href: "/youtube/general",
-                    label: "General Vedio",
+                    label: "General Video",
                 },
                 {
                     href: "/youtube/tutorial",
-                    label: "Tutorial Vedio",
+                    label: "Tutorial Video",
                 }
             ]
         },
