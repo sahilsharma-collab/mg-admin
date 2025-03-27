@@ -1,8 +1,7 @@
 "use client";
 
-import axios from "axios";
-import { Copy, MoreHorizontal, Trash } from "lucide-react";
 import { useState } from "react";
+import { MoreHorizontal, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -11,50 +10,18 @@ import {
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { UserColumn } from "./columns";
-import { toast } from "react-toastify";
-import Cookies from 'js-cookie';
-import { DeleteConfirmationModal } from "@/components/Modal/DeleteConformationModal";
+import { RoleUpdateModal } from "./RoleUpdateModal";
 
 interface CellActionProps {
     data: UserColumn;
-    onDelete: () => void;
+    onSuccess: () => void;
 }
 
 export const CellAction: React.FC<CellActionProps> = ({
     data,
-    onDelete,
+    onSuccess,
 }) => {
-    const [loading, setLoading] = useState(false);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const token = Cookies.get('auth_token');
-
-    const handleDelete = async () => {
-        try {
-            setLoading(true);
-
-            // Call the API to delete the video
-            await axios.delete(`${process.env.NEXT_PUBLIC_PROD_URL}/api/video/${data.id}`, {
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                }
-            });
-
-            toast.success('YouTube video deleted successfully.');
-            onDelete();
-        } catch (error) {
-            toast.error('Failed to delete YouTube video.');
-            console.error(error);
-        } finally {
-            setLoading(false);
-            setIsModalOpen(false);
-        }
-    };
-
-    const onCopy = (videoId: string) => {
-        navigator.clipboard.writeText(videoId);
-        toast.success('YouTube ID copied to clipboard.');
-    };
+    const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
 
     return (
         <>
@@ -66,25 +33,18 @@ export const CellAction: React.FC<CellActionProps> = ({
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                        onClick={() => onCopy(data.id)}
-                    >
-                        <Copy className="mr-2 h-4 w-4" /> Copy Video ID
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                        onClick={() => setIsModalOpen(true)}
-                    >
-                        <Trash className="mr-2 h-4 w-4" /> Delete
+                    <DropdownMenuItem onClick={() => setIsRoleModalOpen(true)}>
+                        <UserCog className="mr-2 h-4 w-4" /> Change Role
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Confirmation Modal */}
-            <DeleteConfirmationModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onConfirm={handleDelete}
-                loading={loading}
+            {/* Use your separate modal component */}
+            <RoleUpdateModal
+                isOpen={isRoleModalOpen}
+                onClose={() => setIsRoleModalOpen(false)}
+                user={data}
+                onSuccess={onSuccess}
             />
         </>
     );

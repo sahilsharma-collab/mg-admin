@@ -21,7 +21,7 @@ const Login = () => {
     const onSubmit = async (data: FormValues) => {
         try {
             setIsLoading(true);
-
+    
             const response = await axios.post(
                 `${process.env.NEXT_PUBLIC_PROD_URL}/api/auth/login`,
                 {
@@ -34,24 +34,35 @@ const Login = () => {
                     }
                 }
             );
-
+    
             if (response.data.success) {
                 Cookies.set('auth_token', response.data.token, {
                     expires: 30,
                     path: '/'
                 });
-
+    
                 toast.success(response.data.message || 'Logged in successfully');
-
+    
                 router.push('/');
             } else {
-                toast.error(response.data.message || 'Login failed');
+                // Handle case where success is false
+                const errorMessage = 
+                    response.data.errors?.password || 
+                    response.data.message || 
+                    'Login failed';
+                
+                toast.error(errorMessage);
             }
         } catch (error) {
             console.error('Login error:', error);
-
+    
             if (axios.isAxiosError(error) && error.response) {
-                toast.error(error.response.data.message || 'Login failed. Please try again.');
+                const errorMessage = 
+                    error.response.data.errors?.password || 
+                    error.response.data.message || 
+                    'Login failed. Please try again.';
+                
+                toast.error(errorMessage);
             } else {
                 toast.error('Something went wrong. Please try again.');
             }
