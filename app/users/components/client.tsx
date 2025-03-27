@@ -49,18 +49,18 @@ const UserDataClient = () => {
         };
 
         fetchUsers();
-    }, [refreshCounter]);
+    }, [refreshCounter, token]);
 
     const refreshData = () => {
         setRefreshCounter(prev => prev + 1);
     };
 
-    const columnsWithRefresh = columns.map(col => {
+    const columnsWithActions = columns.map(col => {
         if (col.id === "actions") {
             return {
                 ...col,
                 cell: ({ row }: { row: Row<UserColumn> }) => (
-                    <CellAction data={row.original} onDelete={refreshData} />
+                    <CellAction data={row.original} onSuccess={refreshData} />
                 ),
             };
         }
@@ -72,7 +72,7 @@ const UserDataClient = () => {
             <DataTable
                 redirectUrl=""
                 searchKey="email"
-                columns={columnsWithRefresh}
+                columns={columnsWithActions}
                 data={formattedUsers}
                 loading={loading}
                 title={<h1 className="text-xl font-semibold">Users List</h1>}

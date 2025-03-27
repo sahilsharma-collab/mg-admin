@@ -37,17 +37,28 @@ export const columns: ColumnDef<NotificationColumn>[] = [
         header: "Message",
     },
     {
-        accessorKey: "isRead",
-        header: "Status",
-        cell: ({ row }) => (
-            <span className={row.original.isRead ? "text-gray-500" : "font-bold text-blue-600"}>
-                {row.original.isRead ? "Read" : "Unread"}
-            </span>
-        ),
-    },
-    {
         accessorKey: "createdAt",
         header: "Received",
+    },
+    {
+        accessorKey: "isRead",
+        header: "Status",
+        cell: ({ row }) => {
+            const isRead = row.original.isRead;
+            let statusClass = "";
+
+            if (isRead) {
+                statusClass = "bg-green-100 text-green-800";
+            } else {
+                statusClass = "bg-yellow-100 text-yellow-800";
+            }
+
+            return (
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusClass}`}>
+                    {isRead ? "Read" : "Unread"}
+                </span>
+            );
+        }
     },
     {
         id: "actions",

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { IconX, IconLayoutDashboard, IconChartArcs3, IconMessages, IconChartAreaLine, IconCalendarEvent, IconDeviceAnalytics, IconUserSquareRounded, IconBell, IconQuestionMark, IconFileBroken, IconCrown, IconChevronDown, IconBrandYoutube, IconUsers, IconFocus } from '@tabler/icons-react';
+import { IconX, IconLayoutDashboard, IconChartArcs3, IconMessages, IconChartAreaLine, IconCalendarEvent, IconDeviceAnalytics, IconUserSquareRounded, IconBell, IconCrown, IconChevronDown, IconBrandYoutube, IconUsers, IconFocus } from '@tabler/icons-react';
 import { useTheme } from "@/context/theme-context";
 
 interface SidebarProps {
@@ -117,20 +117,30 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             label: "Notifications",
             icon: <IconBell stroke={2} />
         },
-        {
-            href: "/faq",
-            label: "FAQ",
-            icon: <IconQuestionMark stroke={2} />
-        },
-        {
-            href: "/pages",
-            label: "Pages",
-            icon: <IconFileBroken stroke={2} />
-        },
+        // {
+        //     href: "/faq",
+        //     label: "FAQ",
+        //     icon: <IconQuestionMark stroke={2} />
+        // },
+        // {
+        //     href: "/pages",
+        //     label: "Pages",
+        //     icon: <IconFileBroken stroke={2} />
+        // },
         {
             href: "/roles-and-admins",
             label: "Roles and Admins",
-            icon: <IconCrown stroke={2} />
+            icon: <IconCrown stroke={2} />,
+            subLinks: [
+                {
+                    href: "/roles-and-admins/admin",
+                    label: "Admin",
+                },
+                {
+                    href: "/roles-and-admins/moderator",
+                    label: "Moderator",
+                },
+            ],
         },
     ];
 
@@ -184,25 +194,29 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                                     width={40}
                                     alt="logo"
                                 />
-
-                                <AnimatePresence mode="wait">
-                                    <motion.div
-                                        key="logo-text"
-                                        initial={{ opacity: 0, width: 0 }}
-                                        animate={{ opacity: 1, width: 'auto' }}
-                                        exit={{ opacity: 0, width: 0 }}
-                                        transition={{ duration: 0.3 }}
-                                        className="overflow-hidden"
-                                    >
-                                        <Image
-                                            src={theme === 'dark' ? "/Images/logo-text-dark.png" : "/Images/logo-text.svg"}
-                                            height={80}
-                                            width={80}
-                                            alt="logo-text"
-                                            className="ml-2 mt-2"
-                                        />
-                                    </motion.div>
-                                </AnimatePresence>
+                                {(isExpanded || isHovered) && (
+                                    <AnimatePresence mode="wait">
+                                        <motion.div
+                                            key="logo-text"
+                                            initial={{ opacity: 0, width: 0 }}
+                                            animate={{ opacity: 1, width: 'auto' }}
+                                            exit={{ opacity: 0, width: 0 }}
+                                            transition={{
+                                                duration: 0.3,
+                                                delay: 0.3,
+                                            }}
+                                            className="overflow-hidden"
+                                        >
+                                            <Image
+                                                src={theme === 'dark' ? "/Images/logo-text-dark.png" : "/Images/logo-text.svg"}
+                                                height={80}
+                                                width={80}
+                                                alt="logo-text"
+                                                className="ml-2 mt-2"
+                                            />
+                                        </motion.div>
+                                    </AnimatePresence>
+                                )}
                             </div>
                         </Link>
                     </div>
