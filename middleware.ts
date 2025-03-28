@@ -12,7 +12,7 @@ export function middleware(request: NextRequest) {
 
     // If the user is authenticated and tries to access /login, redirect to the home page
     if (token && request.nextUrl.pathname.startsWith('/login')) {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+        return NextResponse.redirect(new URL('/', request.url));
     }
 
     return NextResponse.next();

@@ -1,12 +1,14 @@
+import React, { Suspense } from 'react'
 import Login from '@/components/Login/Login'
-import React from 'react'
 
-const page = () => {
+function LoginPage() {
     return (
-        <div>
+        <Suspense fallback={<div>Loading...</div>}>
             <Login />
-        </div>
+        </Suspense>
     )
 }
 
-export default page
+export default function Page() {
+    return <LoginPage />
+}
