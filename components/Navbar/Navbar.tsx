@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState } from 'react';
-import { IconBellFilled, IconMenu2 } from '@tabler/icons-react';
+import { IconMenu2 } from '@tabler/icons-react';
 import { cn } from "@/lib/utils";
 import Sidebar from '../Sidebar/Sidebar';
 import { usePathname } from 'next/navigation';
 import { ThemeToggle } from './ThemeToggleButton';
+import NotificationDropdown from './NotificationDropdown';
+import UserDropdown from './UserDropdown';
 
 const Navbar = () => {
     const pathname = usePathname();
@@ -29,10 +31,10 @@ const Navbar = () => {
                         onClick={toggleMobileSidebar}
                     />
                 </div>
-                <div className='flex gap-4 items-center'>
+                <div className='flex gap-2 items-center'>
                     <ThemeToggle />
-                    <IconBellFilled className="h-8 w-8 dark:text-[#B3A5C6]" />
-                    <div className='h-6 md:h-7 w-6 md:w-7 bg-gray-300 rounded-full'></div>
+                    <NotificationDropdown />
+                    <UserDropdown />
                 </div>
             </section>
 

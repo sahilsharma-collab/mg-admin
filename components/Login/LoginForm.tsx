@@ -1,0 +1,137 @@
+"use client"
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { toast } from 'react-toastify';
+import { useRouter } from 'next/navigation';
+import { useUserProfile } from '@/context/UserProfileContext';
+
+type FormValues = {
+    email: string;
+    password: string;
+};
+
+const LoginForm = () => {
+    const [showPassword, setShowPassword] = useState(false);
+    const { register, handleSubmit, formState: { errors } } = useForm<FormValues>();
+    const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
+    const { login } = useUserProfile();
+    const onSubmit = async (data: FormValues) => {
+        try {
+            setIsLoading(true);
+
+            // Use the login method from context
+            const success = await login(data.email, data.password);
+
+            if (success) {
+                // Login was successful - context already handled:
+                // 1. Setting the cookie
+                // 2. Fetching user profile
+                // 3. Showing success toast
+                router.push('/');
+            }
+            // Errors are already handled by the context's login method
+        } catch (error) {
+            // This catch is for unexpected errors (like network issues)
+            console.error('Login submission error:', error);
+            toast.error('Failed to complete login. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <section>
+            <div className="mt-4">
+                <h2 className='font-medium text-2xl md:text-3xl'>
+                    Welcome! 👋🏽
+                </h2>
+                <p className="mt-2">Please sign into your account</p>
+            </div>
+            <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-6">
+                <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Mail className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                            id="email"
+                            type="email"
+                            {...register("email", { required: "Email is required", pattern: { value: /^\S+@\S+$/i, message: "Invalid email address" } })}
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#0ABAB5] focus:border-[#0ABAB5] sm:text-sm bg-white"
+                            placeholder="Enter your email"
+                        />
+                    </div>
+                    {errors.email && <p className="mt-2 text-sm text-red-600">{errors.email.message}</p>}
+                </div>
+
+                <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Lock className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            {...register("password", { required: "Password is required", minLength: { value: 6, message: "Password must be at least 6 characters" } })}
+                            className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#0ABAB5] focus:border-[#0ABAB5] sm:text-sm bg-white"
+                            placeholder="Enter your password"
+                        />
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="text-gray-500 hover:text-gray-700 focus:outline-none"
+                            >
+                                {showPassword ? (
+                                    <Eye className="h-5 w-5" />
+                                ) : (
+                                    <EyeOff className="h-5 w-5" />
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                    {errors.password && <p className="mt-2 text-sm text-red-600">{errors.password.message}</p>}
+                </div>
+
+                <div className="flex items-center justify-between mt-4">
+                    <div className="flex items-center">
+                        <input
+                            id="remember_me"
+                            type="checkbox"
+                            className="h-4 w-4 focus:ring-[#0ABAB5] focus:border-[#0ABAB5] border-gray-300 rounded"
+                        />
+                        <label htmlFor="remember_me" className="ml-2 block text-sm text-gray-700">
+                            Remember me
+                        </label>
+                    </div>
+                    <div className="text-sm">
+                        <a href="login?mode=forgot-password" className="font-medium text-[#0ABAB5] hover:text-[#09a6a1]">
+                            Forgot password?
+                        </a>
+                    </div>
+                </div>
+
+                <div className='w-full flex justify-center items-center'>
+                    <button
+                        type="submit"
+                        className="w-fit px-14 py-2 mt-5 flex items-center justify-center border border-transparent rounded-2xl cursor-pointer shadow-sm text-sm font-medium text-white bg-[#0ABAB5] hover:bg-[#09a6a1] transition-colors duration-200"
+                        disabled={isLoading}
+                    >
+                        {isLoading ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                            "Login"
+                        )}
+                    </button>
+
+                </div>
+            </form>
+        </section>
+    );
+};
+
+export default LoginForm;

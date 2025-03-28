@@ -6,6 +6,8 @@ import "react-toastify/dist/ReactToastify.css";
 import Navbar from "@/components/Navbar/Navbar";
 import Sidebar from "@/components/Sidebar/Sidebar";
 import { ThemeProvider } from "@/context/theme-context";
+import { NotificationProvider } from "@/context/NotificationContext";
+import { UserProfileProvider } from "@/context/UserProfileContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,27 +35,31 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProvider>
-          <div className="flex">
-            <ToastContainer
-              position="top-right"
-              autoClose={3000}
-              hideProgressBar={false}
-              newestOnTop={true}
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="colored"
-            />
-            <div className="hidden xl:block">
-              <Sidebar />
-            </div>
-            <div className="flex-1">
-              <Navbar />
-              <main>{children}</main>
-            </div>
-          </div>
+          <UserProfileProvider>
+            <NotificationProvider>
+              <div className="flex">
+                <ToastContainer
+                  position="top-right"
+                  autoClose={3000}
+                  hideProgressBar={false}
+                  newestOnTop={true}
+                  closeOnClick
+                  rtl={false}
+                  pauseOnFocusLoss
+                  draggable
+                  pauseOnHover
+                  theme="colored"
+                />
+                <div className="hidden xl:block">
+                  <Sidebar />
+                </div>
+                <div className="flex-1">
+                  <Navbar />
+                  <main>{children}</main>
+                </div>
+              </div>
+            </NotificationProvider>
+          </UserProfileProvider>
         </ThemeProvider>
       </body>
     </html>

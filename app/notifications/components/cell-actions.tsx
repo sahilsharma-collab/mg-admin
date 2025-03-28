@@ -10,11 +10,10 @@ import {
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { NotificationColumn } from "./columns";
-import { toast } from "react-toastify";
 
 interface CellActionProps {
     data: NotificationColumn;
-    onMarkAsRead: (id: number) => void;
+    onMarkAsRead: (id: number) => Promise<void>;
 }
 
 export const CellAction: React.FC<CellActionProps> = ({
@@ -27,11 +26,9 @@ export const CellAction: React.FC<CellActionProps> = ({
         if (!data.isRead) {
             try {
                 setLoading(true);
-                onMarkAsRead(data.id);
-                toast.success('Notification marked as read.');
+                await onMarkAsRead(data.id);
             } catch (error) {
                 console.log(error);
-                toast.error('Failed to mark notification as read.');
             } finally {
                 setLoading(false);
             }
@@ -44,7 +41,7 @@ export const CellAction: React.FC<CellActionProps> = ({
                 <Button
                     variant="ghost"
                     className="h-[27px] w-[27px] p-0 border-2 rounded-full border-black dark:border-[#B3A5C6] dark:text-[#B3A5C6]"
-                    disabled={loading}
+                    // disabled={loading || data.isRead}
                 >
                     <span className="sr-only">Open menu</span>
                     {loading ? (
