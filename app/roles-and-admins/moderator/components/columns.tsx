@@ -1,4 +1,5 @@
 import { ColumnDef } from "@tanstack/react-table";
+import { CellAction } from "./cell-actions";
 
 export interface ModeratorResponseColumn {
     id: number;
@@ -10,7 +11,7 @@ export interface ModeratorResponseColumn {
 }
 
 export interface ModeratorColumn {
-    id: number;
+    id: string;
     name: string;
     email: string;
     role: string;
@@ -59,5 +60,10 @@ export const columns: ColumnDef<ModeratorColumn>[] = [
                 </span>
             );
         },
-    }
+    },
+    {
+        header: "Actions",
+        id: "actions",
+        cell: ({ row }) => <CellAction data={row.original} onSuccess={() => { }} />,
+    },
 ];

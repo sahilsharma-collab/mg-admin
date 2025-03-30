@@ -129,7 +129,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         // },
         {
             href: "/roles-and-admins",
-            label: "Roles and Admins",
+            label: "Role Management",
             icon: <IconCrown stroke={2} />,
             subLinks: [
                 {

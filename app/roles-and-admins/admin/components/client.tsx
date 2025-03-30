@@ -64,7 +64,7 @@ const AdminClient = () => {
         <div className="container-padding">
             <DataTable
                 redirectUrl=""
-                searchKey="name"
+                searchKey="email"
                 columns={columns}
                 data={formattedAdmins}
                 loading={loading}

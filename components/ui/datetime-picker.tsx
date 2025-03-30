@@ -69,20 +69,24 @@ export function DateTimePicker({ value, onChange }: DateTimePickerProps) {
                         !date && "text-muted-foreground"
                     )}
                 >
-                    <CiCalendar className="mr-2 h-4 w-4" />
+                    <CiCalendar className="mr-2 h-4 w-4 " />
                     {date ? format(date, "MM/dd/yyyy hh:mm aa") : <span>MM/DD/YYYY hh:mm aa</span>}
                 </Button>
             </PopoverTrigger>
 
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto p-0 dark:bg-[#2E2941] dark:border-[#FFFFFF33]">
                 <div className="sm:flex">
                     <Calendar
                         mode="single"
                         selected={date}
                         onSelect={handleDateSelect}
                         initialFocus
+                        className="dark:bg-[#2E2941]"
+                        classNames={{
+                            day_selected: "dark:bg-[#0ABAB5] dark:text-white dark:hover:bg-[#0ABAB5] dark:hover:text-white",
+                        }}
                     />
-                    <div className="flex flex-col sm:flex-row sm:h-[300px] divide-y sm:divide-y-0 sm:divide-x">
+                    <div className="flex flex-col sm:flex-row sm:h-[300px] divide-y sm:divide-y-0 sm:divide-x dark:divide-[#FFFFFF33]">
                         <ScrollArea className="w-64 sm:w-auto">
                             <div className="flex sm:flex-col p-2">
                                 {hours.reverse().map((hour) => (
@@ -94,7 +98,11 @@ export function DateTimePicker({ value, onChange }: DateTimePickerProps) {
                                                 ? "default"
                                                 : "ghost"
                                         }
-                                        className="sm:w-full shrink-0 aspect-square"
+                                        className={cn(
+                                            "sm:w-full shrink-0 aspect-square",
+                                            date && date.getHours() % 12 === hour % 12 &&
+                                            "bg-[#0ABAB5] dark:text-white dark:hover:bg-[#0ABAB5] dark:hover:text-white"
+                                        )}
                                         onClick={() => handleTimeChange("hour", hour.toString())}
                                     >
                                         {hour}
@@ -114,7 +122,11 @@ export function DateTimePicker({ value, onChange }: DateTimePickerProps) {
                                                 ? "default"
                                                 : "ghost"
                                         }
-                                        className="sm:w-full shrink-0 aspect-square"
+                                        className={cn(
+                                            "sm:w-full shrink-0 aspect-square",
+                                            date && date.getMinutes() === minute &&
+                                            "bg-[#0ABAB5] dark:text-white dark:hover:bg-[#0ABAB5] dark:hover:text-white"
+                                        )}
                                         onClick={() =>
                                             handleTimeChange("minute", minute.toString())
                                         }
@@ -138,7 +150,13 @@ export function DateTimePicker({ value, onChange }: DateTimePickerProps) {
                                                 ? "default"
                                                 : "ghost"
                                         }
-                                        className="sm:w-full shrink-0 aspect-square"
+                                        className={cn(
+                                            "sm:w-full shrink-0 aspect-square",
+                                            date &&
+                                            ((ampm === "AM" && date.getHours() < 12) ||
+                                                (ampm === "PM" && date.getHours() >= 12)) &&
+                                            "bg-[#0ABAB5] dark:text-white dark:hover:bg-[#0ABAB5] dark:hover:text-white"
+                                        )}
                                         onClick={() => handleTimeChange("ampm", ampm)}
                                     >
                                         {ampm}

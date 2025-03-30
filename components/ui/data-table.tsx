@@ -190,7 +190,7 @@ export function DataTable<TData, TValue>({
             </div>
 
             {/* Table */}
-            <div className="bg-[#DBE7F7] dark:bg-[#4A87D833] dark:border-[#FFFFFF33] border-x border-[#00000033] max-w-[calc(100vw-30px)] md:max-w-[calc(100vw-80px)] lg:max-w-full">
+            <div className="bg-[#DBE7F7] dark:bg-[#4A87D833] dark:border-[#FFFFFF33] border-x border-[#00000033] max-w-[calc(100vw-30px)] md:max-w-[calc(100vw-80px)] lg:max-w-full cursor-auto">
                 <Table className="">
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
@@ -228,7 +228,6 @@ export function DataTable<TData, TValue>({
                                     data-state={row.getIsSelected() && "selected"}
                                     // @ts-expect-error - `row.original.id` is expected to exist
                                     onClick={(event) => handleRowClick(row.original.id, event)}
-                                    className="hover:cursor-pointer"
                                 >
                                     {row.getVisibleCells().map((cell) => (
                                         <TableCell key={cell.id} className="first:pl-5 last:pr-5 border-y dark:border-[#FFFFFF33] border-[#00000033]">

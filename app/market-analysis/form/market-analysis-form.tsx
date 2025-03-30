@@ -21,17 +21,13 @@ import { toast } from "react-toastify";
 import Cookies from "js-cookie";
 import Image from "next/image";
 
-// Form Schema
+// Updated Form Schema - only title is required
 const formSchema = z.object({
     title: z.string().min(1, {
         message: "Title is required",
     }),
-    description: z.string().min(1, {
-        message: "Description is required",
-    }),
-    imgUrl: z.string().min(1, {
-        message: "Image is required",
-    }),
+    description: z.string().optional(),
+    imgUrl: z.string().optional(),
 });
 
 type MarketAnalysisFormValues = z.infer<typeof formSchema>;
@@ -82,7 +78,7 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
                     const marketData = response.data.marketAnalysis;
                     form.reset({
                         title: marketData.title,
-                        description: marketData.description,
+                        description: marketData.description || "",
                         imgUrl: marketData.imgUrl || "",
                     });
                 } catch (error) {
@@ -97,7 +93,9 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
     }, [maId, isEdit, form, token]);
 
     // Handle Image Upload
-    const handleImageUpload = async (file: File) => {
+    const handleImageUpload = async (file: File | null) => {
+        if (!file) return null;
+
         try {
             const formData = new FormData();
             formData.append("image", file);
@@ -130,15 +128,12 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
             let imgUrl = data.imgUrl;
             if (imageFile) {
                 imgUrl = await handleImageUpload(imageFile);
-                if (!imgUrl) {
-                    throw new Error("Image upload failed.");
-                }
             }
 
             const payload = {
                 title: data.title,
-                description: data.description,
-                imgUrl: imgUrl,
+                description: data.description || null, // Send null if empty
+                imgUrl: imgUrl || null, // Send null if empty
             };
 
             if (isEdit && maId) {
@@ -215,13 +210,13 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-6 md:gap-8">
-                            {/* Title Field */}
+                            {/* Title Field (Required) */}
                             <FormField
                                 control={form.control}
                                 name="title"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Title</FormLabel>
+                                        <FormLabel>Title*</FormLabel>
                                         <FormControl>
                                             <Input
                                                 disabled={loading}
@@ -234,17 +229,17 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
                                 )}
                             />
 
-                            {/* Description Field */}
+                            {/* Description Field (Optional) */}
                             <FormField
                                 control={form.control}
                                 name="description"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Description</FormLabel>
+                                        <FormLabel>Description (Optional)</FormLabel>
                                         <FormControl>
                                             <Textarea
                                                 disabled={loading}
-                                                placeholder="Market Analysis Description"
+                                                placeholder="Market Analysis Description (Optional)"
                                                 {...field}
                                             />
                                         </FormControl>
@@ -253,13 +248,13 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
                                 )}
                             />
 
-                            {/* Image Upload Field */}
+                            {/* Image Upload Field (Optional) */}
                             <FormField
                                 control={form.control}
                                 name="imgUrl"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Image</FormLabel>
+                                        <FormLabel>Image (Optional)</FormLabel>
                                         <FormControl>
                                             <Input
                                                 id="image-upload"

@@ -2,14 +2,16 @@
 import { DataTable } from '@/components/ui/data-table';
 import React, { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
-import { columns, } from './columns';
+import { columns, ModeratorColumn, ModeratorResponseColumn, } from './columns';
 import { toast } from "react-toastify";
-import { AdminColumn, AdminResponseColumn } from '../../admin/components/columns';
+import { Row } from '@tanstack/react-table';
+import { CellAction } from './cell-actions';
 
 const ModeratorClient = () => {
-    const [formattedModerators, setFormattedModerators] = useState<AdminColumn[]>([]);
+    const [formattedModerators, setFormattedModerators] = useState<ModeratorColumn[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const token = Cookies.get('auth_token');
+    const [refreshCounter, setRefreshCounter] = useState(0);
 
     useEffect(() => {
         const fetchAdmins = async () => {
@@ -38,7 +40,7 @@ const ModeratorClient = () => {
                     });
                 };
 
-                const formattedData: AdminColumn[] = data.users.map((moderator: AdminResponseColumn) => ({
+                const formattedData: ModeratorColumn[] = data.users.map((moderator: ModeratorResponseColumn) => ({
                     id: moderator.id,
                     name: moderator.name,
                     email: moderator.email,
@@ -57,16 +59,30 @@ const ModeratorClient = () => {
         };
 
         fetchAdmins();
-    }, [token]);
+    }, [token, refreshCounter]);
 
+    const refreshData = () => {
+        setRefreshCounter(prev => prev + 1);
+    };
 
+    const columnsWithActions = columns.map(col => {
+        if (col.id === "actions") {
+            return {
+                ...col,
+                cell: ({ row }: { row: Row<ModeratorColumn> }) => (
+                    <CellAction data={row.original} onSuccess={refreshData} />
+                ),
+            };
+        }
+        return col;
+    });
 
     return (
         <div className="container-padding">
             <DataTable
                 redirectUrl=""
-                searchKey="name"
-                columns={columns}
+                searchKey="email"
+                columns={columnsWithActions}
                 data={formattedModerators}
                 loading={loading}
                 title={

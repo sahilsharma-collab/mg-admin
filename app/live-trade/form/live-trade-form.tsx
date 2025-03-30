@@ -21,17 +21,13 @@ import { toast } from "react-toastify";
 import Cookies from "js-cookie";
 import Image from "next/image";
 
-// Form Schema
+// Updated Form Schema - only title is required
 const formSchema = z.object({
     title: z.string().min(1, {
         message: "Title is required",
     }),
-    description: z.string().min(1, {
-        message: "Description is required",
-    }),
-    imgUrl: z.string().min(1, {
-        message: "Image is required",
-    }),
+    description: z.string().optional(),
+    imgUrl: z.string().optional(),
 });
 
 type LiveTradeFormValues = z.infer<typeof formSchema>;
@@ -63,7 +59,7 @@ const LiveTradeForm: React.FC<LiveTradeFormProps> = ({ ltId }) => {
         },
     });
 
-    // Fetch Market Analysis Data for Editing
+    // Fetch Live Trade Data for Editing
     useEffect(() => {
         if (isEdit && ltId) {
             const fetchLiveTrade = async () => {
@@ -79,11 +75,11 @@ const LiveTradeForm: React.FC<LiveTradeFormProps> = ({ ltId }) => {
                         }
                     );
 
-                    const marketData = response.data.LiveTrade;
+                    const tradeData = response.data.LiveTrade;
                     form.reset({
-                        title: marketData.title,
-                        description: marketData.description,
-                        imgUrl: marketData.imgUrl || "",
+                        title: tradeData.title,
+                        description: tradeData.description || "",
+                        imgUrl: tradeData.imgUrl || "",
                     });
                 } catch (error) {
                     console.error("Failed to fetch live trade data:", error);
@@ -97,7 +93,9 @@ const LiveTradeForm: React.FC<LiveTradeFormProps> = ({ ltId }) => {
     }, [ltId, isEdit, form, token]);
 
     // Handle Image Upload
-    const handleImageUpload = async (file: File) => {
+    const handleImageUpload = async (file: File | null) => {
+        if (!file) return null;
+
         try {
             const formData = new FormData();
             formData.append("image", file);
@@ -130,19 +128,16 @@ const LiveTradeForm: React.FC<LiveTradeFormProps> = ({ ltId }) => {
             let imgUrl = data.imgUrl;
             if (imageFile) {
                 imgUrl = await handleImageUpload(imageFile);
-                if (!imgUrl) {
-                    throw new Error("Image upload failed.");
-                }
             }
 
             const payload = {
                 title: data.title,
-                description: data.description,
-                imgUrl: imgUrl,
+                description: data.description || null, // Send null if empty
+                imgUrl: imgUrl || null, // Send null if empty
             };
 
             if (isEdit && ltId) {
-                // Update Market Analysis
+                // Update Live Trade
                 await axios.put(
                     `${process.env.NEXT_PUBLIC_PROD_URL}/api/trade/${ltId}`,
                     payload,
@@ -154,7 +149,7 @@ const LiveTradeForm: React.FC<LiveTradeFormProps> = ({ ltId }) => {
                     }
                 );
             } else {
-                // Create Market Analysis
+                // Create Live Trade
                 await axios.post(
                     `${process.env.NEXT_PUBLIC_PROD_URL}/api/trade`,
                     payload,
@@ -215,13 +210,13 @@ const LiveTradeForm: React.FC<LiveTradeFormProps> = ({ ltId }) => {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-6 md:gap-8">
-                            {/* Title Field */}
+                            {/* Title Field (Required) */}
                             <FormField
                                 control={form.control}
                                 name="title"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Title</FormLabel>
+                                        <FormLabel>Title*</FormLabel>
                                         <FormControl>
                                             <Input
                                                 disabled={loading}
@@ -234,17 +229,17 @@ const LiveTradeForm: React.FC<LiveTradeFormProps> = ({ ltId }) => {
                                 )}
                             />
 
-                            {/* Description Field */}
+                            {/* Description Field (Optional) */}
                             <FormField
                                 control={form.control}
                                 name="description"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Description</FormLabel>
+                                        <FormLabel>Description (Optional)</FormLabel>
                                         <FormControl>
                                             <Textarea
                                                 disabled={loading}
-                                                placeholder="Live Trade Description"
+                                                placeholder="Live Trade Description (Optional)"
                                                 {...field}
                                             />
                                         </FormControl>
@@ -253,13 +248,13 @@ const LiveTradeForm: React.FC<LiveTradeFormProps> = ({ ltId }) => {
                                 )}
                             />
 
-                            {/* Image Upload Field */}
+                            {/* Image Upload Field (Optional) */}
                             <FormField
                                 control={form.control}
                                 name="imgUrl"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Image</FormLabel>
+                                        <FormLabel>Image (Optional)</FormLabel>
                                         <FormControl>
                                             <Input
                                                 id="image-upload"

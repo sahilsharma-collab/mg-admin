@@ -32,7 +32,7 @@ const Section1 = () => {
           <div className='w-full flex justify-center'>
             <div className='w-36 h-36 rounded-full border-4 border-[#0ABAB5] mb-4 bg-gray-300 overflow-hidden flex'>
               <img
-                src={user?.imgUrl || "/api/placeholder/400/400"}
+                src={user?.imgUrl || "/Images/avatar.png"}
                 alt="Profile"
                 className='w-full h-full object-cover'
               />
@@ -47,10 +47,10 @@ const Section1 = () => {
             <h2 className='font-semibold'>City: <span className='font-normal'>{user?.city || 'Not provided'}</span></h2>
           </div>
 
-          <div className='w-full flex justify-center'>
+          <div className='w-full flex justify-center text-sm'>
             <button
               onClick={handleOpenModal}
-              className="bg-[#0ABAB5] hover:bg-[#09a6a1] px-7 py-2 rounded-full text-white font-medium transition-colors cursor-pointer"
+              className="bg-[#0ABAB5] hover:bg-[#09a6a1] px-7 py-2 rounded-full text-white font-medium transition-colors cursor-pointer mt-3"
             >
               Edit Profile
             </button>

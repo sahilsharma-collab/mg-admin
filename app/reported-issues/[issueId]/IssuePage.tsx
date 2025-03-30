@@ -5,6 +5,18 @@ import Image from 'next/image';
 import { format } from 'date-fns';
 import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 
 interface Issue {
     id: number;
@@ -22,10 +34,35 @@ interface Issue {
     };
 }
 
+const statusUpdateSchema = z.object({
+    status: z.enum(["PENDING", "RESOLVED", "REJECTED"]),
+    remarks: z.string().optional(),
+});
+
+type StatusUpdateFormData = z.infer<typeof statusUpdateSchema>;
+
 const IssuePage = ({ issueId }: { issueId: string }) => {
     const [issue, setIssue] = useState<Issue | null>(null);
     const [loading, setLoading] = useState(true);
+    const [updating, setUpdating] = useState(false);
     const token = Cookies.get('auth_token');
+
+    const {
+        register,
+        handleSubmit,
+        setValue,
+        watch,
+        formState: { errors },
+    } = useForm<StatusUpdateFormData>({
+        resolver: zodResolver(statusUpdateSchema),
+        defaultValues: {
+            status: "PENDING",
+            remarks: "",
+        },
+    });
+
+    const status = watch("status");
+    const remarks = watch("remarks");
 
     useEffect(() => {
         const fetchIssue = async () => {
@@ -46,6 +83,9 @@ const IssuePage = ({ issueId }: { issueId: string }) => {
 
                 const data = await response.json();
                 setIssue(data.issue);
+                // Set form values from fetched issue
+                setValue("status", data.issue.status);
+                setValue("remarks", data.issue.remarks || "");
             } catch (error) {
                 console.error("Error fetching issue:", error);
                 toast.error("Failed to load issue details");
@@ -55,7 +95,7 @@ const IssuePage = ({ issueId }: { issueId: string }) => {
         };
 
         fetchIssue();
-    }, [issueId, token]);
+    }, [issueId, token, setValue]);
 
     const formatDateTime = (dateString: string) => {
         const date = new Date(dateString);
@@ -72,6 +112,52 @@ const IssuePage = ({ issueId }: { issueId: string }) => {
                 return "bg-red-100 text-red-800";
             default:
                 return "bg-gray-100 text-gray-800";
+        }
+    };
+
+    const handleStatusUpdate = async (data: StatusUpdateFormData) => {
+        try {
+            setUpdating(true);
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_PROD_URL}/api/issue/${issueId}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        status: data.status,
+                        remarks: data.remarks,
+                    }),
+                }
+            );
+
+            if (!response.ok) throw new Error(`Error: ${response.statusText}`);
+
+            toast.success("Issue status updated successfully");
+
+            // Refetch the issue to get updated data
+            const fetchResponse = await fetch(
+                `${process.env.NEXT_PUBLIC_PROD_URL}/api/issue/${issueId}`,
+                {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            if (!fetchResponse.ok) throw new Error(`Error: ${fetchResponse.statusText}`);
+
+            const updatedData = await fetchResponse.json();
+            setIssue(updatedData.issue);
+        } catch (error) {
+            console.error("Error updating issue:", error);
+            toast.error("Failed to update issue status");
+        } finally {
+            setUpdating(false);
         }
     };
 
@@ -163,6 +249,54 @@ const IssuePage = ({ issueId }: { issueId: string }) => {
                         </div>
                     </div>
                 </div>
+
+                {/* Status Update Form */}
+                <form onSubmit={handleSubmit(handleStatusUpdate)} className="mt-8 space-y-6">
+                    <div className="bg-[#EFEFEF] dark:bg-[#2E2941] border border-[#0000001A] rounded-md p-4 space-y-4">
+                        <h3 className="font-medium">Update Status</h3>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Status</label>
+                            <Select
+                                value={status}
+                                onValueChange={(value) => setValue("status", value as "PENDING" | "RESOLVED" | "REJECTED")}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="PENDING">PENDING</SelectItem>
+                                    <SelectItem value="RESOLVED">RESOLVED</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {errors.status && (
+                                <p className="text-red-500 text-sm mt-1">{errors.status.message}</p>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Remarks</label>
+                            <Textarea
+                                {...register("remarks")}
+                                value={remarks}
+                                onChange={(e) => setValue("remarks", e.target.value)}
+                                placeholder="Add remarks (optional)"
+                                className="min-h-[100px]"
+                            />
+                            {errors.remarks && (
+                                <p className="text-red-500 text-sm mt-1">{errors.remarks.message}</p>
+                            )}
+                        </div>
+
+                        <Button
+                            disabled={updating}
+                            className="ml-auto bg-[#0ABAB5] hover:bg-[#09a6a1] px-7 rounded-full"
+                            type="submit"
+                        >
+                            {updating ? "Updating..." : "Update Status"}
+                        </Button>
+                    </div>
+                </form>
             </article>
         </section>
     );

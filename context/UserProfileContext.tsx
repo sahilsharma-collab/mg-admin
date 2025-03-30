@@ -45,12 +45,7 @@ export const UserProfileProvider = ({ children }: { children: React.ReactNode })
     const getAuthToken = () => Cookies.get('auth_token');
     const token = getAuthToken();
 
-    const fetchUserProfile = async () => {
-        if (!token) {
-            setUser(null);
-            return;
-        }
-
+    const fetchUserProfile = async (token?: string) => {
         try {
             setLoading(true);
             const response = await axios.get(`${process.env.NEXT_PUBLIC_PROD_URL}/api/profile`, {
@@ -82,8 +77,9 @@ export const UserProfileProvider = ({ children }: { children: React.ReactNode })
             );
 
             if (response.data.success) {
+                const token = response.data.token;
                 Cookies.set('auth_token', response.data.token, { expires: 30, path: '/' });
-                await fetchUserProfile();
+                await fetchUserProfile(token);
                 toast.success('Logged in successfully');
                 return true;
             } else {
@@ -108,31 +104,6 @@ export const UserProfileProvider = ({ children }: { children: React.ReactNode })
         setUser(null);
         toast.success('Logged out successfully');
         router.push('/login');
-    };
-
-    // Handle Image Upload
-    const handleImageUpload = async (file: File): Promise<string | null> => {
-        try {
-            const formData = new FormData();
-            formData.append("image", file);
-
-            const response = await axios.post(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/upload`,
-                formData,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "multipart/form-data",
-                    },
-                }
-            );
-
-            return response.data.fileUrl;
-        } catch (error) {
-            console.error("Failed to upload image:", error);
-            toast.error("Failed to upload image.");
-            return null;
-        }
     };
 
     const updateProfile = async (data: Partial<UserProfile>) => {
@@ -162,7 +133,7 @@ export const UserProfileProvider = ({ children }: { children: React.ReactNode })
 
     // Initialize
     useEffect(() => {
-        fetchUserProfile();
+        fetchUserProfile(token);
     }, []);
 
     return (

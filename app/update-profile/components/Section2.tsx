@@ -53,8 +53,11 @@ const Section2 = () => {
 
     return (
         <section className='w-2/3 rounded-lg border text-card-foreground shadow-sm p-4 md:p-7 border-[#00000033] bg-[#DBE7F7] dark:bg-[#4A87D833] dark:border-[#FFFFFF33]'>
+            <div>
+                <h2 className='font-semibold text-2xl mb-7'>Change Password</h2>
+            </div>
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+                <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-7'>
                     {/* Old Password Field */}
                     <FormField
                         control={form.control}
@@ -156,14 +159,16 @@ const Section2 = () => {
                             </FormItem>
                         )}
                     />
+                    <div className='w-full justify-center items-center flex'>
+                        <Button
+                            type="submit"
+                            className="bg-[#0ABAB5] hover:bg-[#09a6a1] rounded-full my-3"
+                            disabled={form.formState.isSubmitting}
+                        >
+                            {form.formState.isSubmitting ? "Changing..." : "Change Password"}
+                        </Button>
+                    </div>
 
-                    <Button
-                        type="submit"
-                        className="w-full bg-[#0ABAB5] hover:bg-[#09a6a1]"
-                        disabled={form.formState.isSubmitting}
-                    >
-                        {form.formState.isSubmitting ? "Changing..." : "Change Password"}
-                    </Button>
                 </form>
             </Form>
         </section>

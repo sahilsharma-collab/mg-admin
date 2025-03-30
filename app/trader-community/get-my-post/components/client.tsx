@@ -2,9 +2,10 @@
 import { DataTable } from '@/components/ui/data-table';
 import React, { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
-import { columns, CommunityPostColumn, PostResponse } from './columns';
+import { columns, CommunityPostColumn } from './columns';
 import { CellAction } from './cell-actions';
 import { Row } from "@tanstack/react-table";
+import { PostResponse } from '../../get-all/components/columns';
 
 const CommunityGetMyClient = () => {
     const [formattedPosts, setFormattedPosts] = useState<CommunityPostColumn[]>([]);
