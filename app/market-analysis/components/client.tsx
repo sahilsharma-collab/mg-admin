@@ -4,7 +4,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
-import { columns, MarketAnalysisColumn } from './columns';
+import { columns, MarketAnalysisColumn, MarketAnalysisResponseColumn } from './columns';
 import { CellAction } from './cell-actions';
 import { Row } from "@tanstack/react-table";
 
@@ -45,14 +45,16 @@ const MarketAnalysisClient = () => {
                     return `${formattedDate} ${formattedTime}`;
                 };
 
-                const formattedData: MarketAnalysisColumn[] = data.marketAnalysis.map((analysis: MarketAnalysisColumn) => ({
+                const formattedData: MarketAnalysisColumn[] = data.marketAnalysis.map((analysis: MarketAnalysisResponseColumn) => ({
                     id: analysis.id,
                     title: analysis.title,
                     description: analysis.description,
                     imgUrl: analysis.imgUrl,
                     createdAt: formatDateTime(analysis.createdAt),
                     updatedAt: formatDateTime(analysis.updatedAt),
-                    reactions: analysis.reactions,
+                    reactions: analysis.reaction,
+                    reactionCount: analysis._count?.reaction || 0,
+                    viewCount: analysis._count?.MarketViews || 0
                 }));
 
                 setFormattedMarketAnalysis(formattedData);

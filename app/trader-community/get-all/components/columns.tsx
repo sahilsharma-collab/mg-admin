@@ -1,9 +1,12 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import Image from "next/image";
 import { Tooltip, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CellAction } from "./cell-actions";
+import { ImagePreviewModal } from "@/components/Modal/ImagePreviewModal";
+import { useState } from "react";
+import { toast } from "react-toastify";
+import Image from "next/image";
 
 type Reaction = {
     id: number;
@@ -53,101 +56,134 @@ export type CommunityPostColumn = {
     myReaction: Reaction | null;
 };
 
+// Separate component for the author avatar
+const AuthorAvatarCell = ({ author, authorImageUrl }: {
+    author: string,
+    authorImageUrl: string | null
+}) => {
+    return (
+        <div className="flex items-center gap-2">
+            {authorImageUrl ? (
+                <div className="relative h-6 w-6 rounded-full overflow-hidden">
+                    <Image
+                        src={authorImageUrl}
+                        alt={author}
+                        fill
+                        className="object-cover"
+                        sizes="24px"
+                    />
+                </div>
+            ) : (
+                <div className="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-xs text-gray-600">
+                        {author.charAt(0).toUpperCase()}
+                    </span>
+                </div>
+            )}
+            <span>{author}</span>
+        </div>
+    );
+};
+
+// Separate component for the post image
+const PostImageCell = ({ imgUrl, title }: {
+    imgUrl: string | null,
+    title: string
+}) => {
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+    const handleImageClick = () => {
+        if (imgUrl) {
+            setIsPreviewOpen(true);
+        } else {
+            toast.error("Image does not exist for preview");
+        }
+    };
+
+    return (
+        <>
+            <div
+                className="relative h-6 w-8 rounded-md overflow-hidden cursor-pointer"
+                onClick={handleImageClick}
+            >
+                {imgUrl ? (
+                    <Image
+                        src={imgUrl}
+                        alt={title || "Community post image"}
+                        fill
+                        className="object-cover"
+                        sizes="48px"
+                    />
+                ) : (
+                    <div className="flex items-center justify-center h-full w-full">
+                        <span className="text-xs">N/A</span>
+                    </div>
+                )}
+            </div>
+
+            {imgUrl && (
+                <ImagePreviewModal
+                    imgUrl={imgUrl}
+                    alt={title || "Community post image"}
+                    isOpen={isPreviewOpen}
+                    onClose={() => setIsPreviewOpen(false)}
+                />
+            )}
+        </>
+    );
+};
+
 export const columns: ColumnDef<CommunityPostColumn>[] = [
     {
         accessorKey: "title",
         header: "Title",
-        cell: ({ row }) => {
-            const content = row.original.title;
-            return (
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div className="max-w-[15rem] truncate">
-                                {content}
-                            </div>
-                        </TooltipTrigger>
-                    </Tooltip>
-                </TooltipProvider>
-            );
-        }
+        cell: ({ row }) => (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div className="max-w-[15rem] truncate">
+                            {row.original.title}
+                        </div>
+                    </TooltipTrigger>
+                </Tooltip>
+            </TooltipProvider>
+        )
     },
     {
         accessorKey: "content",
         header: "Content",
-        cell: ({ row }) => {
-            const content = row.original.content;
-            return (
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div className="max-w-[15rem] truncate">
-                                {content}
-                            </div>
-                        </TooltipTrigger>
-                    </Tooltip>
-                </TooltipProvider>
-            );
-        }
+        cell: ({ row }) => (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div className="max-w-[15rem] truncate">
+                            {row.original.content}
+                        </div>
+                    </TooltipTrigger>
+                </Tooltip>
+            </TooltipProvider>
+        )
     },
     {
         accessorKey: "author",
         header: "Author",
-        cell: ({ row }) => {
-            const author = row.original.author;
-            const authorImageUrl = row.original.authorImageUrl;
-            return (
-                <div className="flex items-center gap-2">
-                    {authorImageUrl ? (
-                        <div className="relative h-6 w-6 rounded-full overflow-hidden">
-                            <Image
-                                src={authorImageUrl}
-                                alt={author}
-                                fill
-                                className="object-cover"
-                                sizes="24px"
-                            />
-                        </div>
-                    ) : (
-                        <div className="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center">
-                            <span className="text-xs text-gray-600">
-                                {author.charAt(0).toUpperCase()}
-                            </span>
-                        </div>
-                    )}
-                    <span>{author}</span>
-                </div>
-            );
-        }
+        cell: ({ row }) => (
+            <AuthorAvatarCell
+                author={row.original.author}
+                authorImageUrl={row.original.authorImageUrl}
+            />
+        )
     },
     {
         accessorKey: "imageUrl",
         header: "Image",
-        cell: ({ row }) => {
-            const imageUrl = row.original.imageUrl;
-            return (
-                <div className="relative h-6 w-8 rounded-md overflow-hidden">
-                    {imageUrl ? (
-                        <img
-                            src={imageUrl}
-                            alt={row.original.title || "Post image"}
-                            // fill
-                            className="object-cover"
-                            sizes="48px"
-                        />
-                    ) : (
-                        <div className="flex items-center justify-center h-full w-full">
-                            <span className="text-xs">N/A</span>
-                        </div>
-                    )}
-                </div>
-            );
-        }
+        cell: ({ row }) => (
+            <PostImageCell
+                imgUrl={row.original.imageUrl}
+                title={row.original.title}
+            />
+        )
     },
-    // {
-    //     accessorKey: "createdAt",
-    //     header: "Created At",
-    // },
     {
         accessorKey: "reactionsCount",
         header: "Reactions",

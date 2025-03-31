@@ -46,9 +46,9 @@ const UserDropdown = () => {
             >
                 {user?.imgUrl ? (
                     <div className='h-7 w-7 rounded-full overflow-hidden'>
-                        <img 
-                            src={user.imgUrl} 
-                            alt="Profile" 
+                        <img
+                            src={user.imgUrl}
+                            alt="Profile"
                             className="w-full h-full object-cover"
                             onError={(e) => {
                                 (e.target as HTMLImageElement).style.display = 'none';
@@ -56,7 +56,16 @@ const UserDropdown = () => {
                         />
                     </div>
                 ) : (
-                    <div className='h-7 w-7 bg-gray-300 rounded-full'></div>
+                    <div className='h-7 w-7 rounded-full overflow-hidden'>
+                        <img
+                            src={"/Images/avatar.png"}
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                        />
+                    </div>
                 )}
             </button>
 
@@ -74,9 +83,9 @@ const UserDropdown = () => {
                             <div className="flex items-center gap-2">
                                 {user?.imgUrl ? (
                                     <div className='h-8 w-8 rounded-full overflow-hidden'>
-                                        <img 
-                                            src={user.imgUrl} 
-                                            alt="Profile" 
+                                        <img
+                                            src={user.imgUrl}
+                                            alt="Profile"
                                             className="w-full h-full object-cover"
                                             onError={(e) => {
                                                 (e.target as HTMLImageElement).style.display = 'none';
@@ -84,7 +93,16 @@ const UserDropdown = () => {
                                         />
                                     </div>
                                 ) : (
-                                    <div className='h-8 w-8 bg-gray-300 rounded-full'></div>
+                                    <div className='h-8 w-8 rounded-full overflow-hidden'>
+                                        <img
+                                            src={"/Images/avatar.png"}
+                                            alt="Profile"
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).style.display = 'none';
+                                            }}
+                                        />
+                                    </div>
                                 )}
                                 <div>
                                     <p className="font-medium text-sm dark:text-white">

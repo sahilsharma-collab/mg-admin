@@ -185,10 +185,10 @@ export const Columns = (
             accessorKey: "userEmail",
             header: "User Email",
         },
-        {
-            accessorKey: "userExnessId",
-            header: "User Exness ID",
-        },
+        // {
+        //     accessorKey: "userExnessId",
+        //     header: "User Exness ID",
+        // },
         {
             accessorKey: "exnessVerified",
             header: "Exness Verified",

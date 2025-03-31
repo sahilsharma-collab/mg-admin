@@ -1,9 +1,12 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import Image from "next/image";
 import { Tooltip, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CellAction } from "./cell-actions";
+import { ImagePreviewModal } from "@/components/Modal/ImagePreviewModal";
+import { toast } from "react-toastify";
+import { useState } from "react";
+import Image from "next/image";
 
 export type EventColumn = {
     id: number;
@@ -14,6 +17,51 @@ export type EventColumn = {
     currencyPair: string;
     createdAt: string;
     updatedAt: string;
+};
+
+// Create a separate component for the image cell
+const ImageCell = ({ imgUrl, title }: { imgUrl: string | null, title: string }) => {
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+    const handleImageClick = () => {
+        if (imgUrl) {
+            setIsPreviewOpen(true);
+        } else {
+            toast.error("Image does not exist for preview");
+        }
+    };
+
+    return (
+        <>
+            <div
+                className="relative h-6 w-8 rounded-md overflow-hidden cursor-pointer"
+                onClick={handleImageClick}
+            >
+                {imgUrl ? (
+                    <Image
+                        src={imgUrl}
+                        alt={title || "Event image"}
+                        fill
+                        className="object-cover"
+                        sizes="48px"
+                    />
+                ) : (
+                    <div className="flex items-center justify-center h-full w-full">
+                        <span className="text-xs">N/A</span>
+                    </div>
+                )}
+            </div>
+
+            {imgUrl && (
+                <ImagePreviewModal
+                    imgUrl={imgUrl}
+                    alt={title || "Event image"}
+                    isOpen={isPreviewOpen}
+                    onClose={() => setIsPreviewOpen(false)}
+                />
+            )}
+        </>
+    );
 };
 
 export const columns: ColumnDef<EventColumn>[] = [
@@ -50,26 +98,12 @@ export const columns: ColumnDef<EventColumn>[] = [
     {
         accessorKey: "imgUrl",
         header: "Image",
-        cell: ({ row }) => {
-            const imgUrl = row.original.imgUrl;
-            return (
-                <div className="relative h-6 w-8 rounded-md overflow-hidden">
-                    {imgUrl ? (
-                        <Image
-                            src={imgUrl || "/Images/no-image.png"}
-                            alt={row.original.title || "Event image"}
-                            fill
-                            className="object-cover"
-                            sizes="48px"
-                        />
-                    ) : (
-                        <div className="flex items-center justify-center h-full w-full">
-                            <span className="text-xs">N/A</span>
-                        </div>
-                    )}
-                </div>
-            );
-        }
+        cell: ({ row }) => (
+            <ImageCell
+                imgUrl={row.original.imgUrl}
+                title={row.original.title}
+            />
+        ),
     },
     {
         header: "Actions",

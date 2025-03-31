@@ -122,7 +122,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         if (formImage instanceof File) {
             return URL.createObjectURL(formImage);
         }
-        return user?.imgUrl || "/api/placeholder/400/400";
+        return user?.imgUrl || "/Images/avatar.png";
     };
 
     // Form submission handler
