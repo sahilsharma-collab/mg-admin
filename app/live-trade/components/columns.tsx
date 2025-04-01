@@ -22,9 +22,25 @@ export type LiveTradeColumn = {
     title: string;
     description: string;
     imgUrl: string | null;
+    reactionsCount: number;
+    viewCount: number;
     createdAt: string;
     updatedAt: string;
     reactions: Reaction[];
+};
+
+export type LiveTradeResponseColumn = {
+    id: number;
+    title: string;
+    description: string | null;
+    imgUrl: string | null;
+    createdAt: string;
+    updatedAt: string;
+    reaction: Reaction[];
+    _count: {
+        reaction: number;
+        TradeViews: number;
+    };
 };
 
 // Separate component for the image cell
@@ -104,6 +120,14 @@ export const columns: ColumnDef<LiveTradeColumn>[] = [
                 title={row.original.title}
             />
         ),
+    },
+    {
+        accessorKey: "reactionsCount",
+        header: "Reactions",
+    },
+    {
+        accessorKey: "viewCount",
+        header: "Views",
     },
     {
         header: "Actions",

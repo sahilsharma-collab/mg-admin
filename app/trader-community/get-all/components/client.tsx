@@ -53,6 +53,7 @@ const CommunityGetAllClient = () => {
                     updatedAt: formatDateTime(post.updatedAt),
                     reactionsCount: post._count.reactions,
                     repliesCount: post._count.replies,
+                    viewCount: post._count.PostView,
                     reactions: post.reactions,
                     myReaction: post.myReaction,
                 }));
