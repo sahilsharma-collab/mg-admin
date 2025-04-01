@@ -137,11 +137,11 @@ export const columns: ColumnDef<MarketAnalysisColumn>[] = [
     },
     {
         accessorKey: "reactionCount",
-        header: "Reaction Count",
+        header: "Reactions",
     },
     {
         accessorKey: "viewCount",
-        header: "View Count",
+        header: "Views",
     },
     {
         header: "Actions",

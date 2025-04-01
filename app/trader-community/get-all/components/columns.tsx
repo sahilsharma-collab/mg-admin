@@ -36,6 +36,7 @@ export interface PostResponse {
     _count: {
         reactions: number;
         replies: number;
+        PostView: number;
     };
     reactions: ReactionCount[];
     myReaction: Reaction | null;
@@ -52,6 +53,7 @@ export type CommunityPostColumn = {
     updatedAt: string;
     reactionsCount: number;
     repliesCount: number;
+    viewCount:number;
     reactions: ReactionCount[];
     myReaction: Reaction | null;
 };
@@ -191,6 +193,10 @@ export const columns: ColumnDef<CommunityPostColumn>[] = [
     {
         accessorKey: "repliesCount",
         header: "Replies",
+    },
+    {
+        accessorKey: "viewCount",
+        header: "Views",
     },
     {
         header: "Actions",

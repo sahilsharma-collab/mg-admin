@@ -4,7 +4,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
-import { columns, LiveTradeColumn } from './columns';
+import { columns, LiveTradeColumn, LiveTradeResponseColumn } from './columns';
 import { CellAction } from './cell-actions';
 import { Row } from "@tanstack/react-table";
 
@@ -45,14 +45,16 @@ const LiveTradeClient = () => {
                     return `${formattedDate} ${formattedTime}`;
                 };
 
-                const formattedData: LiveTradeColumn[] = data.LiveTrade.map((trade: LiveTradeColumn) => ({
+                const formattedData: LiveTradeColumn[] = data.LiveTrade.map((trade: LiveTradeResponseColumn) => ({
                     id: trade.id,
                     title: trade.title,
                     description: trade.description,
                     imgUrl: trade.imgUrl,
+                    reactionsCount: trade._count.reaction,
+                    viewCount: trade._count.TradeViews,
                     createdAt: formatDateTime(trade.createdAt),
                     updatedAt: formatDateTime(trade.updatedAt),
-                    reactions: trade.reactions,
+                    reactions: trade.reaction,
                 }));
 
                 setFormattedLiveTrade(formattedData);
