@@ -43,7 +43,6 @@ export type LiveTradeResponseColumn = {
     };
 };
 
-// Separate component for the image cell
 const ImageCell = ({ imgUrl, title }: { imgUrl: string | null, title: string }) => {
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
@@ -134,4 +133,5 @@ export const columns: ColumnDef<LiveTradeColumn>[] = [
         id: "actions",
         cell: ({ row }) => <CellAction data={row.original} onDelete={() => { }} />,
     },
+
 ];
