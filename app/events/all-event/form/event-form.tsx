@@ -29,7 +29,7 @@ import { DateTimePicker } from "@/components/ui/datetime-picker";
 import Image from "next/image";
 import { EventCategoryResponseColumn } from "../../event-category/components/columns";
 
-// Form Schema
+// Form Schema - currency pair NOT included in the form schema
 const formSchema = z.object({
   categoryId: z.string().min(1, {
     message: "Category is required",
@@ -52,7 +52,16 @@ const EventForm: React.FC<EventFormProps> = ({ eventId }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
-  const [categories, setCategories] = useState<EventCategoryResponseColumn[]>([]);
+  const [categories, setCategories] = useState<EventCategoryResponseColumn[]>(
+    []
+  );
+  const [filteredCategories, setFilteredCategories] = useState<
+    EventCategoryResponseColumn[]
+  >([]);
+  const [currencyPairs, setCurrencyPairs] = useState<string[]>([]);
+  const [selectedCurrencyPair, setSelectedCurrencyPair] = useState<
+    string | null
+  >(null);
   const [fetchingCategories, setFetchingCategories] = useState(false);
 
   const isEdit = !!eventId;
@@ -85,7 +94,31 @@ const EventForm: React.FC<EventFormProps> = ({ eventId }) => {
           }
         );
         console.log("Categories data:", response.data);
-        setCategories(response.data.eventCategory);
+        const categoriesData = response.data.eventCategory;
+        setCategories(categoriesData);
+        setFilteredCategories(categoriesData);
+
+        // Extract unique currency pairs
+        const uniqueCurrencyPairs = [
+          ...new Set(
+            categoriesData
+              .filter(
+                (cat: {
+                  currencyPair: {
+                    currencyPair: string;
+                  };
+                }) => cat.currencyPair
+              )
+              .map(
+                (cat: {
+                  currencyPair: {
+                    currencyPair: string;
+                  };
+                }) => cat.currencyPair
+              )
+          ),
+        ] as string[];
+        setCurrencyPairs(uniqueCurrencyPairs);
       } catch (error) {
         console.error("Failed to fetch categories:", error);
         toast.error("Failed to fetch categories.");
@@ -95,6 +128,30 @@ const EventForm: React.FC<EventFormProps> = ({ eventId }) => {
     };
     fetchCategories();
   }, [token]);
+
+  // Filter categories when currency pair changes
+  useEffect(() => {
+    if (!selectedCurrencyPair) {
+      setFilteredCategories(categories);
+    } else {
+      const filtered = categories.filter(
+        (category) => category.currencyPair === selectedCurrencyPair
+      );
+      setFilteredCategories(filtered);
+
+      // Reset category selection if current selection is not in filtered list
+      const currentCategoryId = form.getValues("categoryId");
+      if (currentCategoryId) {
+        const categoryExists = filtered.some(
+          (cat) => cat.id.toString() === currentCategoryId
+        );
+
+        if (!categoryExists) {
+          form.setValue("categoryId", "");
+        }
+      }
+    }
+  }, [selectedCurrencyPair, categories, form]);
 
   // Fetch Event Data for Editing
   useEffect(() => {
@@ -113,6 +170,17 @@ const EventForm: React.FC<EventFormProps> = ({ eventId }) => {
           );
 
           const eventData = response.data.event;
+
+          // Get the category to find its currency pair
+          const category = categories.find(
+            (cat) => cat.id.toString() === eventData.categoryId.toString()
+          );
+
+          // Set the currency pair filter (separate from form)
+          if (category?.currencyPair) {
+            setSelectedCurrencyPair(category.currencyPair);
+          }
+
           form.reset({
             categoryId: eventData.categoryId.toString(),
             date: new Date(eventData.date),
@@ -127,7 +195,7 @@ const EventForm: React.FC<EventFormProps> = ({ eventId }) => {
       };
       fetchEvent();
     }
-  }, [eventId, isEdit, form, token]);
+  }, [eventId, isEdit, form, token, categories]);
 
   // Handle Form Submission
   const onSubmit = async (data: EventFormValues) => {
@@ -185,11 +253,73 @@ const EventForm: React.FC<EventFormProps> = ({ eventId }) => {
     }
   };
 
+  // Handle currency pair filter change
+  const handleCurrencyPairChange = (value: string) => {
+    setSelectedCurrencyPair(value);
+  };
+
+  // Clear currency pair filter
+  const clearCurrencyPairFilter = () => {
+    setSelectedCurrencyPair(null);
+  };
+
   return (
     <section className="container-padding">
       <div className="flex items-center justify-between">
         <h1 className="font-semibold text-2xl my-3">{title}</h1>
       </div>
+
+      {/* Currency Pair Filter (Outside the form) */}
+      <div className="mb-8">
+        <div className="bg-[#DBE7F7] dark:bg-[#4A87D833] dark:border-[#FFFFFF33] w-full rounded-lg border text-card-foreground shadow-sm p-4 md:p-7 border-[#00000033]">
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Filter by Currency Pair
+              </label>
+              <div className="flex items-center gap-2 mt-2">
+                <div className="flex-1">
+                  <Select
+                    onValueChange={handleCurrencyPairChange}
+                    value={selectedCurrencyPair || undefined}
+                    disabled={loading || fetchingCategories}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a currency pair" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {currencyPairs.map((pair) => (
+                        <SelectItem key={pair} value={pair}>
+                          {pair}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {selectedCurrencyPair && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={clearCurrencyPairFilter}
+                    className="px-3"
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+              {selectedCurrencyPair && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Showing categories for {selectedCurrencyPair} (
+                  {filteredCategories.length} categories)
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Actual Form - without currency pair */}
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
@@ -232,7 +362,7 @@ const EventForm: React.FC<EventFormProps> = ({ eventId }) => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {categories.map((category) => (
+                        {filteredCategories.map((category) => (
                           <SelectItem
                             key={category.id}
                             value={category.id.toString()}
@@ -250,6 +380,11 @@ const EventForm: React.FC<EventFormProps> = ({ eventId }) => {
                                 </div>
                               )}
                               <span>{category.name}</span>
+                              {category.currencyPair && (
+                                <span className="text-xs text-gray-500">
+                                  ({category.currencyPair})
+                                </span>
+                              )}
                             </div>
                           </SelectItem>
                         ))}
