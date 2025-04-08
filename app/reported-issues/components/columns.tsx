@@ -86,22 +86,33 @@ export const columns: ColumnDef<IssueColumn>[] = [
     {
         accessorKey: "title",
         header: "Title",
-    },
-    {
-        accessorKey: "description",
-        header: "Description",
         cell: ({ row }) => (
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <div className="max-w-[15rem] truncate">
-                            {row.original.description}
+                            {row.original.title}
                         </div>
                     </TooltipTrigger>
                 </Tooltip>
             </TooltipProvider>
         ),
     },
+    // {
+    //     accessorKey: "description",
+    //     header: "Description",
+    //     cell: ({ row }) => (
+    //         <TooltipProvider>
+    //             <Tooltip>
+    //                 <TooltipTrigger asChild>
+    //                     <div className="max-w-[15rem] truncate">
+    //                         {row.original.description}
+    //                     </div>
+    //                 </TooltipTrigger>
+    //             </Tooltip>
+    //         </TooltipProvider>
+    //     ),
+    // },
     {
         accessorKey: "image",
         header: "Screenshot",
@@ -158,6 +169,10 @@ export const columns: ColumnDef<IssueColumn>[] = [
                 </Tooltip>
             </TooltipProvider>
         ),
+    },
+    {
+        accessorKey: "createdAt",
+        header: "Date",
     },
     {
         id: "actions",

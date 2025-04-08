@@ -5,6 +5,8 @@ import Cookies from 'js-cookie';
 import { columns, UserColumn } from './columns';
 import { CellAction } from './cell-actions';
 import { Row } from "@tanstack/react-table";
+import { Button } from '@/components/ui/button'; // Import Button component
+import { Download } from 'lucide-react'; // Import download icon
 
 const UserDataClient = () => {
     const [formattedUsers, setFormattedUsers] = useState<UserColumn[]>([]);
@@ -55,6 +57,26 @@ const UserDataClient = () => {
         setRefreshCounter(prev => prev + 1);
     };
 
+    const downloadCSV = () => {
+        // CSV header
+        let csv = 'ID,Name,Email,Role,Created At,Updated At\n';
+
+        // Add data rows
+        formattedUsers.forEach(user => {
+            csv += `"${user.id}","${user.name}","${user.email}","${user.role}","${user.createdAt}","${user.updatedAt}"\n`;
+        });
+
+        // Create download link
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `users_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const columnsWithActions = columns.map(col => {
         if (col.id === "actions") {
             return {
@@ -76,6 +98,15 @@ const UserDataClient = () => {
                 data={formattedUsers}
                 loading={loading}
                 title={<h1 className="text-xl font-semibold">Users List</h1>}
+                actionButton={
+                    <Button
+                        onClick={downloadCSV}
+                        className="bg-[#0ABAB5] hover:bg-[#089e99] transition-colors dark:text-white"
+                    >
+                        <Download className="h-4 w-4" />
+                        Export
+                    </Button>
+                }
             />
         </div>
     );

@@ -8,6 +8,7 @@ import { Row } from "@tanstack/react-table";
 import { toast } from "react-toastify";
 import { MarkAllAsReadModal } from './MarkAllAsReadModal';
 import { useNotifications } from '@/context/NotificationContext';
+import { AddNotificationModal } from './AddNotificationModal';
 
 const NotificationsClient = () => {
     const {
@@ -20,6 +21,7 @@ const NotificationsClient = () => {
     } = useNotifications();
 
     const [isMarkAllModalOpen, setIsMarkAllModalOpen] = React.useState(false);
+    const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
 
     const formatDateTime = (dateString: string) => {
         const date = new Date(dateString);
@@ -46,8 +48,8 @@ const NotificationsClient = () => {
             return {
                 ...col,
                 cell: ({ row }: { row: Row<NotificationColumn> }) => (
-                    <CellAction 
-                        data={row.original} 
+                    <CellAction
+                        data={row.original}
                         onMarkAsRead={(id) => markAsRead(id).then(() => refreshNotifications())}
                     />
                 ),
@@ -93,12 +95,20 @@ const NotificationsClient = () => {
                     </div>
                 }
                 actionButton={
-                    <Button
-                        onClick={handleMarkAllRead}
-                        className="bg-[#0ABAB5] rounded-full px-6 hover:bg-[#089e99] transition-colors dark:text-white"
-                    >
-                        Mark All as Read
-                    </Button>
+                    <>
+                        <Button
+                            onClick={() => setIsAddModalOpen(true)}
+                            className="bg-[#0ABAB5] rounded-full px-6 hover:bg-[#089e99] transition-colors dark:text-white mr-5"
+                        >
+                            Add Notification
+                        </Button>
+                        <Button
+                            onClick={handleMarkAllRead}
+                            className="bg-[#0ABAB5] rounded-full px-6 hover:bg-[#089e99] transition-colors dark:text-white"
+                        >
+                            Mark All as Read
+                        </Button>
+                    </>
                 }
             />
 
@@ -107,6 +117,11 @@ const NotificationsClient = () => {
                 onClose={() => setIsMarkAllModalOpen(false)}
                 unreadCount={unreadCount}
                 onConfirm={handleConfirmMarkAll}
+            />
+            <AddNotificationModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                onNotificationAdded={refreshNotifications}
             />
         </div>
     );
