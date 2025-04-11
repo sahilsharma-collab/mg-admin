@@ -54,7 +54,10 @@ const MarketAnalysisClient = () => {
                     updatedAt: formatDateTime(analysis.updatedAt),
                     reactions: analysis.reaction,
                     reactionCount: analysis._count?.reaction || 0,
-                    viewCount: analysis._count?.MarketViews || 0
+                    viewCount: analysis._count?.MarketViews || 0,
+                    // Add raw date objects for filtering
+                    createdAtRaw: new Date(analysis.createdAt),
+                    updatedAtRaw: new Date(analysis.updatedAt),
                 }));
 
                 setFormattedMarketAnalysis(formattedData);
@@ -101,6 +104,7 @@ const MarketAnalysisClient = () => {
                         Add Market Analysis
                     </Button>
                 }
+                enableDateFilter={true}
             />
         </div>
     );

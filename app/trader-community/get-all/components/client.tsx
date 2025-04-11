@@ -89,7 +89,7 @@ const CommunityGetAllClient = () => {
         <div className="container-padding">
             <DataTable
                 redirectUrl=""
-                searchKey="title"
+                searchKey={["title", "author"]}
                 columns={columnsWithRefresh}
                 data={formattedPosts}
                 loading={loading}

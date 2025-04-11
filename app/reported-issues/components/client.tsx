@@ -8,8 +8,14 @@ import { toast } from "react-toastify";
 import Image from 'next/image';
 import { CellAction } from './cell-actions';
 
+// Update the interface to include raw date fields
+export interface EnhancedIssueColumn extends IssueColumn {
+    createdAtRaw: Date;
+    updatedAtRaw: Date;
+}
+
 const IssuesClient = () => {
-    const [formattedIssues, setFormattedIssues] = useState<IssueColumn[]>([]);
+    const [formattedIssues, setFormattedIssues] = useState<EnhancedIssueColumn[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const token = Cookies.get('auth_token');
     const [refreshCounter, setRefreshCounter] = useState(0);
@@ -41,7 +47,7 @@ const IssuesClient = () => {
                     });
                 };
 
-                const formattedData: IssueColumn[] = data.issues.map((issue: IssueResponseColumn) => ({
+                const formattedData: EnhancedIssueColumn[] = data.issues.map((issue: IssueResponseColumn) => ({
                     id: issue.id,
                     title: issue.title,
                     description: issue.description,
@@ -52,6 +58,9 @@ const IssuesClient = () => {
                     remarks: issue.remarks,
                     createdAt: formatDateTime(issue.createdAt),
                     updatedAt: formatDateTime(issue.updatedAt),
+                    // Add raw date objects for filtering
+                    createdAtRaw: new Date(issue.createdAt),
+                    updatedAtRaw: new Date(issue.updatedAt),
                 }));
 
                 setFormattedIssues(formattedData);
@@ -72,7 +81,7 @@ const IssuesClient = () => {
         if (col.id === "actions") {
             return {
                 ...col,
-                cell: ({ row }: { row: Row<IssueColumn> }) => (
+                cell: ({ row }: { row: Row<EnhancedIssueColumn> }) => (
                     <CellAction data={row.original} onRefresh={refreshData} />
                 ),
             };
@@ -80,12 +89,12 @@ const IssuesClient = () => {
         if (col.id === "image") {
             return {
                 ...col,
-                cell: ({ row }: { row: Row<IssueColumn> }) => (
+                cell: ({ row }: { row: Row<EnhancedIssueColumn> }) => (
                     row.original.image ? (
                         <div className="w-20 h-20 relative">
-                            <Image 
-                                src={row.original.image} 
-                                alt="Issue screenshot" 
+                            <Image
+                                src={row.original.image}
+                                alt="Issue screenshot"
                                 fill
                                 className="object-cover rounded"
                             />
@@ -99,9 +108,9 @@ const IssuesClient = () => {
         if (col.id === "status") {
             return {
                 ...col,
-                cell: ({ row }: { row: Row<IssueColumn> }) => {
+                cell: ({ row }: { row: Row<EnhancedIssueColumn> }) => {
                     let statusClass = "";
-                    switch(row.original.status) {
+                    switch (row.original.status) {
                         case "PENDING":
                             statusClass = "bg-yellow-100 text-yellow-800";
                             break;
@@ -129,7 +138,8 @@ const IssuesClient = () => {
         <div className="container-padding">
             <DataTable
                 redirectUrl=""
-                searchKey="title"
+                // searchKey="title"
+                searchKey={["title", "userEmail"]}
                 columns={columnsWithActions}
                 data={formattedIssues}
                 loading={loading}
@@ -138,6 +148,7 @@ const IssuesClient = () => {
                         <h1 className="text-xl font-semibold">Reported Issues</h1>
                     </div>
                 }
+                enableDateFilter={true}
             />
         </div>
     );

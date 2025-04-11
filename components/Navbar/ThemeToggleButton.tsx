@@ -24,7 +24,7 @@ export function ThemeToggle({ variant = 'slider' }: { variant?: 'slider' | 'butt
           )}
         </div>
         <span className={`absolute text-xs font-medium ${theme === 'light' ? 'right-2' : 'left-2'} top-1/2 transform -translate-y-1/2`}>
-          {theme === 'light' ? 'Dark' : 'Light'}
+          {theme === 'light' ? 'Light' : 'Dark'}
         </span>
       </div>
     );

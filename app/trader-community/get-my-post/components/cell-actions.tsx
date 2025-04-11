@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { Copy, Edit, MoreHorizontal, Trash } from "lucide-react";
+import { Copy, Edit, Eye, MoreHorizontal, Trash } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -71,6 +71,9 @@ export const CellAction: React.FC<CellActionProps> = ({
                         onClick={() => onCopy(data.id.toString())}
                     >
                         <Copy className="mr-2 h-4 w-4" /> Copy Id
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push(`/trader-community/get-my-post/${data.id}`)}>
+                        <Eye className="mr-2 h-4 w-4" /> Preview
                     </DropdownMenuItem>
                     <DropdownMenuItem
                         onClick={() => router.push(`/trader-community/get-my-post/${data.id}`)}

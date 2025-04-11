@@ -143,10 +143,8 @@ export const Columns = (
                         onCheckedChange={(value) => {
                             table.toggleAllPageRowsSelected(!!value);
                             if (!!value) {
-                                // Add all page row IDs to selected rows
                                 setSelectedRowIds([...new Set([...selectedRowIds, ...pageRowIds])]);
                             } else {
-                                // Remove current page row IDs from selected rows
                                 setSelectedRowIds(selectedRowIds.filter(id => !pageRowIds.includes(id)));
                             }
                         }}
@@ -185,10 +183,6 @@ export const Columns = (
             accessorKey: "userEmail",
             header: "User Email",
         },
-        // {
-        //     accessorKey: "userExnessId",
-        //     header: "User Exness ID",
-        // },
         {
             accessorKey: "exnessVerified",
             header: "Exness Verified",
@@ -199,8 +193,34 @@ export const Columns = (
             ),
         },
         {
+            accessorKey: "createdAt",
+            header: "Date",
+        },
+        {
             accessorKey: "status",
-            header: "Status",
+            header: ({ table }) => (
+                <div className="flex items-center gap-2">
+                    <span>Status</span>
+                    <Select
+                        value={(table.getColumn("status")?.getFilterValue() as string) ?? "ALL"}
+                        onValueChange={(value) =>
+                            table.getColumn("status")?.setFilterValue(
+                                value === "ALL" ? undefined : value
+                            )
+                        }
+                    >
+                        <SelectTrigger className="w-[110px] h-8 bg-white dark:bg-[#2E2941] border border-[#0000001A] dark:border-[#FFFFFF33] focus:ring-[0.1px] focus:ring-[#0ABAB5] focus:border-[#0ABAB5]">
+                            <SelectValue placeholder="Filter" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white dark:bg-[#2E2941] border border-[#0000001A] dark:border-[#FFFFFF33]">
+                            <SelectItem value="ALL">All</SelectItem>
+                            <SelectItem value="PENDING">Pending</SelectItem>
+                            <SelectItem value="APPROVED">Approved</SelectItem>
+                            <SelectItem value="REJECTED">Rejected</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            ),
             cell: ({ row }) => (
                 <StatusCell
                     value={row.original.status}
@@ -208,5 +228,10 @@ export const Columns = (
                     refreshData={refreshData}
                 />
             ),
+            enableColumnFilter: true,
+            filterFn: (row, id, value) => {
+                if (!value || value === "ALL") return true;
+                return row.getValue(id) === value;
+            },
         }
     ];
