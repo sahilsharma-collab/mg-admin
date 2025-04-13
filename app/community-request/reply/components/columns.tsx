@@ -13,6 +13,7 @@ import { toast } from "react-toastify";
 import axios from "axios";
 import { useState } from "react";
 import Cookies from 'js-cookie';
+import { CellAction } from "./cell-actions";
 
 export interface ReferralReplyResponse {
     id: number;
@@ -47,10 +48,10 @@ export type ReferralReplyColumn = {
 };
 
 // Create a separate component for the status cell
-const StatusCell = ({ value, rowData, refreshData }: { 
-    value: string, 
-    rowData: ReferralReplyColumn, 
-    refreshData: () => void 
+const StatusCell = ({ value, rowData, refreshData }: {
+    value: string,
+    rowData: ReferralReplyColumn,
+    refreshData: () => void
 }) => {
     const [isUpdating, setIsUpdating] = useState(false);
     const token = Cookies.get('auth_token');
@@ -79,7 +80,7 @@ const StatusCell = ({ value, rowData, refreshData }: {
 
             if (response.data.success) {
                 toast.success(`Status updated to ${newStatus}.`);
-                refreshData(); 
+                refreshData();
             } else {
                 toast.error("Failed to update status.");
             }
@@ -159,15 +160,47 @@ export const columns = (refreshData: () => void): ColumnDef<ReferralReplyColumn>
     },
     {
         accessorKey: "status",
-        header: "Status",
+        header: ({ table }) => (
+            <div className="flex items-center gap-2">
+                <span>Status</span>
+                <Select
+                    value={(table.getColumn("status")?.getFilterValue() as string) ?? "ALL"}
+                    onValueChange={(value) =>
+                        table.getColumn("status")?.setFilterValue(
+                            value === "ALL" ? undefined : value
+                        )
+                    }
+                >
+                    <SelectTrigger className="w-[110px] h-8 bg-white dark:bg-[#2E2941] border border-[#0000001A] dark:border-[#FFFFFF33] focus:ring-[0.1px] focus:ring-[#0ABAB5] focus:border-[#0ABAB5]">
+                        <SelectValue placeholder="Filter" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-[#2E2941] border border-[#0000001A] dark:border-[#FFFFFF33]">
+                        <SelectItem value="ALL">All</SelectItem>
+                        <SelectItem value="PENDING">Pending</SelectItem>
+                        <SelectItem value="APPROVED">Approved</SelectItem>
+                        <SelectItem value="REJECTED">Rejected</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+        ),
         cell: ({ row }) => {
             return (
-                <StatusCell 
-                    value={row.original.status} 
-                    rowData={row.original} 
-                    refreshData={refreshData} 
+                <StatusCell
+                    value={row.original.status}
+                    rowData={row.original}
+                    refreshData={refreshData}
                 />
             );
         },
+        enableColumnFilter: true,
+        filterFn: (row, id, value) => {
+            if (!value || value === "ALL") return true;
+            return row.getValue(id) === value;
+        },
+    },
+    {
+        header: "Actions",
+        id: "actions",
+        cell: ({ row }) => <CellAction data={row.original} onDelete={() => { }} />,
     },
 ];

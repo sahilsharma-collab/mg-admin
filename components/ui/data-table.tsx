@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import {
     Select,
     SelectContent,
@@ -29,18 +29,30 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Button } from "@/components/ui/button";
 
-interface DataTableProps<TData, TValue> {
+// Add date filter custom type to allow filtering based on raw date objects
+interface DateFilterableData {
+    createdAtRaw?: Date;
+    updatedAtRaw?: Date;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
+}
+
+interface DataTableProps<TData extends DateFilterableData, TValue> {
     columns: ColumnDef<TData, TValue>[];
     data: TData[];
-    searchKey: string;
+    searchKey: string | string[];
     redirectUrl: string | null;
     title?: React.ReactNode;
     actionButton?: React.ReactNode;
     loading?: boolean;
+    enableDateFilter?: boolean; // New prop to enable/disable date filter
+    onDateFilterChange?: (filteredData: TData[]) => void; // Optional callback for filtered data
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends DateFilterableData, TValue>({
     columns,
     data,
     searchKey,
@@ -48,6 +60,8 @@ export function DataTable<TData, TValue>({
     title,
     actionButton,
     loading = false,
+    enableDateFilter = false,
+    onDateFilterChange,
 }: DataTableProps<TData, TValue>) {
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [visiblePageButtons, setVisiblePageButtons] = useState<(number | string)[]>([]);
@@ -56,9 +70,48 @@ export function DataTable<TData, TValue>({
         pageIndex: 0,
         pageSize: rowsPerPage,
     });
+    const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
+    const [toDate, setToDate] = useState<Date | undefined>(undefined);
+    const [filteredData, setFilteredData] = useState<TData[]>(data);
+
+    // Apply date filtering when dates change
+    useEffect(() => {
+        if (enableDateFilter) {
+            let dateFilteredData = [...data];
+
+            if (fromDate) {
+                // Set time to start of day
+                const from = new Date(fromDate);
+                from.setHours(0, 0, 0, 0);
+
+                dateFilteredData = dateFilteredData.filter(item =>
+                    item.createdAtRaw && item.createdAtRaw >= from
+                );
+            }
+
+            if (toDate) {
+                // Set time to end of day
+                const to = new Date(toDate);
+                to.setHours(23, 59, 59, 999);
+
+                dateFilteredData = dateFilteredData.filter(item =>
+                    item.createdAtRaw && item.createdAtRaw <= to
+                );
+            }
+
+            setFilteredData(dateFilteredData);
+
+            // Call the callback if provided
+            if (onDateFilterChange) {
+                onDateFilterChange(dateFilteredData);
+            }
+        } else {
+            setFilteredData(data);
+        }
+    }, [fromDate, toDate, data, enableDateFilter, onDateFilterChange]);
 
     const table = useReactTable({
-        data,
+        data: filteredData,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
@@ -151,22 +204,75 @@ export function DataTable<TData, TValue>({
         // Page index is reset in the useEffect
     };
 
+    // Function to clear date filters
+    const clearDateFilters = () => {
+        setFromDate(undefined);
+        setToDate(undefined);
+    };
+
     return (
         <div className="">
-            {/* Original search bar at the top */}
-            <div className="flex items-center py-4">
-                <Input
-                    placeholder={`Search by ${searchKey}`}
-                    value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
-                    onChange={(event) =>
-                        table.getColumn(searchKey)?.setFilterValue(event.target.value)
-                    }
-                    className="max-w-sm rounded-lg border bg-card text-card-foreground shadow-sm dark:bg-[#8080804D]"
-                />
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between py-4 gap-4">
+                {/* Search bar */}
+                {Array.isArray(searchKey) ? (
+                    <div className="flex gap-4">
+                        {searchKey.map((key) => (
+                            <Input
+                                key={key}
+                                placeholder={`Search ${key}`}
+                                value={(table.getColumn(key)?.getFilterValue() as string) ?? ""}
+                                onChange={(e) => table.getColumn(key)?.setFilterValue(e.target.value)}
+                                className="max-w-sm rounded-lg border bg-card text-card-foreground shadow-sm dark:bg-[#8080804D]"
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    // Single input fallback
+                    <Input
+                        placeholder={`Search by ${searchKey}`}
+                        value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
+                        onChange={(e) => table.getColumn(searchKey)?.setFilterValue(e.target.value)}
+                        className="max-w-sm rounded-lg border bg-card text-card-foreground shadow-sm dark:bg-[#8080804D]"
+                    />
+                )}
+
+                {/* Date filters - only shown if enableDateFilter is true */}
+                {enableDateFilter && (
+                    <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-4">
+                        <div className="flex flex-col">
+                            <span className="text-sm font-medium mb-1">From Date</span>
+                            <DatePicker
+                                className="w-full sm:w-[180px]"
+                                date={fromDate}
+                                setDate={setFromDate}
+                            />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-sm font-medium mb-1">To Date</span>
+                            <DatePicker
+                                className="w-full sm:w-[180px]"
+                                date={toDate}
+                                setDate={setToDate}
+                            />
+                        </div>
+                        {(fromDate || toDate) && (
+                            <div className="flex items-end">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={clearDateFilters}
+                                    className="mt-auto"
+                                >
+                                    <X className="h-4 w-4 mr-1" />
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Header with title, dropdown and action button */}
-            <div className="bg-[#DBE7F7] dark:bg-[#4A87D833] dark:border-[#FFFFFF33] p-4 rounded-t-lg flex flex-col  mb-0 border-t border-x border-[#00000033]">
+            <div className="bg-[#DBE7F7] dark:bg-[#4A87D833] dark:border-[#FFFFFF33] p-4 rounded-t-lg flex flex-col mb-0 border-t border-x border-[#00000033]">
                 <div className="flex items-center space-x-2 justify-between">
                     {title && <div>{title}</div>}
                     {actionButton && <div>{actionButton}</div>}
@@ -226,7 +332,6 @@ export function DataTable<TData, TValue>({
                                 <TableRow
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
-                                    // @ts-expect-error - `row.original.id` is expected to exist
                                     onClick={(event) => handleRowClick(row.original.id, event)}
                                 >
                                     {row.getVisibleCells().map((cell) => (
@@ -257,8 +362,7 @@ export function DataTable<TData, TValue>({
                 {/* Pagination controls */}
                 <div className="flex items-center space-x-2">
                     <div
-                        className={`flex items-center justify-center w-8 h-8 rounded-full  ${!table.getCanPreviousPage() ? 'bg-[#353535]  text-white cursor-not-allowed' : 'bg-[#0ABAB5] hover:bg-[#089e99] transition-colors duration-200 cursor-pointer text-white'
-                            }`}
+                        className={`flex items-center justify-center w-8 h-8 rounded-full  ${!table.getCanPreviousPage() ? 'bg-[#353535]  text-white cursor-not-allowed' : 'bg-[#0ABAB5] hover:bg-[#089e99] transition-colors duration-200 cursor-pointer text-white'}`}
                         onClick={() => {
                             if (table.getCanPreviousPage()) {
                                 setPagination(prev => ({
@@ -293,8 +397,7 @@ export function DataTable<TData, TValue>({
                     </div>
 
                     <div
-                        className={`flex items-center justify-center w-8 h-8 rounded-full  ${!table.getCanNextPage() ? 'bg-[#353535] text-white cursor-not-allowed' : 'bg-[#0ABAB5] hover:bg-[#089e99] cursor-pointer duration-200 text-white transition-colors'
-                            }`}
+                        className={`flex items-center justify-center w-8 h-8 rounded-full  ${!table.getCanNextPage() ? 'bg-[#353535] text-white cursor-not-allowed' : 'bg-[#0ABAB5] hover:bg-[#089e99] cursor-pointer duration-200 text-white transition-colors'}`}
                         onClick={() => {
                             if (table.getCanNextPage()) {
                                 setPagination(prev => ({

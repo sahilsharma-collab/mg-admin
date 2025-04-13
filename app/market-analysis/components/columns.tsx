@@ -144,6 +144,10 @@ export const columns: ColumnDef<MarketAnalysisColumn>[] = [
         header: "Views",
     },
     {
+        accessorKey: "createdAt",
+        header: "Date",
+    },
+    {
         header: "Actions",
         id: "actions",
         cell: ({ row }) => <CellAction data={row.original} onDelete={() => { }} />,

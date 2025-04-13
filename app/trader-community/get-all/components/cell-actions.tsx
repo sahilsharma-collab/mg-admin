@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { Ban, Copy, MoreHorizontal, Trash } from "lucide-react";
+import { Ban, Copy, Eye, MoreHorizontal, Trash } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import { CommunityPostColumn } from "./columns";
 import { toast } from "react-toastify";
 import Cookies from 'js-cookie';
 import { DeleteConfirmationModal } from "@/components/Modal/DeleteConformationModal";
+import { useRouter } from "next/navigation";
 
 interface CellActionProps {
     data: CommunityPostColumn;
@@ -27,6 +28,7 @@ export const CellAction: React.FC<CellActionProps> = ({
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const token = Cookies.get('auth_token');
+    const router = useRouter();
 
     const handleDelete = async () => {
         try {
@@ -75,6 +77,9 @@ export const CellAction: React.FC<CellActionProps> = ({
                         onClick={() => onCopy(data.id.toString())}
                     >
                         <Copy className="mr-2 h-4 w-4" /> Copy Id
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push(`/trader-community/get-all/${data.id}`)}>
+                        <Eye className="mr-2 h-4 w-4" /> Preview
                     </DropdownMenuItem>
                     <DropdownMenuItem
                     // onClick={() => onSuspend(data.id)}

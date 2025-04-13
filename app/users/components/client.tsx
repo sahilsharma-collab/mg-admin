@@ -101,9 +101,9 @@ const UserDataClient = () => {
                 actionButton={
                     <Button
                         onClick={downloadCSV}
-                        className="bg-[#0ABAB5] hover:bg-[#089e99] transition-colors dark:text-white"
+                        className="bg-[#0ABAB5] rounded-full hover:bg-[#089e99] transition-colors dark:text-white"
                     >
-                        <Download className="h-4 w-4" />
+                        <Download className="h-4 w-4 -mr-1" />
                         Export
                     </Button>
                 }

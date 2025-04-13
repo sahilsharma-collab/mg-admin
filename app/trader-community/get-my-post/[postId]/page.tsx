@@ -1,5 +1,5 @@
 import React from 'react'
-import PostForm from '../form/post-form';
+import PostPage from '../../get-all/[postId]/PostPage';
 
 type Props = {
     params: Promise<{ postId: string }>
@@ -9,7 +9,7 @@ const Page = async ({ params }: Props) => {
     const { postId } = await params;
     return (
         <div>
-            <PostForm postId={postId} />
+            <PostPage postId={postId} />
         </div>
     )
 }

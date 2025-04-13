@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { toast } from "react-toastify";
 import { ImagePreviewModal } from "@/components/Modal/ImagePreviewModal";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export interface IssueResponseColumn {
     id: number;
@@ -35,6 +36,8 @@ export interface IssueColumn {
     remarks: string | null;
     createdAt: string;
     updatedAt: string;
+    createdAtRaw: Date;
+    updatedAtRaw: Date;
 }
 
 // Separate component for the image cell
@@ -85,12 +88,13 @@ const ImageCell = ({ imgUrl, title }: { imgUrl: string | null, title: string }) 
 export const columns: ColumnDef<IssueColumn>[] = [
     {
         accessorKey: "title",
+        accessorFn: row => row.title,
         header: "Title",
         cell: ({ row }) => (
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <div className="max-w-[15rem] truncate">
+                        <div className="max-w-[10rem] truncate">
                             {row.original.title}
                         </div>
                     </TooltipTrigger>
@@ -98,21 +102,6 @@ export const columns: ColumnDef<IssueColumn>[] = [
             </TooltipProvider>
         ),
     },
-    // {
-    //     accessorKey: "description",
-    //     header: "Description",
-    //     cell: ({ row }) => (
-    //         <TooltipProvider>
-    //             <Tooltip>
-    //                 <TooltipTrigger asChild>
-    //                     <div className="max-w-[15rem] truncate">
-    //                         {row.original.description}
-    //                     </div>
-    //                 </TooltipTrigger>
-    //             </Tooltip>
-    //         </TooltipProvider>
-    //     ),
-    // },
     {
         accessorKey: "image",
         header: "Screenshot",
@@ -128,8 +117,34 @@ export const columns: ColumnDef<IssueColumn>[] = [
         header: "Reported By",
     },
     {
+        accessorKey: "userEmail",
+        header: "Reported By",
+    },
+    {
         accessorKey: "status",
-        header: "Status",
+        header: ({ table }) => (
+            <div className="flex items-center gap-2">
+                <span>Status</span>
+                <Select
+                    value={(table.getColumn("status")?.getFilterValue() as string) ?? "ALL"}
+                    onValueChange={(value) =>
+                        table.getColumn("status")?.setFilterValue(
+                            value === "ALL" ? undefined : value
+                        )
+                    }
+                >
+                    <SelectTrigger className="w-[110px] h-8 bg-white dark:bg-[#2E2941] border border-[#0000001A] dark:border-[#FFFFFF33] focus:ring-[0.1px] focus:ring-[#0ABAB5] focus:border-[#0ABAB5]">
+                        <SelectValue placeholder="Filter" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-[#2E2941] border border-[#0000001A] dark:border-[#FFFFFF33]">
+                        <SelectItem value="ALL">All</SelectItem>
+                        <SelectItem value="PENDING">Pending</SelectItem>
+                        <SelectItem value="RESOLVED">Resolved</SelectItem>
+                        <SelectItem value="REJECTED">Rejected</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+        ),
         cell: ({ row }) => {
             const status = row.original.status;
             let statusClass = "";
@@ -153,7 +168,12 @@ export const columns: ColumnDef<IssueColumn>[] = [
                     {status}
                 </span>
             );
-        }
+        },
+        enableColumnFilter: true,
+        filterFn: (row, id, value) => {
+            if (!value || value === "ALL") return true;
+            return row.getValue(id) === value;
+        },
     },
     {
         accessorKey: "remarks",
@@ -162,7 +182,7 @@ export const columns: ColumnDef<IssueColumn>[] = [
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <div className="max-w-[15rem] truncate">
+                        <div className="max-w-[8rem] truncate">
                             {row.original.remarks || "-"}
                         </div>
                     </TooltipTrigger>
