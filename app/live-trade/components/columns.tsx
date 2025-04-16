@@ -135,9 +135,8 @@ export const columns: ColumnDef<LiveTradeColumn>[] = [
   },
   {
     accessorKey: "createdAt",
-    header: "Created At",
+    header: "Date",
   },
-
   {
     header: "Actions",
     id: "actions",

@@ -127,6 +127,7 @@ const UserDataClient = () => {
             Export
           </Button>
         }
+        enableDateFilter={true}
       />
     </div>
   );

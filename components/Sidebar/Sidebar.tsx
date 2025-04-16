@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { IconX, IconLayoutDashboard, IconChartArcs3, IconMessages, IconChartAreaLine, IconCalendarEvent, IconDeviceAnalytics, IconUserSquareRounded, IconBell, IconCrown, IconChevronDown, IconBrandYoutube, IconUsers, IconFocus } from '@tabler/icons-react';
+import { IconX, IconLayoutDashboard, IconChartArcs3, IconMessages, IconChartAreaLine, IconCalendarEvent, IconDeviceAnalytics, IconUserSquareRounded, IconBell, IconCrown, IconChevronDown, IconBrandYoutube, IconUsers, IconFocus, IconQuestionMark, IconUserCancel } from '@tabler/icons-react';
 import { useTheme } from "@/context/theme-context";
 
 interface SidebarProps {
@@ -113,15 +113,20 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             icon: <IconUserSquareRounded stroke={2} />
         },
         {
+            href: "/block-users",
+            label: "Block Users",
+            icon: <IconUserCancel stroke={2} />
+        },
+        {
             href: "/notifications",
             label: "Notifications",
             icon: <IconBell stroke={2} />
         },
-        // {
-        //     href: "/faq",
-        //     label: "FAQ",
-        //     icon: <IconQuestionMark stroke={2} />
-        // },
+        {
+            href: "/faq",
+            label: "FAQ",
+            icon: <IconQuestionMark stroke={2} />
+        },
         // {
         //     href: "/pages",
         //     label: "Pages",
