@@ -101,6 +101,7 @@ const LiveTradeClient = () => {
                         Add Live Trade
                     </Button>
                 }
+                enableDateFilter={true}
             />
         </div>
     );
