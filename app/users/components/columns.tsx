@@ -4,59 +4,71 @@ import { ColumnDef } from "@tanstack/react-table";
 import { CellAction } from "./cell-actions";
 
 export type UserColumn = {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-    createdAt: string;
-    updatedAt: string;
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
+  phone: string;
 };
 
 export const columns: ColumnDef<UserColumn>[] = [
-    {
-        accessorKey: "name",
-        header: "Name",
-    },
-    {
-        accessorKey: "email",
-        header: "Email",
-    },
-    {
-        accessorKey: "role",
-        header: "Role",
-        cell: ({ row }) => {
-            const role = row.original.role;
-            let bgColor = '';
-            let textColor = '';
+  {
+    accessorKey: "name",
+    header: "Name",
+  },
+  {
+    accessorKey: "email",
+    header: "Email",
+  },
+  {
+    accessorKey: "phone",
+    header: "Phone",
+  },
 
-            switch (role) {
-                case 'ADMIN':
-                    bgColor = 'bg-purple-100';
-                    textColor = 'text-purple-800';
-                    break;
-                case 'MODERATOR':
-                    bgColor = 'bg-blue-100';
-                    textColor = 'text-blue-800';
-                    break;
-                case 'USER':
-                    bgColor = 'bg-green-100';
-                    textColor = 'text-green-800';
-                    break;
-                default:
-                    bgColor = 'bg-gray-100';
-                    textColor = 'text-gray-800';
-            }
+  {
+    accessorKey: "role",
+    header: "Role",
+    cell: ({ row }) => {
+      const role = row.original.role;
+      let bgColor = "";
+      let textColor = "";
 
-            return (
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${bgColor} ${textColor}`}>
-                    {role}
-                </span>
-            );
-        },
+      switch (role) {
+        case "ADMIN":
+          bgColor = "bg-purple-100";
+          textColor = "text-purple-800";
+          break;
+        case "MODERATOR":
+          bgColor = "bg-blue-100";
+          textColor = "text-blue-800";
+          break;
+        case "USER":
+          bgColor = "bg-green-100";
+          textColor = "text-green-800";
+          break;
+        default:
+          bgColor = "bg-gray-100";
+          textColor = "text-gray-800";
+      }
+
+      return (
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-medium ${bgColor} ${textColor}`}
+        >
+          {role}
+        </span>
+      );
     },
-    {
-        header: "Actions",
-        id: "actions",
-        cell: ({ row }) => <CellAction data={row.original} onSuccess={() => {}} />,
-    },
+  },
+  {
+    accessorKey: "createdAt",
+    header: "Created At",
+  },
+  {
+    header: "Actions",
+    id: "actions",
+    cell: ({ row }) => <CellAction data={row.original} onSuccess={() => {}} />,
+  },
 ];
