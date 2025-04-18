@@ -38,7 +38,7 @@ const NotificationsClient = () => {
     originalNotifications.map((notification) => ({
       id: notification.id,
       title: notification.title,
-      message: notification.message,
+      message: notification.message.slice(0, 30) + "...",
       createdAt: formatDateTime(notification.createdAt),
     }));
 
