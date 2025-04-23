@@ -5,7 +5,8 @@ const nextConfig: NextConfig = {
     domains: [
       "s3-symbol-logo.tradingview.com",
       "booming-bulls.s3.ap-south-1.amazonaws.com",
-      'png.pngtree.com',
+      "png.pngtree.com",
+      "mg-final-s3-bucket.s3.ap-south-1.amazonaws.com",
     ],
   },
 };
