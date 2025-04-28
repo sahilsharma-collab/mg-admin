@@ -9,6 +9,7 @@ import {
     getFilteredRowModel,
     getPaginationRowModel,
     useReactTable,
+    FilterFn,
 } from "@tanstack/react-table";
 
 import {
@@ -48,10 +49,30 @@ interface DataTableProps<TData extends DateFilterableData, TValue> {
     title?: React.ReactNode;
     actionButton?: React.ReactNode;
     loading?: boolean;
-    enableDateFilter?: boolean; // New prop to enable/disable date filter
-    onDateFilterChange?: (filteredData: TData[]) => void; // Optional callback for filtered data
+    enableDateFilter?: boolean;
+    onDateFilterChange?: (filteredData: TData[]) => void;
 }
 
+// Custom comma-separated filter function
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const commaSeparatedFilterFn: FilterFn<any> = (row, columnId, value) => {
+    if (!value) return true;
+
+    const cellValue = row.getValue(columnId);
+    if (cellValue == null) return false;
+
+    // Convert cell value to string for comparison
+    const stringCellValue = String(cellValue).toLowerCase();
+
+    // Split the search value by commas and trim each term
+    const searchTerms = value.split(',').map((term: string) => term.trim().toLowerCase());
+
+    // Return true if any of the search terms is found in the cell value
+    return searchTerms.some((term: string) => {
+        if (term === '') return false; // Skip empty terms
+        return stringCellValue.includes(term);
+    });
+};
 export function DataTable<TData extends DateFilterableData, TValue>({
     columns,
     data,
@@ -110,6 +131,11 @@ export function DataTable<TData extends DateFilterableData, TValue>({
         }
     }, [fromDate, toDate, data, enableDateFilter, onDateFilterChange]);
 
+    // Define filter functions for column initialization
+    // const columnHelper = {
+    //     filterFn: commaSeparatedFilterFn
+    // };
+
     const table = useReactTable({
         data: filteredData,
         columns,
@@ -122,7 +148,28 @@ export function DataTable<TData extends DateFilterableData, TValue>({
             columnFilters,
             pagination,
         },
+        // Register the custom filter function
+        filterFns: {
+            commaSeparated: commaSeparatedFilterFn,
+        },
     });
+
+    // Set custom filter function for search columns
+    useEffect(() => {
+        if (Array.isArray(searchKey)) {
+            searchKey.forEach(key => {
+                const column = table.getColumn(key);
+                if (column) {
+                    column.columnDef.filterFn = commaSeparatedFilterFn;
+                }
+            });
+        } else {
+            const column = table.getColumn(searchKey);
+            if (column) {
+                column.columnDef.filterFn = commaSeparatedFilterFn;
+            }
+        }
+    }, [table, searchKey]);
 
     const router = useRouter();
     const currentPage = pagination.pageIndex + 1;
@@ -288,7 +335,7 @@ export function DataTable<TData extends DateFilterableData, TValue>({
                                 <SelectItem value="25">25</SelectItem>
                                 <SelectItem value="50">50</SelectItem>
                                 <SelectItem value="100">100</SelectItem>
-                                <SelectItem value="All">All</SelectItem>
+                                {/* <SelectItem value="All">All</SelectItem> */}
                             </SelectContent>
                         </Select>
                     </div>
