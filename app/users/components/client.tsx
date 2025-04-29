@@ -56,6 +56,9 @@ const UserDataClient = () => {
             phone: user.phone,
             createdAt: formatDateTime(user.createdAt),
             updatedAt: formatDateTime(user.updatedAt),
+            // Add raw date objects for filtering
+            createdAtRaw: new Date(user.createdAt),
+            updatedAtRaw: new Date(user.updatedAt),
           })
         );
 

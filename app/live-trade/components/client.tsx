@@ -55,6 +55,8 @@ const LiveTradeClient = () => {
                     createdAt: formatDateTime(trade.createdAt),
                     updatedAt: formatDateTime(trade.updatedAt),
                     reactions: trade.reaction,
+                    createdAtRaw: new Date(trade.createdAt),
+                    updatedAtRaw: new Date(trade.updatedAt),
                 }));
 
                 setFormattedLiveTrade(formattedData);

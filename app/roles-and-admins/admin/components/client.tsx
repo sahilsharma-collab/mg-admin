@@ -4,11 +4,14 @@ import React, { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
 import { columns, AdminColumn, AdminResponseColumn } from './columns';
 import { toast } from "react-toastify";
+import { CellAction } from './cell-actions';
+import { Row } from '@tanstack/react-table';
 
 const AdminClient = () => {
     const [formattedAdmins, setFormattedAdmins] = useState<AdminColumn[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const token = Cookies.get('auth_token');
+    const [refreshCounter, setRefreshCounter] = useState(0);
 
     useEffect(() => {
         const fetchAdmins = async () => {
@@ -56,8 +59,24 @@ const AdminClient = () => {
         };
 
         fetchAdmins();
-    }, [token]);
+    }, [token, refreshCounter]);
 
+    const refreshData = () => {
+        setRefreshCounter(prev => prev + 1);
+    };
+
+
+    const columnsWithActions = columns.map(col => {
+        if (col.id === "actions") {
+            return {
+                ...col,
+                cell: ({ row }: { row: Row<AdminColumn> }) => (
+                    <CellAction data={row.original} onSuccess={refreshData} />
+                ),
+            };
+        }
+        return col;
+    });
 
 
     return (
@@ -65,7 +84,7 @@ const AdminClient = () => {
             <DataTable
                 redirectUrl=""
                 searchKey="email"
-                columns={columns}
+                columns={columnsWithActions}
                 data={formattedAdmins}
                 loading={loading}
                 title={

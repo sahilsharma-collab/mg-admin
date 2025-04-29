@@ -107,7 +107,7 @@ const CustomCursor: React.FC<CustomCursorProps> = (props) => {
   );
 };
 
-const UserChart: React.FC<UserChartProps> = ({ monthlyStats }) => {
+const   UserChart: React.FC<UserChartProps> = ({ monthlyStats }) => {
   const { theme } = useTheme();
 
   // Transform month names to short format if needed
