@@ -11,6 +11,8 @@ export type UserColumn = {
   createdAt: string;
   updatedAt: string;
   phone: string;
+  exnessId: string;
+  exnessVerified: boolean;
 };
 
 export const columns: ColumnDef<UserColumn>[] = [
@@ -21,6 +23,28 @@ export const columns: ColumnDef<UserColumn>[] = [
   {
     accessorKey: "email",
     header: "Email",
+  },
+  {
+    accessorKey: "exnessId",
+    header: "Exness ID",
+  },
+  {
+    accessorKey: "exnessVerified",
+    header: "Exness Verified",
+    cell: ({ row }) => {
+      const isVerified = row.original.exnessVerified;
+      return (
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-medium ${
+            isVerified
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800"
+          }`}
+        >
+          {isVerified ? "Yes" : "No"}
+        </span>
+      );
+    },
   },
   {
     accessorKey: "phone",

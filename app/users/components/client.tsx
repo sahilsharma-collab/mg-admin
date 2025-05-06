@@ -54,8 +54,10 @@ const UserDataClient = () => {
             email: user.email,
             role: user.role,
             phone: user.phone,
+            exnessId: user.exnessId,
             createdAt: formatDateTime(user.createdAt),
             updatedAt: formatDateTime(user.updatedAt),
+            exnessVerified: user.exnessVerified,
             // Add raw date objects for filtering
             createdAtRaw: new Date(user.createdAt),
             updatedAtRaw: new Date(user.updatedAt),
@@ -116,7 +118,7 @@ const UserDataClient = () => {
     <div className="container-padding">
       <DataTable
         redirectUrl=""
-        searchKey="email"
+        searchKey={["email", "exnessId"]}
         columns={columnsWithActions}
         data={formattedUsers}
         loading={loading}
