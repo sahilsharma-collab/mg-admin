@@ -172,7 +172,8 @@ const UserDataClient = () => {
         searchConfig={{
           apiPath: "/api/profile/search",
           placeholder: "Search by email",
-          searchKey: "query"
+          searchKey: "query",
+          supportsPagination: true
         }}
       />
     </div>

@@ -44,6 +44,7 @@ interface SearchConfig {
     apiPath: string; // e.g., "/api/profile/search"
     placeholder: string;
     searchKey?: string; // The query parameter name (defaults to "query")
+    supportsPagination?: boolean;
 }
 interface DataTableProps<TData extends DateFilterableData, TValue> {
     columns: ColumnDef<TData, TValue>[];
@@ -89,6 +90,11 @@ export function DataTableWithApiPagination<TData extends DateFilterableData, TVa
     const [filteredData, setFilteredData] = useState<TData[]>(data);
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [searchLoading, setSearchLoading] = useState<boolean>(false);
+    const [isSearchActive, setIsSearchActive] = useState<boolean>(false);
+    const [searchPagination, setSearchPagination] = useState({
+        totalItems: 0,
+        totalPages: 1,
+    });
     const token = Cookies.get("auth_token");
 
     // Debounce function
@@ -105,27 +111,39 @@ export function DataTableWithApiPagination<TData extends DateFilterableData, TVa
     };
 
     // API search function
-    const performSearch = useCallback(async (query: string) => {
+    const performSearch = useCallback(async (query: string, pageNum: number = 1) => {
         if (!searchConfig || !query.trim()) {
             // If no search config or empty query, reset to normal data
             setFilteredData(data);
             setSearchLoading(false);
+            setIsSearchActive(false);
+            setSearchPagination({
+                totalItems: 0,
+                totalPages: 1,
+            });
+            if (onPageChange) onPageChange(1); // Reset to first page
             return;
         }
 
         setSearchLoading(true);
+        setIsSearchActive(true);
         try {
             const searchKey = searchConfig.searchKey || "query";
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_PROD_URL}${searchConfig.apiPath}?page=1&limit=${itemsPerPage}&${searchKey}=${encodeURIComponent(query)}`,
-                {
-                    method: "GET",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
+            let apiUrl = `${process.env.NEXT_PUBLIC_PROD_URL}${searchConfig.apiPath}`;
+
+            // Handle pagination for search if supported
+            if (searchConfig.supportsPagination) {
+                apiUrl += `?page=${pageNum}&limit=${itemsPerPage}&${searchKey}=${encodeURIComponent(query)}`;
+            } else {
+                apiUrl += `?${searchKey}=${encodeURIComponent(query)}`;
+            }
+            const response = await fetch(apiUrl, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            });
 
             if (!response.ok) {
                 throw new Error(`Error: ${response.statusText}`);
@@ -163,6 +181,20 @@ export function DataTableWithApiPagination<TData extends DateFilterableData, TVa
             }));
 
             setFilteredData(formattedResults);
+
+            // Update pagination based on search results
+            if (searchConfig.supportsPagination && searchData.pagination) {
+                setSearchPagination({
+                    totalItems: searchData.pagination.totalUsers,
+                    totalPages: searchData.pagination.totalPages,
+                });
+            } else {
+                // If search doesn't support pagination, show all results on one page
+                setSearchPagination({
+                    totalItems: searchData.users.length,
+                    totalPages: 1,
+                });
+            }
         } catch (error) {
             console.error("Search error:", error);
         } finally {
@@ -173,9 +205,10 @@ export function DataTableWithApiPagination<TData extends DateFilterableData, TVa
     // Debounced search function
     const debouncedSearch = useCallback(
         debounce((query: string) => {
-            performSearch(query);
+            performSearch(query, 1); // Always start at page 1 when searching
+            if (onPageChange) onPageChange(1); // Reset to first page
         }, 500),
-        [performSearch]
+        [performSearch, onPageChange]
     );
 
     // Handle search input change
@@ -184,6 +217,8 @@ export function DataTableWithApiPagination<TData extends DateFilterableData, TVa
         setSearchQuery(query);
         debouncedSearch(query);
     };
+
+
 
     // Apply date filtering when dates change
     useEffect(() => {
@@ -235,22 +270,19 @@ export function DataTableWithApiPagination<TData extends DateFilterableData, TVa
     });
 
     const router = useRouter();
-    const filteredRows = table.getFilteredRowModel().rows.length;
-
-    useEffect(() => {
-        updateVisiblePageButtons();
-    }, [currentPage, totalPages]);
+    // const filteredRows = table.getFilteredRowModel().rows.length;
 
     const updateVisiblePageButtons = () => {
         const maxButtons = 5;
         let buttons: (number | string)[] = [];
+        const pagesToShow = isSearchActive ? currentTotalPages : totalPages;
 
-        if (totalPages <= maxButtons) {
-            buttons = Array.from({ length: totalPages }, (_, i) => i + 1);
+        if (pagesToShow <= maxButtons) {
+            buttons = Array.from({ length: pagesToShow }, (_, i) => i + 1);
         } else {
             buttons.push(1);
             const leftSibling = Math.max(currentPage - 1, 2);
-            const rightSibling = Math.min(currentPage + 1, totalPages - 1);
+            const rightSibling = Math.min(currentPage + 1, pagesToShow - 1);
 
             if (leftSibling > 2) {
                 buttons.push('...');
@@ -260,15 +292,17 @@ export function DataTableWithApiPagination<TData extends DateFilterableData, TVa
                 buttons.push(i);
             }
 
-            if (rightSibling < totalPages - 1) {
+            if (rightSibling < pagesToShow - 1) {
                 buttons.push('...');
             }
 
-            buttons.push(totalPages);
+            buttons.push(pagesToShow);
         }
 
         setVisiblePageButtons(buttons);
     };
+
+
 
     const handleRowClick = (id: string | number, event: React.MouseEvent<HTMLElement>) => {
         if (!redirectUrl) return;
@@ -279,19 +313,6 @@ export function DataTableWithApiPagination<TData extends DateFilterableData, TVa
 
         router.push("/" + redirectUrl + "/" + id);
     };
-
-    const goToPage = (page: number) => {
-        if (onPageChange) {
-            onPageChange(page);
-        }
-    };
-
-    // Calculate entry range information
-    const startEntry = totalItems === 0
-        ? 0
-        : (currentPage - 1) * itemsPerPage + 1;
-
-    const endEntry = Math.min(currentPage * itemsPerPage, totalItems);
 
     // Handle rows per page change
     const handleRowsPerPageChange = (value: string) => {
@@ -309,6 +330,28 @@ export function DataTableWithApiPagination<TData extends DateFilterableData, TVa
         setFromDate(undefined);
         setToDate(undefined);
     };
+
+    const handlePageChange = (newPage: number) => {
+        if (isSearchActive && searchQuery) {
+            performSearch(searchQuery, newPage);
+        }
+        if (onPageChange) {
+            onPageChange(newPage);
+        }
+    };
+
+    const currentTotalItems = isSearchActive ? searchPagination.totalItems : totalItems;
+    const currentTotalPages = isSearchActive ? searchPagination.totalPages : totalPages;
+
+    // Calculate entry range information
+    const startEntry = currentTotalItems === 0
+        ? 0
+        : (currentPage - 1) * itemsPerPage + 1;
+    const endEntry = Math.min(currentPage * itemsPerPage, currentTotalItems);
+
+    useEffect(() => {
+        updateVisiblePageButtons();
+    }, [currentPage, totalPages, isSearchActive, currentTotalPages]);
 
     return (
         <div className="">
@@ -440,25 +483,26 @@ export function DataTableWithApiPagination<TData extends DateFilterableData, TVa
             </div>
 
             {/* Pagination footer */}
+            {/* Pagination footer */}
             <div className="flex items-center justify-between py-4 px-4 bg-[#DBE7F7] dark:bg-[#4A87D833] dark:border-[#FFFFFF33] rounded-b-2xl border-x border-b border-[#00000033]">
-                {/* Entry information */}
                 <div className="text-sm px-1 font-medium">
-                    Showing {startEntry} to {endEntry} of {filteredRows} entries
+                    Showing {startEntry} to {endEntry} of {currentTotalItems} entries
                 </div>
 
-                {/* Pagination controls */}
                 <div className="flex items-center space-x-2">
+                    {/* Previous button */}
                     <div
-                        className={`flex items-center justify-center w-8 h-8 rounded-full  ${currentPage === 1 ? 'bg-[#353535]  text-white cursor-not-allowed' : 'bg-[#0ABAB5] hover:bg-[#089e99] transition-colors duration-200 cursor-pointer text-white'}`}
+                        className={`flex items-center justify-center w-8 h-8 rounded-full ${currentPage === 1 ? 'bg-[#353535] text-white cursor-not-allowed' : 'bg-[#0ABAB5] hover:bg-[#089e99] transition-colors duration-200 cursor-pointer text-white'}`}
                         onClick={() => {
                             if (currentPage > 1) {
-                                onPageChange?.(currentPage - 1);
+                                handlePageChange(currentPage - 1);
                             }
                         }}
                     >
                         <ChevronLeft size={16} />
                     </div>
 
+                    {/* Page numbers */}
                     <div className="flex items-center space-x-2">
                         {visiblePageButtons.map((pageNumber, index) =>
                             typeof pageNumber === 'number' ? (
@@ -468,7 +512,7 @@ export function DataTableWithApiPagination<TData extends DateFilterableData, TVa
                                         ? 'bg-[#0ABAB5] text-white rounded-sm hover:bg-[#089e99] duration-200 transition-all'
                                         : 'hover:bg-gray-100 dark:hover:bg-gray-600 rounded-sm border border-black dark:border-[#B3A5C6]'
                                         }`}
-                                    onClick={() => goToPage(pageNumber)}
+                                    onClick={() => handlePageChange(pageNumber)}
                                 >
                                     {pageNumber}
                                 </div>
@@ -480,11 +524,12 @@ export function DataTableWithApiPagination<TData extends DateFilterableData, TVa
                         )}
                     </div>
 
+                    {/* Next button */}
                     <div
-                        className={`flex items-center justify-center w-8 h-8 rounded-full  ${currentPage === totalPages ? 'bg-[#353535] text-white cursor-not-allowed' : 'bg-[#0ABAB5] hover:bg-[#089e99] cursor-pointer duration-200 text-white transition-colors'}`}
+                        className={`flex items-center justify-center w-8 h-8 rounded-full ${currentPage === currentTotalPages ? 'bg-[#353535] text-white cursor-not-allowed' : 'bg-[#0ABAB5] hover:bg-[#089e99] cursor-pointer duration-200 text-white transition-colors'}`}
                         onClick={() => {
-                            if (currentPage < totalPages) {
-                                onPageChange?.(currentPage + 1);
+                            if (currentPage < currentTotalPages) {
+                                handlePageChange(currentPage + 1);
                             }
                         }}
                     >
