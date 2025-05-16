@@ -1,6 +1,5 @@
 "use client";
-
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
     ColumnDef,
     ColumnFiltersState,
@@ -10,7 +9,6 @@ import {
     getPaginationRowModel,
     useReactTable,
 } from "@tanstack/react-table";
-
 import {
     Table,
     TableBody,
@@ -31,343 +29,145 @@ import {
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Button } from "@/components/ui/button";
-import Cookies from "js-cookie";
 
-// Add date filter custom type to allow filtering based on raw date objects
 interface DateFilterableData {
     createdAtRaw?: Date;
     updatedAtRaw?: Date;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
 }
-interface SearchConfig {
-    apiPath: string; // e.g., "/api/profile/search"
-    placeholder: string;
-    searchKey?: string; // The query parameter name (defaults to "query")
-    supportsPagination?: boolean;
-}
+
 interface DataTableProps<TData extends DateFilterableData, TValue> {
     columns: ColumnDef<TData, TValue>[];
     data: TData[];
-    // searchKey: string | string[];
     redirectUrl: string | null;
     title?: React.ReactNode;
     actionButton?: React.ReactNode;
     loading?: boolean;
     enableDateFilter?: boolean;
-    onDateFilterChange?: (filteredData: TData[]) => void;
     totalItems?: number;
     totalPages?: number;
     currentPage?: number;
     itemsPerPage?: number;
     onPageChange?: (page: number) => void;
     onItemsPerPageChange?: (limit: number) => void;
-    searchConfig?: SearchConfig;
+    onSearch?: (query: string) => void;
+    searchPlaceholder?: string;
 }
 
 export function DataTableWithApiPagination<TData extends DateFilterableData, TValue>({
     columns,
     data,
-    // searchKey,
     redirectUrl,
     title,
     actionButton,
     loading = false,
     enableDateFilter = false,
-    onDateFilterChange,
     totalItems = 0,
     totalPages = 1,
     currentPage = 1,
     itemsPerPage = 10,
     onPageChange,
     onItemsPerPageChange,
-    searchConfig,  // Destructure the new prop
+    onSearch,
+    searchPlaceholder = "Search...",
 }: DataTableProps<TData, TValue>) {
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-    const [visiblePageButtons, setVisiblePageButtons] = useState<(number | string)[]>([]);
-    const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
-    const [toDate, setToDate] = useState<Date | undefined>(undefined);
-    const [filteredData, setFilteredData] = useState<TData[]>(data);
-    const [searchQuery, setSearchQuery] = useState<string>("");
-    const [searchLoading, setSearchLoading] = useState<boolean>(false);
-    const [isSearchActive, setIsSearchActive] = useState<boolean>(false);
-    const [searchPagination, setSearchPagination] = useState({
-        totalItems: 0,
-        totalPages: 1,
-    });
-    const token = Cookies.get("auth_token");
+    const [fromDate, setFromDate] = useState<Date | undefined>();
+    const [toDate, setToDate] = useState<Date | undefined>();
+    const [searchQuery, setSearchQuery] = useState("");
+    const router = useRouter();
 
-    // Debounce function
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const debounce = (func: (...args: any[]) => void, delay: number) => {
-        let timeoutId: NodeJS.Timeout;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (...args: any[]) => {
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => {
-                func(...args);
-            }, delay);
-        };
+    // Calculate pagination display values
+    const startEntry = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+    const endEntry = Math.min(currentPage * itemsPerPage, totalItems);
+
+    // Generate visible page buttons
+    const getVisiblePageButtons = () => {
+        const maxButtons = 5;
+        const buttons: (number | string)[] = [];
+
+        if (totalPages <= maxButtons) {
+            return Array.from({ length: totalPages }, (_, i) => i + 1);
+        }
+
+        buttons.push(1);
+        const leftSibling = Math.max(currentPage - 1, 2);
+        const rightSibling = Math.min(currentPage + 1, totalPages - 1);
+
+        if (leftSibling > 2) buttons.push('...');
+        for (let i = leftSibling; i <= rightSibling; i++) buttons.push(i);
+        if (rightSibling < totalPages - 1) buttons.push('...');
+        buttons.push(totalPages);
+
+        return buttons;
     };
 
-    // API search function
-    const performSearch = useCallback(async (query: string, pageNum: number = 1) => {
-        if (!searchConfig || !query.trim()) {
-            // If no search config or empty query, reset to normal data
-            setFilteredData(data);
-            setSearchLoading(false);
-            setIsSearchActive(false);
-            setSearchPagination({
-                totalItems: 0,
-                totalPages: 1,
-            });
-            if (onPageChange) onPageChange(1); // Reset to first page
-            return;
-        }
+    const visiblePageButtons = getVisiblePageButtons();
 
-        setSearchLoading(true);
-        setIsSearchActive(true);
-        try {
-            const searchKey = searchConfig.searchKey || "query";
-            let apiUrl = `${process.env.NEXT_PUBLIC_PROD_URL}${searchConfig.apiPath}`;
-
-            // Handle pagination for search if supported
-            if (searchConfig.supportsPagination) {
-                apiUrl += `?page=${pageNum}&limit=${itemsPerPage}&${searchKey}=${encodeURIComponent(query)}`;
-            } else {
-                apiUrl += `?${searchKey}=${encodeURIComponent(query)}`;
-            }
-            const response = await fetch(apiUrl, {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error(`Error: ${response.statusText}`);
-            }
-
-            const searchData = await response.json();
-
-            // Format the data to match your table structure
-            // Note: You might want to make this formatting function configurable too
-            const formatDateTime = (dateString: string) => {
-                const date = new Date(dateString);
-                const formattedDate = date.toLocaleDateString("en-US");
-                const formattedTime = date.toLocaleTimeString("en-US", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: true,
-                });
-                return `${formattedDate} ${formattedTime}`;
-            };
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const formattedResults = searchData.users.map((user: any) => ({
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                phone: user.phone,
-                exnessId: user.exnessId || "",
-                createdAt: formatDateTime(user.createdAt),
-                updatedAt: formatDateTime(user.updatedAt),
-                exnessVerified: user.exnessVerified || false,
-                emailVerified: user.emailVerified || false,
-                createdAtRaw: new Date(user.createdAt),
-                updatedAtRaw: new Date(user.updatedAt),
-            }));
-
-            setFilteredData(formattedResults);
-
-            // Update pagination based on search results
-            if (searchConfig.supportsPagination && searchData.pagination) {
-                setSearchPagination({
-                    totalItems: searchData.pagination.totalUsers,
-                    totalPages: searchData.pagination.totalPages,
-                });
-            } else {
-                // If search doesn't support pagination, show all results on one page
-                setSearchPagination({
-                    totalItems: searchData.users.length,
-                    totalPages: 1,
-                });
-            }
-        } catch (error) {
-            console.error("Search error:", error);
-        } finally {
-            setSearchLoading(false);
-        }
-    }, [token, itemsPerPage, searchConfig, data]);
-
-    // Debounced search function
+    // Debounced search handler
     const debouncedSearch = useCallback(
-        debounce((query: string) => {
-            performSearch(query, 1); // Always start at page 1 when searching
-            if (onPageChange) onPageChange(1); // Reset to first page
-        }, 500),
-        [performSearch, onPageChange]
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (func: any, delay: number) => {
+            let timeoutId: NodeJS.Timeout;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return (...args: any[]) => {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => func(...args), delay);
+            };
+        },
+        []
     );
 
-    // Handle search input change
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const query = e.target.value;
         setSearchQuery(query);
-        debouncedSearch(query);
+        debouncedSearch(() => {
+            if (onSearch) {
+                onSearch(query);
+                if (onPageChange) onPageChange(1);
+            }
+        }, 500)(query);
     };
 
-
-
-    // Apply date filtering when dates change
-    useEffect(() => {
-        if (enableDateFilter) {
-            let dateFilteredData = [...data];
-
-            if (fromDate) {
-                // Set time to start of day
-                const from = new Date(fromDate);
-                from.setHours(0, 0, 0, 0);
-
-                dateFilteredData = dateFilteredData.filter(item =>
-                    item.createdAtRaw && item.createdAtRaw >= from
-                );
-            }
-
-            if (toDate) {
-                // Set time to end of day
-                const to = new Date(toDate);
-                to.setHours(23, 59, 59, 999);
-
-                dateFilteredData = dateFilteredData.filter(item =>
-                    item.createdAtRaw && item.createdAtRaw <= to
-                );
-            }
-
-            setFilteredData(dateFilteredData);
-
-            // Call the callback if provided
-            if (onDateFilterChange) {
-                onDateFilterChange(dateFilteredData);
-            }
-        } else {
-            setFilteredData(data);
-        }
-    }, [fromDate, toDate, data, enableDateFilter, onDateFilterChange]);
-
     const table = useReactTable({
-        data: filteredData,
+        data,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         onColumnFiltersChange: setColumnFilters,
         getFilteredRowModel: getFilteredRowModel(),
         manualPagination: true,
-        state: {
-            columnFilters,
-        },
+        state: { columnFilters },
     });
 
-    const router = useRouter();
-    // const filteredRows = table.getFilteredRowModel().rows.length;
-
-    const updateVisiblePageButtons = () => {
-        const maxButtons = 5;
-        let buttons: (number | string)[] = [];
-        const pagesToShow = isSearchActive ? currentTotalPages : totalPages;
-
-        if (pagesToShow <= maxButtons) {
-            buttons = Array.from({ length: pagesToShow }, (_, i) => i + 1);
-        } else {
-            buttons.push(1);
-            const leftSibling = Math.max(currentPage - 1, 2);
-            const rightSibling = Math.min(currentPage + 1, pagesToShow - 1);
-
-            if (leftSibling > 2) {
-                buttons.push('...');
-            }
-
-            for (let i = leftSibling; i <= rightSibling; i++) {
-                buttons.push(i);
-            }
-
-            if (rightSibling < pagesToShow - 1) {
-                buttons.push('...');
-            }
-
-            buttons.push(pagesToShow);
-        }
-
-        setVisiblePageButtons(buttons);
-    };
-
-
-
     const handleRowClick = (id: string | number, event: React.MouseEvent<HTMLElement>) => {
-        if (!redirectUrl) return;
-
-        if (event.target instanceof HTMLElement && event.target.tagName === "DIV") {
-            return;
-        }
-
-        router.push("/" + redirectUrl + "/" + id);
+        if (!redirectUrl || (event.target as HTMLElement).tagName === "DIV") return;
+        router.push(`/${redirectUrl}/${id}`);
     };
 
-    // Handle rows per page change
     const handleRowsPerPageChange = (value: string) => {
-        if (onItemsPerPageChange) {
-            if (value === "All") {
-                onItemsPerPageChange(totalItems);
-            } else {
-                onItemsPerPageChange(parseInt(value));
-            }
-        }
+        if (!onItemsPerPageChange) return;
+        onItemsPerPageChange(value === "All" ? totalItems : parseInt(value));
     };
 
-    // Function to clear date filters
     const clearDateFilters = () => {
         setFromDate(undefined);
         setToDate(undefined);
     };
 
-    const handlePageChange = (newPage: number) => {
-        if (isSearchActive && searchQuery) {
-            performSearch(searchQuery, newPage);
-        }
-        if (onPageChange) {
-            onPageChange(newPage);
-        }
-    };
-
-    const currentTotalItems = isSearchActive ? searchPagination.totalItems : totalItems;
-    const currentTotalPages = isSearchActive ? searchPagination.totalPages : totalPages;
-
-    // Calculate entry range information
-    const startEntry = currentTotalItems === 0
-        ? 0
-        : (currentPage - 1) * itemsPerPage + 1;
-    const endEntry = Math.min(currentPage * itemsPerPage, currentTotalItems);
-
-    useEffect(() => {
-        updateVisiblePageButtons();
-    }, [currentPage, totalPages, isSearchActive, currentTotalPages]);
-
     return (
         <div className="">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between py-4 gap-4">
-                {/* Search bar */}
-                {/* Search bar - only shown if searchConfig is provided */}
-                {searchConfig && (
+                {onSearch && (
                     <Input
-                        placeholder={searchConfig.placeholder}
+                        placeholder={searchPlaceholder}
                         value={searchQuery}
                         onChange={handleSearchChange}
                         className="max-w-sm rounded-lg border bg-card text-card-foreground shadow-sm dark:bg-[#8080804D]"
                     />
                 )}
 
-                {/* Date filters - only shown if enableDateFilter is true */}
                 {enableDateFilter && (
                     <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-4">
                         <div className="flex flex-col">
@@ -402,7 +202,6 @@ export function DataTableWithApiPagination<TData extends DateFilterableData, TVa
                 )}
             </div>
 
-            {/* Header with title, dropdown and action button */}
             <div className="bg-[#DBE7F7] dark:bg-[#4A87D833] dark:border-[#FFFFFF33] p-4 rounded-t-lg flex flex-col mb-0 border-t border-x border-[#00000033]">
                 <div className="flex items-center space-x-2 justify-between">
                     {title && <div>{title}</div>}
@@ -410,50 +209,45 @@ export function DataTableWithApiPagination<TData extends DateFilterableData, TVa
                 </div>
                 <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-2 border-[#00000033] dark:border-[#0ABAB533] rounded-full mt-3 border">
-                        <Select value={itemsPerPage === totalItems ? "All" : itemsPerPage.toString()} onValueChange={handleRowsPerPageChange}>     <SelectTrigger className="w-[4.5rem] h-8 border-none shadow-none bg-[#0ABAB533] dark:border-[#0ABAB533] rounded-full">
-                            <SelectValue placeholder="10" />
-                        </SelectTrigger>
+                        <Select
+                            value={itemsPerPage === totalItems ? "All" : itemsPerPage.toString()}
+                            onValueChange={handleRowsPerPageChange}
+                        >
+                            <SelectTrigger className="w-[4.5rem] h-8 border-none shadow-none bg-[#0ABAB533] dark:border-[#0ABAB533] rounded-full">
+                                <SelectValue placeholder="10" />
+                            </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="10">10</SelectItem>
                                 <SelectItem value="25">25</SelectItem>
                                 <SelectItem value="50">50</SelectItem>
                                 <SelectItem value="100">100</SelectItem>
-                                {/* <SelectItem value="All">All</SelectItem> */}
                             </SelectContent>
                         </Select>
                     </div>
                 </div>
             </div>
 
-            {/* Table */}
             <div className="bg-[#DBE7F7] dark:bg-[#4A87D833] dark:border-[#FFFFFF33] border-x border-[#00000033] max-w-[calc(100vw-30px)] md:max-w-[calc(100vw-80px)] lg:max-w-full cursor-auto">
-                <Table className="">
+                <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => {
-                                    return (
-                                        <TableHead key={header.id} className="text-black dark:text-[#B3A5C6] first:pl-5 last:pr-5 ">
-                                            {header.isPlaceholder
-                                                ? null
-                                                : flexRender(
-                                                    header.column.columnDef.header,
-                                                    header.getContext()
-                                                )}
-                                        </TableHead>
-                                    );
-                                })}
+                                {headerGroup.headers.map((header) => (
+                                    <TableHead key={header.id} className="text-black dark:text-[#B3A5C6] first:pl-5 last:pr-5">
+                                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                                    </TableHead>
+                                ))}
                             </TableRow>
                         ))}
                     </TableHeader>
                     <TableBody>
-                        {loading || searchLoading ? (
+                        {loading ? (
                             <TableRow>
                                 <TableCell colSpan={columns.length} className="h-10 text-center border-y border-[#00000033]">
                                     <div className="flex justify-center items-center space-x-2">
-                                        <div className="w-2 h-2 bg-[#0ABAB5] rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                                        <div className="w-2 h-2 bg-[#0ABAB5] rounded-full animate-bounce" style={{ animationDelay: "200ms" }}></div>
-                                        <div className="w-2 h-2 bg-[#0ABAB5] rounded-full animate-bounce" style={{ animationDelay: "400ms" }}></div>
+                                        <div className="w-2 h-2 bg-[#0ABAB5] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                                        <div className="w-2 h-2 bg-[#0ABAB5] rounded-full animate-bounce" style={{ animationDelay: "200ms" }} />
+                                        <div className="w-2 h-2 bg-[#0ABAB5] rounded-full animate-bounce" style={{ animationDelay: "400ms" }} />
                                     </div>
                                 </TableCell>
                             </TableRow>
@@ -482,59 +276,48 @@ export function DataTableWithApiPagination<TData extends DateFilterableData, TVa
                 </Table>
             </div>
 
-            {/* Pagination footer */}
-            {/* Pagination footer */}
             <div className="flex items-center justify-between py-4 px-4 bg-[#DBE7F7] dark:bg-[#4A87D833] dark:border-[#FFFFFF33] rounded-b-2xl border-x border-b border-[#00000033]">
                 <div className="text-sm px-1 font-medium">
-                    Showing {startEntry} to {endEntry} of {currentTotalItems} entries
+                    Showing {startEntry} to {endEntry} of {totalItems} entries
                 </div>
 
                 <div className="flex items-center space-x-2">
-                    {/* Previous button */}
-                    <div
+                    <button
                         className={`flex items-center justify-center w-8 h-8 rounded-full ${currentPage === 1 ? 'bg-[#353535] text-white cursor-not-allowed' : 'bg-[#0ABAB5] hover:bg-[#089e99] transition-colors duration-200 cursor-pointer text-white'}`}
-                        onClick={() => {
-                            if (currentPage > 1) {
-                                handlePageChange(currentPage - 1);
-                            }
-                        }}
+                        onClick={() => onPageChange?.(currentPage - 1)}
+                        disabled={currentPage === 1}
                     >
                         <ChevronLeft size={16} />
-                    </div>
+                    </button>
 
-                    {/* Page numbers */}
                     <div className="flex items-center space-x-2">
-                        {visiblePageButtons.map((pageNumber, index) =>
+                        {visiblePageButtons.map((pageNumber, index) => (
                             typeof pageNumber === 'number' ? (
-                                <div
+                                <button
                                     key={index}
                                     className={`flex items-center justify-center w-8 h-8 cursor-pointer text-sm ${pageNumber === currentPage
                                         ? 'bg-[#0ABAB5] text-white rounded-sm hover:bg-[#089e99] duration-200 transition-all'
                                         : 'hover:bg-gray-100 dark:hover:bg-gray-600 rounded-sm border border-black dark:border-[#B3A5C6]'
                                         }`}
-                                    onClick={() => handlePageChange(pageNumber)}
+                                    onClick={() => onPageChange?.(pageNumber)}
                                 >
                                     {pageNumber}
-                                </div>
+                                </button>
                             ) : (
-                                <div key={index} className="text-gray-500 px-1">
+                                <span key={index} className="text-gray-500 px-1">
                                     {pageNumber}
-                                </div>
+                                </span>
                             )
-                        )}
+                        ))}
                     </div>
 
-                    {/* Next button */}
-                    <div
-                        className={`flex items-center justify-center w-8 h-8 rounded-full ${currentPage === currentTotalPages ? 'bg-[#353535] text-white cursor-not-allowed' : 'bg-[#0ABAB5] hover:bg-[#089e99] cursor-pointer duration-200 text-white transition-colors'}`}
-                        onClick={() => {
-                            if (currentPage < currentTotalPages) {
-                                handlePageChange(currentPage + 1);
-                            }
-                        }}
+                    <button
+                        className={`flex items-center justify-center w-8 h-8 rounded-full ${currentPage === totalPages ? 'bg-[#353535] text-white cursor-not-allowed' : 'bg-[#0ABAB5] hover:bg-[#089e99] cursor-pointer duration-200 text-white transition-colors'}`}
+                        onClick={() => onPageChange?.(currentPage + 1)}
+                        disabled={currentPage === totalPages}
                     >
                         <ChevronRight size={16} />
-                    </div>
+                    </button>
                 </div>
             </div>
         </div>

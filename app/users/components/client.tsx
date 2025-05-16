@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Cookies from "js-cookie";
 import { columns, UserColumn } from "./columns";
 import { CellAction } from "./cell-actions";
@@ -15,9 +15,10 @@ const UserDataClient = () => {
   const [totalUsers, setTotalUsers] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(0);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
-  const [refreshCounter, setRefreshCounter] = useState(0); // Added refresh counter
+  const [refreshCounter, setRefreshCounter] = useState(0);
   const token = Cookies.get("auth_token");
   const { page, limit, setPage, setLimit, resetPagination } = usePagination();
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Handle initial loading only once
   useEffect(() => {
@@ -30,26 +31,24 @@ const UserDataClient = () => {
     initialize();
   }, [isInitialized, resetPagination]);
 
-  // Fetch data when pagination changes or refresh counter changes
-  useEffect(() => {
-    if (isInitialized) {
-      fetchUsers();
-    }
-  }, [page, limit, isInitialized, token, refreshCounter]); // Added refreshCounter to dependencies
-
-  const fetchUsers = async () => {
+  // Fetch data when pagination or search changes
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/profile/paginated/all?page=${page}&limit=${limit}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const url = new URL(`${process.env.NEXT_PUBLIC_PROD_URL}/api/profile/paginated/all`);
+      url.searchParams.append('page', page.toString());
+      url.searchParams.append('limit', limit.toString());
+      if (searchQuery) {
+        url.searchParams.append('query', searchQuery);
+      }
+
+      const response = await fetch(url.toString(), {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
@@ -59,32 +58,28 @@ const UserDataClient = () => {
 
       const formatDateTime = (dateString: string) => {
         const date = new Date(dateString);
-        const formattedDate = date.toLocaleDateString("en-US");
-        const formattedTime = date.toLocaleTimeString("en-US", {
+        return `${date.toLocaleDateString("en-US")} ${date.toLocaleTimeString("en-US", {
           hour: "2-digit",
           minute: "2-digit",
           hour12: true,
-        });
-        return `${formattedDate} ${formattedTime}`;
+        })}`;
       };
 
-      const formattedData: UserColumn[] = data.users.map(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (user: any) => ({
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          phone: user.phone,
-          exnessId: user.exnessId || "",
-          createdAt: formatDateTime(user.createdAt),
-          updatedAt: formatDateTime(user.updatedAt),
-          exnessVerified: user.exnessVerified || false,
-          emailVerified: user.emailVerified || false,
-          createdAtRaw: new Date(user.createdAt),
-          updatedAtRaw: new Date(user.updatedAt),
-        })
-      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const formattedData: UserColumn[] = data.users.map((user: any) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        exnessId: user.exnessId || "",
+        createdAt: formatDateTime(user.createdAt),
+        updatedAt: formatDateTime(user.updatedAt),
+        exnessVerified: user.exnessVerified || false,
+        emailVerified: user.emailVerified || false,
+        createdAtRaw: new Date(user.createdAt),
+        updatedAtRaw: new Date(user.updatedAt),
+      }));
 
       setFormattedUsers(formattedData);
       setTotalUsers(data.pagination.totalUsers);
@@ -94,11 +89,26 @@ const UserDataClient = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, limit, searchQuery, token]);
 
-  // Refresh function to increment counter
+  useEffect(() => {
+    if (isInitialized) {
+      fetchUsers();
+    }
+  }, [fetchUsers, isInitialized, token, refreshCounter]);
+
   const refreshData = () => {
     setRefreshCounter(prev => prev + 1);
+  };
+
+  // useEffect(() => {
+  //   if (isInitialized) {
+  //     fetchUsers();
+  //   }
+  // }, [page, limit, isInitialized, token, refreshCounter]);
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setPage(1); // Reset to first page when searching
   };
 
   const downloadCSV = () => {
@@ -127,9 +137,7 @@ const UserDataClient = () => {
         cell: ({ row }: { row: Row<UserColumn> }) => (
           <CellAction
             data={row.original}
-            onSuccess={() => {
-              refreshData(); // Use refreshData instead of just setPage(1)
-            }}
+            onSuccess={refreshData}
           />
         ),
       };
@@ -169,12 +177,8 @@ const UserDataClient = () => {
         itemsPerPage={limit}
         onPageChange={handlePageChange}
         onItemsPerPageChange={handleLimitChange}
-        searchConfig={{
-          apiPath: "/api/profile/search",
-          placeholder: "Search by email",
-          searchKey: "query",
-          supportsPagination: true
-        }}
+        onSearch={handleSearch}
+        searchPlaceholder="Search by email"
       />
     </div>
   );

@@ -178,7 +178,7 @@ const CommunityDashboard = () => {
         let endpoint = "";
 
         if (activeTab === "myPosts") {
-          endpoint = `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/my-post`;
+          endpoint = `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/my-posts`;
         } else if (activeTab === "trendingPosts") {
           endpoint = `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/trending`;
         } else {
