@@ -3,7 +3,7 @@ import CommunityGetMyClient from "./components/client";
 
 const CommunityMobileView = () => {
   return (
-    <div>
+    <div className="container-padding">
       <CommunityGetMyClient />
     </div>
   );

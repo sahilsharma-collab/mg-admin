@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, UserCog } from "lucide-react";
+import { MoreHorizontal, UserCog, Trash2 } from "lucide-react"; // Added Trash2 icon
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,9 +11,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { UserColumn } from "./columns";
 import { RoleUpdateModal } from "./RoleUpdateModal";
+import { DeleteUserModal } from "./DeleteUserModal"; // Added new modal
 import { X } from "lucide-react";
 import Cookies from "js-cookie";
 import { toast } from "react-toastify";
+
 interface CellActionProps {
   data: UserColumn;
   onSuccess: () => void;
@@ -21,6 +23,7 @@ interface CellActionProps {
 
 export const CellAction: React.FC<CellActionProps> = ({ data, onSuccess }) => {
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // Added delete modal state
 
   const removeExness = async () => {
     const token = Cookies.get("auth_token");
@@ -40,6 +43,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data, onSuccess }) => {
         throw new Error(`Error: ${response.statusText}`);
       }
       toast.success("Exness ID removed successfully");
+      onSuccess();
     } catch (error) {
       toast.error("Error removing Exness ID");
       console.error("Error removing Exness:", error);
@@ -65,13 +69,25 @@ export const CellAction: React.FC<CellActionProps> = ({ data, onSuccess }) => {
           <DropdownMenuItem onClick={() => removeExness()}>
             <X className="mr-2 h-4 w-4" /> Remove Exness
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => setIsDeleteModalOpen(true)}
+            className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
+          >
+            <Trash2 className="mr-2 h-4 w-4" /> Delete User
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Use your separate modal component */}
       <RoleUpdateModal
         isOpen={isRoleModalOpen}
         onClose={() => setIsRoleModalOpen(false)}
+        user={data}
+        onSuccess={onSuccess}
+      />
+
+      <DeleteUserModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
         user={data}
         onSuccess={onSuccess}
       />
