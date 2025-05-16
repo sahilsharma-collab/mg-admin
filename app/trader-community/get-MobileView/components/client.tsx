@@ -1,19 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Search,
-  MessageCircle,
-  Eye,
-  Plus,
-  PlusCircle,
-  ThumbsUp,
-  Pin,
-} from "lucide-react";
+import { Search, MessageCircle, Eye, Plus, ThumbsUp, Pin } from "lucide-react";
 import Cookies from "js-cookie";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -79,10 +71,12 @@ const CommunityDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [hasAcceptedGuidelines, setHasAcceptedGuidelines] = useState(true);
+  // const [hasAcceptedGuidelines, setHasAcceptedGuidelines] = useState(true);
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Post[]>([]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [user, setUser] = useState<any>(null);
   const token = Cookies.get("auth_token");
   const router = useRouter();
@@ -331,7 +325,7 @@ const CommunityDashboard = () => {
         throw new Error("Failed to suspend user");
       }
 
-      const data = await response.json();
+      await response.json();
       toast.success("User has been suspended successfully");
 
       // Remove all posts from the suspended author
@@ -349,48 +343,48 @@ const CommunityDashboard = () => {
   };
 
   // Handle reaction
-  const handleAddReaction = async (postId: number, emoji: string) => {
-    if (!token) return;
+  // const handleAddReaction = async (postId: number, emoji: string) => {
+  //   if (!token) return;
 
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/${postId}/reaction`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ emoji }),
-        }
-      );
+  //   try {
+  //     const response = await fetch(
+  //       `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/${postId}/reaction`,
+  //       {
+  //         method: "POST",
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //           "Content-Type": "application/json",
+  //         },
+  //         body: JSON.stringify({ emoji }),
+  //       }
+  //     );
 
-      if (!response.ok) {
-        throw new Error("Failed to add reaction");
-      }
+  //     if (!response.ok) {
+  //       throw new Error("Failed to add reaction");
+  //     }
 
-      // Update the post with the new reaction
-      const updatedPosts = posts.map((post) => {
-        if (post.id === postId) {
-          return {
-            ...post,
-            myReaction: { emoji, id: Date.now() }, // Temporary ID
-            _count: {
-              ...post._count,
-              reactions: post._count.reactions + 1,
-            },
-            reactions: [...post.reactions, { emoji, count: 1 }],
-          };
-        }
-        return post;
-      });
+  //     // Update the post with the new reaction
+  //     const updatedPosts = posts.map((post) => {
+  //       if (post.id === postId) {
+  //         return {
+  //           ...post,
+  //           myReaction: { emoji, id: Date.now() }, // Temporary ID
+  //           _count: {
+  //             ...post._count,
+  //             reactions: post._count.reactions + 1,
+  //           },
+  //           reactions: [...post.reactions, { emoji, count: 1 }],
+  //         };
+  //       }
+  //       return post;
+  //     });
 
-      setPosts(updatedPosts);
-    } catch (error) {
-      console.error("Error adding reaction:", error);
-      toast.error("Failed to add reaction");
-    }
-  };
+  //     setPosts(updatedPosts);
+  //   } catch (error) {
+  //     console.error("Error adding reaction:", error);
+  //     toast.error("Failed to add reaction");
+  //   }
+  // };
 
   // Handle refresh
   const handleRefresh = async () => {
@@ -435,7 +429,7 @@ const CommunityDashboard = () => {
   return (
     <div className="container mx-auto p-4 max-w-6xl">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Trader's Community</h1>
+        <h1 className="text-2xl font-bold">{`Trader's Community`}</h1>
 
         {isSearchActive ? (
           <div className="flex gap-2 w-1/2">
