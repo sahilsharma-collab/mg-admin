@@ -4,37 +4,16 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Search,
-  MessageCircle,
-  Eye,
-  ThumbsUp,
-  Pin,
-  MoreHorizontal,
-  X
+  X,
 } from "lucide-react";
 import Cookies from "js-cookie";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import PostCard from "./PostCard";
 
 // Types
 interface Reaction {
@@ -242,6 +221,43 @@ const CommunityDashboard = () => {
     }
   }, []);
 
+  // Handle refresh
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+
+    try {
+      let endpoint = "";
+
+      if (activeTab === "myPosts") {
+        endpoint = `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/my-post`;
+      } else if (activeTab === "trendingPosts") {
+        endpoint = `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/trending`;
+      } else {
+        endpoint = `${process.env.NEXT_PUBLIC_PROD_URL}/api/post`;
+      }
+
+      const response = await fetch(endpoint, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to refresh posts: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setPosts(data.posts || []);
+      toast.success("Posts refreshed");
+    } catch (err) {
+      console.error("Error refreshing posts:", err);
+      setError(err instanceof Error ? err.message : "Failed to refresh posts");
+    } finally {
+      setRefreshing(false);
+    }
+  }, [activeTab, token]);
+
   // Handle post deletion
   const handleDeletePost = useCallback(async (postId: number) => {
     if (!token) return;
@@ -309,262 +325,6 @@ const CommunityDashboard = () => {
       setUserToSuspend(null);
     }
   }, [token, userToSuspend]);
-
-  // Handle refresh
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-
-    try {
-      let endpoint = "";
-
-      if (activeTab === "myPosts") {
-        endpoint = `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/my-post`;
-      } else if (activeTab === "trendingPosts") {
-        endpoint = `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/trending`;
-      } else {
-        endpoint = `${process.env.NEXT_PUBLIC_PROD_URL}/api/post`;
-      }
-
-      const response = await fetch(endpoint, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to refresh posts: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      setPosts(data.posts || []);
-      toast.success("Posts refreshed");
-    } catch (err) {
-      console.error("Error refreshing posts:", err);
-      setError(err instanceof Error ? err.message : "Failed to refresh posts");
-    } finally {
-      setRefreshing(false);
-    }
-  }, [activeTab, token]);
-
-  const PostCard = useCallback(({ post }: { post: Post }) => {
-    return (
-      <Card
-        key={post.id}
-        className="overflow-hidden hover:shadow-md transition-shadow bg-[#DBE7F7] dark:bg-[#4A87D833] dark:border-[#FFFFFF33] border border-[#00000033]"
-        onClick={() => handlePostClick(post.id)}
-      >
-        <CardContent className="p-4">
-          {post.isPinned && (
-            <div className="flex items-center gap-2 mb-2 text-gray-500">
-              <Pin className="h-4 w-4" />
-              <span className="text-sm">Pinned</span>
-            </div>
-          )}
-
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center space-x-3">
-              <Avatar>
-                <AvatarImage
-                  src={post.author.imgUrl || undefined}
-                  alt={post.author.userName}
-                />
-                <AvatarFallback>
-                  {post.author.userName.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="flex items-center">
-                  <span className="font-medium">
-                    {post.author.userName}
-                  </span>
-                  {post.author.role === "ADMIN" && (
-                    <Badge
-                      variant="outline"
-                      className="ml-2 bg-white text-blue-800"
-                    >
-                      Admin
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm text-gray-500">
-                  {formatTime(post.createdAt)}
-                </p>
-              </div>
-            </div>
-
-            {/* Dropdown Menu - improved implementation */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" size="sm">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={(e) => {
-                  e.stopPropagation();
-                  handlePostClick(post.id);
-                }}>
-                  View Details
-                </DropdownMenuItem>
-                {(user?.id === post.authorId || user?.role === "ADMIN") && (
-                  <>
-                    {user?.role === "ADMIN" && user?.id !== post.authorId && (
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <DropdownMenuItem
-                            onSelect={(e) => {
-                              e.preventDefault();
-                              setUserToSuspend(post.authorId);
-                            }}
-                            className="text-yellow-600"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Suspend User
-                          </DropdownMenuItem>
-                        </DialogTrigger>
-                        <DialogContent onClick={(e) => e.stopPropagation()}>
-                          <DialogHeader>
-                            <DialogTitle>
-                              Confirm User Suspension
-                            </DialogTitle>
-                            <DialogDescription>
-                              Are you sure you want to suspend{" "}
-                              {post.author.userName}? This will restrict
-                              their account privileges.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <DialogFooter>
-                            <Button
-                              variant="outline"
-                              onClick={() => setUserToSuspend(null)}
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              onClick={suspendUser}
-                              disabled={suspendLoading}
-                            >
-                              {suspendLoading ? (
-                                <>
-                                  <svg
-                                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <circle
-                                      className="opacity-25"
-                                      cx="12"
-                                      cy="12"
-                                      r="10"
-                                      stroke="currentColor"
-                                      strokeWidth="4"
-                                    ></circle>
-                                    <path
-                                      className="opacity-75"
-                                      fill="currentColor"
-                                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                    ></path>
-                                  </svg>
-                                  Processing...
-                                </>
-                              ) : (
-                                "Suspend User"
-                              )}
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    )}
-
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <DropdownMenuItem
-                          onSelect={(e) => e.preventDefault()}
-                          className="text-red-600"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          Delete Post
-                        </DropdownMenuItem>
-                      </DialogTrigger>
-                      <DialogContent onClick={(e) => e.stopPropagation()}>
-                        <DialogHeader>
-                          <DialogTitle>Confirm Deletion</DialogTitle>
-                          <DialogDescription>
-                            Are you sure you want to delete this post?
-                            This action cannot be undone.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                          <Button variant="outline" onClick={() => { }}>
-                            Cancel
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            onClick={() => handleDeletePost(post.id)}
-                          >
-                            Delete
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          <h3 className="text-lg font-medium mb-2">{post.title}</h3>
-
-          {post.imageUrl && (
-            <div className="mb-4 rounded-md overflow-hidden">
-              <img
-                src={post.imageUrl}
-                alt={post.title}
-                className="w-full h-auto max-h-[300px] object-cover"
-              />
-            </div>
-          )}
-
-          {post.content && (
-            <p className="text-gray-700 dark:text-gray-300 mb-4 line-clamp-3">
-              {post.content}
-            </p>
-          )}
-
-          <div className="flex justify-between items-center mt-4">
-            <div className="flex space-x-3">
-              {/* Reaction */}
-              <div className="flex items-center gap-1 rounded-full px-3 py-1 border text-sm bg-white dark:bg-[#1e293b] border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">
-                {post.myReaction ? (
-                  <span>{post.myReaction.emoji}</span>
-                ) : (
-                  <ThumbsUp className="h-4 w-4" />
-                )}
-                <span>{post._count.reactions}</span>
-              </div>
-
-              {/* Comments */}
-              <div className="flex items-center gap-1 rounded-full px-3 py-1 border text-sm bg-white dark:bg-[#1e293b] border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">
-                <MessageCircle className="h-4 w-4" />
-                <span>{post._count.replies}</span>
-              </div>
-
-              {/* Views - visible only to admin */}
-              {user?.role === "ADMIN" && (
-                <div className="flex items-center gap-1 rounded-full px-3 py-1 border text-sm bg-white dark:bg-[#1e293b] border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">
-                  <Eye className="h-4 w-4" />
-                  <span>{post._count.PostView}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }, [formatTime, handleDeletePost, handlePostClick, suspendLoading, suspendUser, user]);
 
   return (
     <div className="">
@@ -644,7 +404,23 @@ const CommunityDashboard = () => {
             </p>
           </div>
         ) : (
-          filteredPosts.map((post) => <PostCard key={post.id} post={post} />)
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          filteredPosts.map((post: any) => (
+            <PostCard
+              key={post.id}
+              post={post}
+              user={user}
+              handlePostClick={handlePostClick}
+              handleDeletePost={handleDeletePost}
+              suspendUser={suspendUser}
+              suspendLoading={suspendLoading}
+              formatTime={formatTime}
+              token={token}
+              setUserToSuspend={setUserToSuspend}
+            />
+          ))
+
         )}
       </div>
 
