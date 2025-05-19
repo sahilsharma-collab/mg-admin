@@ -35,11 +35,13 @@ const UserDataClient = () => {
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const url = new URL(`${process.env.NEXT_PUBLIC_PROD_URL}/api/profile/paginated/all`);
-      url.searchParams.append('page', page.toString());
-      url.searchParams.append('limit', limit.toString());
+      const url = new URL(
+        `${process.env.NEXT_PUBLIC_PROD_URL}/api/profile/paginated/all`
+      );
+      url.searchParams.append("page", page.toString());
+      url.searchParams.append("limit", limit.toString());
       if (searchQuery) {
-        url.searchParams.append('query', searchQuery);
+        url.searchParams.append("query", searchQuery);
       }
 
       const response = await fetch(url.toString(), {
@@ -58,11 +60,14 @@ const UserDataClient = () => {
 
       const formatDateTime = (dateString: string) => {
         const date = new Date(dateString);
-        return `${date.toLocaleDateString("en-US")} ${date.toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        })}`;
+        return `${date.toLocaleDateString("en-US")} ${date.toLocaleTimeString(
+          "en-US",
+          {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          }
+        )}`;
       };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -98,7 +103,7 @@ const UserDataClient = () => {
   }, [fetchUsers, isInitialized, token, refreshCounter]);
 
   const refreshData = () => {
-    setRefreshCounter(prev => prev + 1);
+    setRefreshCounter((prev) => prev + 1);
   };
 
   // useEffect(() => {
@@ -135,10 +140,7 @@ const UserDataClient = () => {
       return {
         ...col,
         cell: ({ row }: { row: Row<UserColumn> }) => (
-          <CellAction
-            data={row.original}
-            onSuccess={refreshData}
-          />
+          <CellAction data={row.original} onSuccess={refreshData} />
         ),
       };
     }
