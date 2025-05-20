@@ -42,6 +42,8 @@ const ReferralRequestClient = () => {
     endDate: null,
   });
 
+  const [status, setStatus] = useState<string>("");
+
   // Handle initial loading only once
   useEffect(() => {
     const initialize = async () => {
@@ -68,6 +70,10 @@ const ReferralRequestClient = () => {
         } else if (searchField === "exnessId") {
           url.searchParams.append("exnessId", searchQuery);
         }
+      }
+
+      if (status) {
+        url.searchParams.append("status", status);
       }
 
       // Add date range parameters if they exist
@@ -129,7 +135,7 @@ const ReferralRequestClient = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, searchQuery, searchField, dateRange, token]);
+  }, [page, limit, searchQuery, searchField, dateRange, token, status]);
 
   useEffect(() => {
     if (isInitialized) {
@@ -203,7 +209,8 @@ const ReferralRequestClient = () => {
   const columnsWithRefresh = Columns(
     refreshData,
     selectedRowIds,
-    setSelectedRowIds
+    setSelectedRowIds,
+    setStatus
   );
 
   const downloadCSV = () => {
@@ -319,6 +326,7 @@ const ReferralRequestClient = () => {
             : "Search by Exness ID"
         }
         enableDateFilter={false} // Set to false since we've implemented custom date filters above
+        setStatus={setStatus}
       />
 
       <BulkUpdateModal

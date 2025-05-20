@@ -9,8 +9,17 @@ import { Download } from "lucide-react";
 import { usePagination } from "@/context/pagination-context";
 import { DataTableWithApiPagination } from "@/components/ui/data-table2";
 
+// Update the interface to include raw date fields if not already present
+export interface EnhancedUserColumn extends UserColumn {
+  createdAtRaw: Date;
+  updatedAtRaw: Date;
+  emailVerified: boolean;
+}
+
 const UserDataClient = () => {
-  const [formattedUsers, setFormattedUsers] = useState<UserColumn[]>([]);
+  const [formattedUsers, setFormattedUsers] = useState<EnhancedUserColumn[]>(
+    []
+  );
   const [loading, setLoading] = useState<boolean>(true);
   const [totalUsers, setTotalUsers] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(0);
@@ -19,6 +28,14 @@ const UserDataClient = () => {
   const token = Cookies.get("auth_token");
   const { page, limit, setPage, setLimit, resetPagination } = usePagination();
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchField, setSearchField] = useState<string>("email"); // Default search field
+  const [dateRange, setDateRange] = useState<{
+    startDate: string | null;
+    endDate: string | null;
+  }>({
+    startDate: null,
+    endDate: null,
+  });
 
   // Handle initial loading only once
   useEffect(() => {
@@ -40,8 +57,22 @@ const UserDataClient = () => {
       );
       url.searchParams.append("page", page.toString());
       url.searchParams.append("limit", limit.toString());
+
+      // Add search parameters if query exists
       if (searchQuery) {
-        url.searchParams.append("query", searchQuery);
+        if (searchField === "email") {
+          url.searchParams.append("email", searchQuery);
+        } else if (searchField === "exnessId") {
+          url.searchParams.append("exnessId", searchQuery);
+        }
+      }
+
+      // Add date range parameters if they exist
+      if (dateRange.startDate) {
+        url.searchParams.append("startDate", dateRange.startDate);
+      }
+      if (dateRange.endDate) {
+        url.searchParams.append("endDate", dateRange.endDate);
       }
 
       const response = await fetch(url.toString(), {
@@ -71,20 +102,22 @@ const UserDataClient = () => {
       };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const formattedData: UserColumn[] = data.users.map((user: any) => ({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        phone: user.phone,
-        exnessId: user.exnessId || "",
-        createdAt: formatDateTime(user.createdAt),
-        updatedAt: formatDateTime(user.updatedAt),
-        exnessVerified: user.exnessVerified || false,
-        emailVerified: user.emailVerified || false,
-        createdAtRaw: new Date(user.createdAt),
-        updatedAtRaw: new Date(user.updatedAt),
-      }));
+      const formattedData: EnhancedUserColumn[] = data.users.map(
+        (user: EnhancedUserColumn) => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          phone: user.phone,
+          exnessId: user.exnessId || "",
+          createdAt: formatDateTime(user.createdAt),
+          updatedAt: formatDateTime(user.updatedAt),
+          exnessVerified: user.exnessVerified || false,
+          emailVerified: user.emailVerified || false,
+          createdAtRaw: new Date(user.createdAt),
+          updatedAtRaw: new Date(user.updatedAt),
+        })
+      );
 
       setFormattedUsers(formattedData);
       setTotalUsers(data.pagination.totalUsers);
@@ -94,32 +127,60 @@ const UserDataClient = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, searchQuery, token]);
+  }, [page, limit, searchQuery, searchField, dateRange, token]);
 
   useEffect(() => {
     if (isInitialized) {
       fetchUsers();
     }
-  }, [fetchUsers, isInitialized, token, refreshCounter]);
+  }, [fetchUsers, isInitialized, refreshCounter]);
 
   const refreshData = () => {
     setRefreshCounter((prev) => prev + 1);
   };
 
-  // useEffect(() => {
-  //   if (isInitialized) {
-  //     fetchUsers();
-  //   }
-  // }, [page, limit, isInitialized, token, refreshCounter]);
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     setPage(1); // Reset to first page when searching
   };
 
+  const handleSearchFieldChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchField(e.target.value);
+    setPage(1); // Reset to first page when changing search field
+    if (searchQuery) {
+      // If there's an active search, refresh to apply with new field
+      setRefreshCounter((prev) => prev + 1);
+    }
+  };
+
+  // Add handlers for date filtering
+  const handleDateChange = (
+    type: "startDate" | "endDate",
+    value: string | null
+  ) => {
+    setDateRange((prev) => ({
+      ...prev,
+      [type]: value,
+    }));
+    setPage(1); // Reset to first page when changing date filters
+  };
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setDateRange({ startDate: null, endDate: null });
+    setPage(1);
+  };
+
   const downloadCSV = () => {
-    let csv = "ID,Name,Email,Role,Created At,Updated At\n";
+    let csv =
+      "ID,Name,Email,Role,Phone,Exness ID,Created At,Updated At,Exness Verified,Email Verified\n";
     formattedUsers.forEach((user) => {
-      csv += `"${user.id}","${user.name}","${user.email}","${user.role}","${user.createdAt}","${user.updatedAt}"\n`;
+      csv += `"${user.id}","${user.name}","${user.email}","${user.role}","${
+        user.phone || ""
+      }","${user.exnessId || ""}","${user.createdAt}","${user.updatedAt}","${
+        user.exnessVerified
+      }","${user.emailVerified}"\n`;
     });
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -158,6 +219,55 @@ const UserDataClient = () => {
 
   return (
     <div className="container-padding">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        {/* Search field selector */}
+        <select
+          className="p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
+          value={searchField}
+          onChange={handleSearchFieldChange}
+        >
+          <option value="email">Search by Email</option>
+          <option value="exnessId">Search by Exness ID</option>
+        </select>
+
+        {/* Date filters */}
+        <div className="flex items-center space-x-2">
+          <label className="text-sm">From:</label>
+          <input
+            type="date"
+            className="p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
+            value={dateRange.startDate || ""}
+            onChange={(e) =>
+              handleDateChange("startDate", e.target.value || null)
+            }
+          />
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <label className="text-sm">To:</label>
+          <input
+            type="date"
+            className="p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
+            value={dateRange.endDate || ""}
+            onChange={(e) =>
+              handleDateChange("endDate", e.target.value || null)
+            }
+          />
+        </div>
+
+        {/* Clear filters button */}
+        {(searchQuery || dateRange.startDate || dateRange.endDate) && (
+          <Button
+            onClick={handleClearFilters}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            Clear Filters
+          </Button>
+        )}
+      </div>
+
       <DataTableWithApiPagination
         redirectUrl=""
         columns={columnsWithActions}
@@ -180,7 +290,10 @@ const UserDataClient = () => {
         onPageChange={handlePageChange}
         onItemsPerPageChange={handleLimitChange}
         onSearch={handleSearch}
-        searchPlaceholder="Search by email"
+        searchPlaceholder={
+          searchField === "email" ? "Search by email" : "Search by Exness ID"
+        }
+        enableDateFilter={false} // Set to false since we've implemented custom date filters above
       />
     </div>
   );
