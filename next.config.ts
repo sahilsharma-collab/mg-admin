@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
       "png.pngtree.com",
       "mg-final-s3-bucket.s3.ap-south-1.amazonaws.com",
     ],
+    unoptimized: false,
   },
 };
 
