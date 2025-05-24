@@ -223,7 +223,7 @@ export const Columns = (
               .getColumn("status")
               ?.setFilterValue(value === "ALL" ? undefined : value);
 
-            setStatus(value);
+            setStatus(value === "ALL" ? "" : value);
           }}
         >
           <SelectTrigger className="w-[110px] h-8 bg-white dark:bg-[#2E2941] border border-[#0000001A] dark:border-[#FFFFFF33] focus:ring-[0.1px] focus:ring-[#0ABAB5] focus:border-[#0ABAB5]">
