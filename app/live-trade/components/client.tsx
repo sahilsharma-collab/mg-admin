@@ -63,6 +63,7 @@ const LiveTradeClient = () => {
             reactions: trade.reaction,
             createdAtRaw: new Date(trade.createdAt),
             updatedAtRaw: new Date(trade.updatedAt),
+            impressionCount: trade.impressionCount,
           })
         );
 

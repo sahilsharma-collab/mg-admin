@@ -31,6 +31,7 @@ export type LiveTradeColumn = {
   createdAt: string;
   updatedAt: string;
   reactions: Reaction[];
+  impressionCount: number;
 };
 
 export type LiveTradeResponseColumn = {
@@ -45,6 +46,7 @@ export type LiveTradeResponseColumn = {
     reaction: number;
     TradeViews: number;
   };
+  impressionCount: number;
 };
 
 const ImageCell = ({
@@ -132,6 +134,10 @@ export const columns: ColumnDef<LiveTradeColumn>[] = [
   {
     accessorKey: "viewCount",
     header: "Views",
+  },
+  {
+    accessorKey: "impressionCount",
+    header: "Impressions",
   },
   {
     accessorKey: "createdAt",
