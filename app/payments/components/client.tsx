@@ -37,12 +37,8 @@ const UserDataClient = () => {
   const statusOptions = [
     { display: "All Status", value: "" },
     { display: "SUCCESS", value: "SUCCESS" },
-    { display: "PAID", value: "paid" },
-    { display: "PAID PARTIAL", value: "paid_partial" },
     { display: "PENDING", value: "PENDING" },
     { display: "FAILED", value: "FAILED" },
-    { display: "EXPIRED", value: "expired" },
-    { display: "OVERPAID", value: "overpaid" },
   ];
 
   // Method options with display and API value mapping

@@ -30,18 +30,16 @@ export type PaymentWithUser = {
 
 export const columns: ColumnDef<PaymentWithUser>[] = [
   {
-    accessorKey: "id",
-    header: "Order ID",
+    accessorKey: "user.name",
+    header: "Name",
   },
   {
-    accessorKey: "amount",
-    header: "Amount",
-    cell: ({ row }) => `${row.original.amount} ${row.original.currency}`,
+    accessorKey: "user.email",
+    header: "Email",
   },
-
   {
-    accessorKey: "paymentMethod",
-    header: "Method",
+    accessorKey: "user.phoneNumber",
+    header: "Phone",
   },
   {
     accessorKey: "status",
@@ -71,20 +69,26 @@ export const columns: ColumnDef<PaymentWithUser>[] = [
     },
   },
   {
-    accessorKey: "user.name",
-    header: "User Name",
-  },
-  {
-    accessorKey: "user.email",
-    header: "User Email",
-  },
-  {
-    accessorKey: "cregisId",
-    header: "Transaction ID",
+    accessorKey: "amount",
+    header: "Amount",
+    cell: ({ row }) => `${row.original.amount} ${row.original.currency}`,
   },
 
   {
+    accessorKey: "paymentMethod",
+    header: "Method",
+  },
+  {
     accessorKey: "createdAt",
     header: "Created At",
+  },
+  {
+    accessorKey: "id",
+    header: "Order ID",
+  },
+
+  {
+    accessorKey: "cregisId",
+    header: "Transaction ID",
   },
 ];
