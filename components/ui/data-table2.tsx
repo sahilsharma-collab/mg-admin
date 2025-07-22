@@ -54,6 +54,7 @@ interface DataTableProps<TData extends DateFilterableData, TValue> {
   onSearch?: (query: string) => void;
   searchPlaceholder?: string;
   setStatus?: (status: string) => void;
+  setMethod?: (method: string) => void;
 }
 
 export function DataTableWithApiPagination<

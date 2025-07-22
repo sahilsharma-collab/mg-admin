@@ -23,6 +23,7 @@ import {
   IconFocus,
   IconQuestionMark,
   IconUserCancel,
+  IconVip,
 } from "@tabler/icons-react";
 import { useTheme } from "@/context/theme-context";
 
@@ -45,6 +46,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       href: "/",
       label: "Dashboard",
       icon: <IconLayoutDashboard stroke={2} />,
+    },
+    {
+      href: "/payments",
+      label: "VIP Payments",
+      icon: <IconVip stroke={2} />,
     },
     {
       href: "/market-analysis",
