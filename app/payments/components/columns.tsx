@@ -73,11 +73,11 @@ export const columns: ColumnDef<PaymentWithUser>[] = [
     header: "Amount",
     cell: ({ row }) => `${row.original.amount} ${row.original.currency}`,
   },
-  {
-    accessorKey: "amountPaid",
-    header: "Paid",
-    cell: ({ row }) => `${row.original.amountPaid} ${row.original.currency}`,
-  },
+  // {
+  //   accessorKey: "amountPaid",
+  //   header: "Paid",
+  //   cell: ({ row }) => `${row.original.amountPaid} ${row.original.currency}`,
+  // },
 
   {
     accessorKey: "paymentMethod",
