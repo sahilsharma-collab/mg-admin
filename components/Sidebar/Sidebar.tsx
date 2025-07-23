@@ -26,6 +26,7 @@ import {
   IconVip,
 } from "@tabler/icons-react";
 import { useTheme } from "@/context/theme-context";
+import { useUserProfile } from "@/context/UserProfileContext";
 
 interface SidebarProps {
   onClose?: () => void;
@@ -40,6 +41,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     {}
   );
   const { theme } = useTheme();
+  const { user } = useUserProfile();
+
+  if (!user) {
+    return null; // or a loading state
+  }
 
   const routes = [
     {
@@ -49,8 +55,30 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     },
     {
       href: "/payments",
-      label: "VIP Payments",
+      label: "VIP",
       icon: <IconVip stroke={2} />,
+      subLinks:
+        user.email === "anish@boomingbulls.com" ||
+        user.email === "sandeepsingh@boomingbulls.com" ||
+        user.email === "diwakarmandal001@gmail.com" ||
+        user.email === "dexcetogaming@gmail.com"
+          ? [
+              {
+                href: "/payments",
+                label: "All Payments",
+              },
+
+              {
+                href: "/payment-dashboard",
+                label: "Payment Dashboard",
+              },
+            ]
+          : [
+              {
+                href: "/payments",
+                label: "All Payments",
+              },
+            ],
     },
     {
       href: "/market-analysis",
