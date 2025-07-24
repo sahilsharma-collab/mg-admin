@@ -21,16 +21,13 @@ interface DailyPaymentStats {
 }
 
 interface PaymentStats {
-  dailyStats: DailyPaymentStats[];
+  period: string; // 'daily', 'weekly', or 'monthly'
+  periodStats: DailyPaymentStats[]; // Renamed from dailyStats to be more generic
   totalStats: {
     totalUpiPayments: number;
     totalUpiAmount: number;
     totalCryptoPayments: number;
     totalCryptoAmount: number;
-    totalUsers: number;
-    activeUsers: number;
-    exnessVerifiedUsers: number;
-    guestUsers: number;
   };
 }
 
@@ -125,7 +122,7 @@ const HomePage = () => {
         {loading ? (
           <LoadingCard />
         ) : (
-          paymentStats && <PaymentChart dailyStats={paymentStats.dailyStats} />
+          paymentStats && <PaymentChart dailyStats={paymentStats.periodStats} />
         )}
       </section>
     </main>
