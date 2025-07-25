@@ -12,7 +12,7 @@ import {
 } from "recharts";
 
 interface DailyPaymentStats {
-  date: string; // "YYYY-MM-DD"
+  date: string; // Format varies: "YYYY-MM-DD" for daily, "YYYY-WXX" for weekly, "YYYY-MM" for monthly
   upiPayments: number;
   cryptoPayments: number;
   upiAmount: number;
@@ -21,6 +21,8 @@ interface DailyPaymentStats {
 
 interface PaymentChartProps {
   dailyStats: DailyPaymentStats[];
+  period: "daily" | "weekly" | "monthly";
+  onPeriodChange: (period: "daily" | "weekly" | "monthly") => void;
 }
 
 interface TooltipPayload {
@@ -85,6 +87,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
     </div>
   );
 };
+
 // Custom cursor for the chart
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CustomCursor: React.FC<any> = ({
@@ -96,12 +99,63 @@ const CustomCursor: React.FC<any> = ({
   <rect x={x} y={y} width={width} height={height} fill="rgba(0,0,0,0.05)" />
 );
 
-const PaymentChart: React.FC<PaymentChartProps> = ({ dailyStats }) => {
+// Helper function to format date based on period
+const formatDateForChart = (dateString: string, period: string): string => {
+  switch (period) {
+    case "daily":
+      // "2024-01-15" -> "01-15"
+      return dateString.slice(5);
+    case "weekly":
+      // "2024-W03" -> "W03"
+      return dateString.split("-")[1];
+    case "monthly":
+      // "2025-07" -> "Jul"
+      const month = dateString.split("-")[1];
+      const monthNames = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      const monthIndex = parseInt(month, 10) - 1;
+      return monthNames[monthIndex] || month; // Fallback to original month if parsing fails
+    default:
+      return dateString;
+  }
+};
+
+// Helper function to get period display label
+const getPeriodLabel = (period: string): string => {
+  switch (period) {
+    case "daily":
+      return "Last 7 Days";
+    case "weekly":
+      return "Last 4 Weeks";
+    case "monthly":
+      return "Last 12 Months";
+    default:
+      return "";
+  }
+};
+
+const PaymentChart: React.FC<PaymentChartProps> = ({
+  dailyStats,
+  period,
+  onPeriodChange,
+}) => {
   const { theme } = useTheme();
 
-  // Format for chart: date only (MM-DD)
+  // Format data for chart based on selected period
   const chartData = dailyStats.map((d) => ({
-    date: d.date.slice(5), // "MM-DD"
+    date: formatDateForChart(d.date, period),
     "UPI Payments": d.upiPayments,
     "Crypto Payments": d.cryptoPayments,
   }));
@@ -111,10 +165,35 @@ const PaymentChart: React.FC<PaymentChartProps> = ({ dailyStats }) => {
       className="bg-[#4A87D833] border dark:border-[#FFFFFF33] border-[#00000033] py-3 rounded-2xl"
       style={{ width: "100%", height: 450 }}
     >
-      <div className="flex gap-6 ml-10 mb-4">
-        <LegendDot color="#0ABAB5" label="UPI Payments" />
-        <LegendDot color="#f97316" label="Crypto Payments" />
+      {/* Header with period selector */}
+      <div className="flex justify-between items-center mx-10 mb-4">
+        <div className="flex gap-6">
+          <LegendDot color="#0ABAB5" label="UPI Payments" />
+          <LegendDot color="#f97316" label="Crypto Payments" />
+        </div>
+
+        {/* Period Selector */}
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+            {getPeriodLabel(period)}
+          </span>
+          <select
+            value={period}
+            onChange={(e) =>
+              onPeriodChange(e.target.value as "daily" | "weekly" | "monthly")
+            }
+            className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg
+                     bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300
+                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                     cursor-pointer"
+          >
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
       </div>
+
       <ResponsiveContainer>
         <BarChart
           data={chartData}
@@ -153,7 +232,7 @@ const LegendDot: React.FC<{ color: string; label: string }> = ({
       style={{ width: 12, height: 12, backgroundColor: color }}
       className="mr-2 rounded-sm"
     />
-    <span>{label}</span>
+    <span className="text-sm text-gray-700 dark:text-gray-300">{label}</span>
   </div>
 );
 

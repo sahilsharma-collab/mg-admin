@@ -5,8 +5,6 @@ import {
   IconUserBolt,
   IconCreditCard,
   IconCurrencyBitcoin,
-  IconTrendingUp,
-  IconCash,
 } from "@tabler/icons-react";
 import PaymentChart from "../Chart/PaymentChart";
 import Cookies from "js-cookie";
@@ -21,8 +19,8 @@ interface DailyPaymentStats {
 }
 
 interface PaymentStats {
-  period: string; // 'daily', 'weekly', or 'monthly'
-  periodStats: DailyPaymentStats[]; // Renamed from dailyStats to be more generic
+  period: string;
+  periodStats: DailyPaymentStats[];
   totalStats: {
     totalUpiPayments: number;
     totalUpiAmount: number;
@@ -31,9 +29,18 @@ interface PaymentStats {
   };
 }
 
+const formatINR = (amount: number) => {
+  return amount.toLocaleString("en-IN");
+};
+
+const formatUSD = (amount: number) => {
+  return amount.toLocaleString("en-US");
+};
+
 const HomePage = () => {
   const [loading, setLoading] = useState(true);
   const [paymentStats, setPaymentStats] = useState<PaymentStats | null>(null);
+  const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
   const token = Cookies.get("auth_token");
 
   useEffect(() => {
@@ -41,7 +48,7 @@ const HomePage = () => {
       try {
         setLoading(true);
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_VIP_URL}/api/payment/stats`,
+          `${process.env.NEXT_PUBLIC_VIP_URL}/api/payment/stats?period=${period}`,
           {
             method: "GET",
             headers: {
@@ -62,7 +69,7 @@ const HomePage = () => {
     };
 
     fetchStats();
-  }, [token]);
+  }, [token, period]);
 
   return (
     <main className="container-padding mt-4 space-y-7">
@@ -84,33 +91,46 @@ const HomePage = () => {
               <StatCard
                 title="Total Collection"
                 icon={<IconUserBolt stroke={2} />}
-                value={`$${
+                value={`$${formatUSD(
                   paymentStats.totalStats.totalUpiAmount +
-                  paymentStats.totalStats.totalCryptoAmount
-                }`}
+                    paymentStats.totalStats.totalCryptoAmount
+                )}`}
               />
 
+              {/* Combined UPI Payments + Amount */}
               <StatCard
-                title="Total UPI Payments"
-                icon={<IconCreditCard stroke={2} className="text-green-600" />}
-                value={paymentStats.totalStats.totalUpiPayments}
+                title="UPI Payments"
+                icon={
+                  <IconCreditCard stroke={2} className="text-green-600 gap-4" />
+                }
+                value={
+                  <>
+                    <p className="text-3xl font-bold">
+                      {paymentStats.totalStats.totalUpiPayments}
+                    </p>
+                    <p className="text-2xl text-green-700 dark:text-green-400">
+                      ₹{formatINR(paymentStats.totalStats.totalUpiAmount * 91)}
+                    </p>
+                  </>
+                }
               />
+
+              {/* Combined Crypto Payments + Amount */}
               <StatCard
-                title="UPI Amount"
-                icon={<IconCash stroke={2} className="text-green-600" />}
-                value={`₹${paymentStats.totalStats.totalUpiAmount * 91}`}
-              />
-              <StatCard
-                title="Total Crypto Payments"
+                title="Crypto Payments"
                 icon={
                   <IconCurrencyBitcoin stroke={2} className="text-orange-500" />
                 }
-                value={paymentStats.totalStats.totalCryptoPayments}
-              />
-              <StatCard
-                title="Crypto Amount"
-                icon={<IconTrendingUp stroke={2} className="text-orange-500" />}
-                value={`$${paymentStats.totalStats.totalCryptoAmount}`}
+                value={
+                  <>
+                    <p className="text-3xl font-bold">
+                      {paymentStats.totalStats.totalCryptoPayments}
+                    </p>
+                    <p className="text-2xl text-orange-600 dark:text-orange-400">
+                      ${formatUSD(paymentStats.totalStats.totalCryptoAmount)}
+                    </p>
+                  </>
+                }
               />
             </>
           )
@@ -122,7 +142,13 @@ const HomePage = () => {
         {loading ? (
           <LoadingCard />
         ) : (
-          paymentStats && <PaymentChart dailyStats={paymentStats.periodStats} />
+          paymentStats && (
+            <PaymentChart
+              period={period}
+              onPeriodChange={setPeriod}
+              dailyStats={paymentStats.periodStats}
+            />
+          )
         )}
       </section>
     </main>
@@ -139,14 +165,14 @@ const StatCard = ({
 }: {
   title: string;
   icon: React.ReactNode;
-  value: string | number;
+  value: React.ReactNode;
 }) => (
   <div className="bg-[#4A87D833] border border-[#00000033] p-3 rounded-2xl space-y-4">
     <span className="flex justify-between">
       <h2 className="font-medium dark:text-[#B3A5C6]">{title}</h2>
       {icon}
     </span>
-    <p className="font-semibold text-3xl">{value}</p>
+    <div className="font-semibold text-3xl">{value}</div>
   </div>
 );
 
