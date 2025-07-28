@@ -1,14 +1,10 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import {
-  IconUsers,
-  IconUserBolt,
-  IconCreditCard,
-  IconCurrencyBitcoin,
-} from "@tabler/icons-react";
+import { IconUsers, IconUserBolt, IconCreditCard } from "@tabler/icons-react";
 import PaymentChart from "../Chart/PaymentChart";
 import Cookies from "js-cookie";
 import { toast } from "react-toastify";
+import Image from "next/image";
 
 interface DailyPaymentStats {
   date: string;
@@ -152,7 +148,13 @@ const HomePage = () => {
               <StatCard
                 title="Total Crypto Payments"
                 icon={
-                  <IconCurrencyBitcoin stroke={2} className="text-orange-500" />
+                  <Image
+                    src="/Images/usdt1.png"
+                    alt="USDT"
+                    className="invert sepia saturate-200 hue-rotate-[20deg]"
+                    height={24}
+                    width={24}
+                  />
                 }
                 value={
                   <>
@@ -173,9 +175,12 @@ const HomePage = () => {
                     pkg.packageName.split(" ")[0]
                   } MonthCrypto Payments`}
                   icon={
-                    <IconCurrencyBitcoin
-                      stroke={2}
-                      className="text-orange-500"
+                    <Image
+                      src="/Images/usdt1.png"
+                      alt="USDT"
+                      className="invert sepia saturate-200 hue-rotate-[20deg]"
+                      height={24}
+                      width={24}
                     />
                   }
                   value={
