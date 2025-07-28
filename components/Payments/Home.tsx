@@ -18,6 +18,17 @@ interface DailyPaymentStats {
   cryptoAmount: number;
 }
 
+interface PackagePaymentStats {
+  packageId: string;
+  packageName: string;
+  totalPayments: number;
+  totalAmount: number;
+  upiPayments: number;
+  upiAmount: number;
+  cryptoPayments: number;
+  cryptoAmount: number;
+}
+
 interface PaymentStats {
   period: string;
   periodStats: DailyPaymentStats[];
@@ -27,6 +38,7 @@ interface PaymentStats {
     totalCryptoPayments: number;
     totalCryptoAmount: number;
   };
+  packageStats: PackagePaymentStats[];
 }
 
 const formatINR = (amount: number) => {
@@ -132,6 +144,48 @@ const HomePage = () => {
                   </>
                 }
               />
+              {paymentStats?.packageStats.map((pkg) => (
+                <StatCard
+                  key={pkg.packageId}
+                  title={`${pkg.packageName.split(" ")[0]} Month UPI Payments`}
+                  icon={
+                    <IconCreditCard
+                      stroke={2}
+                      className="text-green-600 gap-4"
+                    />
+                  }
+                  value={
+                    <>
+                      <p className="text-3xl font-bold">{pkg.upiPayments}</p>
+                      <p className="text-2xl text-green-700 dark:text-green-400">
+                        ₹{formatINR(pkg.upiAmount * 91)}
+                      </p>
+                    </>
+                  }
+                />
+              ))}
+              {paymentStats?.packageStats.map((pkg) => (
+                <StatCard
+                  key={pkg.packageId}
+                  title={`${
+                    pkg.packageName.split(" ")[0]
+                  } MonthCrypto Payments`}
+                  icon={
+                    <IconCurrencyBitcoin
+                      stroke={2}
+                      className="text-orange-500"
+                    />
+                  }
+                  value={
+                    <>
+                      <p className="text-3xl font-bold">{pkg.cryptoPayments}</p>
+                      <p className="text-2xl text-orange-600 dark:text-orange-400">
+                        ${formatUSD(pkg.cryptoAmount)}
+                      </p>
+                    </>
+                  }
+                />
+              ))}
             </>
           )
         )}
