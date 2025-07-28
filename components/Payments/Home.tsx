@@ -149,9 +149,8 @@ const HomePage = () => {
                 title="Total Crypto Payments"
                 icon={
                   <Image
-                    src="/Images/usdt1.png"
+                    src="/Images/usdt.svg"
                     alt="USDT"
-                    className="invert sepia saturate-200 hue-rotate-[20deg]"
                     height={24}
                     width={24}
                   />
@@ -173,12 +172,11 @@ const HomePage = () => {
                   key={pkg.packageId}
                   title={`${
                     pkg.packageName.split(" ")[0]
-                  } MonthCrypto Payments`}
+                  } Month Crypto Payments`}
                   icon={
                     <Image
-                      src="/Images/usdt1.png"
+                      src="/Images/usdt.svg"
                       alt="USDT"
-                      className="invert sepia saturate-200 hue-rotate-[20deg]"
                       height={24}
                       width={24}
                     />
