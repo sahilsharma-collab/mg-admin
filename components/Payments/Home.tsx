@@ -101,17 +101,7 @@ const HomePage = () => {
                 }
               />
               <StatCard
-                title="Total Collection"
-                icon={<IconUserBolt stroke={2} />}
-                value={`$${formatUSD(
-                  paymentStats.totalStats.totalUpiAmount +
-                    paymentStats.totalStats.totalCryptoAmount
-                )}`}
-              />
-
-              {/* Combined UPI Payments + Amount */}
-              <StatCard
-                title="UPI Payments"
+                title="Total UPI Payments"
                 icon={
                   <IconCreditCard stroke={2} className="text-green-600 gap-4" />
                 }
@@ -127,23 +117,6 @@ const HomePage = () => {
                 }
               />
 
-              {/* Combined Crypto Payments + Amount */}
-              <StatCard
-                title="Crypto Payments"
-                icon={
-                  <IconCurrencyBitcoin stroke={2} className="text-orange-500" />
-                }
-                value={
-                  <>
-                    <p className="text-3xl font-bold">
-                      {paymentStats.totalStats.totalCryptoPayments}
-                    </p>
-                    <p className="text-2xl text-orange-600 dark:text-orange-400">
-                      ${formatUSD(paymentStats.totalStats.totalCryptoAmount)}
-                    </p>
-                  </>
-                }
-              />
               {paymentStats?.packageStats.map((pkg) => (
                 <StatCard
                   key={pkg.packageId}
@@ -164,6 +137,35 @@ const HomePage = () => {
                   }
                 />
               ))}
+              <StatCard
+                title="Total Collection"
+                icon={<IconUserBolt stroke={2} />}
+                value={`$${formatUSD(
+                  paymentStats.totalStats.totalUpiAmount +
+                    paymentStats.totalStats.totalCryptoAmount
+                )}`}
+              />
+
+              {/* Combined UPI Payments + Amount */}
+
+              {/* Combined Crypto Payments + Amount */}
+              <StatCard
+                title="Total Crypto Payments"
+                icon={
+                  <IconCurrencyBitcoin stroke={2} className="text-orange-500" />
+                }
+                value={
+                  <>
+                    <p className="text-3xl font-bold">
+                      {paymentStats.totalStats.totalCryptoPayments}
+                    </p>
+                    <p className="text-2xl text-orange-600 dark:text-orange-400">
+                      ${formatUSD(paymentStats.totalStats.totalCryptoAmount)}
+                    </p>
+                  </>
+                }
+              />
+
               {paymentStats?.packageStats.map((pkg) => (
                 <StatCard
                   key={pkg.packageId}
