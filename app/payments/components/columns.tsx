@@ -15,6 +15,7 @@ export type PaymentWithUser = {
   description: string | null;
   createdAt: Date;
   updatedAt: Date;
+  utmSource: string | null;
   user: {
     id: string;
     name: string;
@@ -74,6 +75,11 @@ export const columns: ColumnDef<PaymentWithUser>[] = [
     cell: ({ row }) => `${row.original.amount} ${row.original.currency}`,
   },
   // {
+  //   accessorKey: "telegramLink",
+  //   header: "Telegram",
+  //   cell: ({ row }) => `${row.original.telegramLink} ${row.original.currency}`,
+  // },
+  // {
   //   accessorKey: "amountPaid",
   //   header: "Paid",
   //   cell: ({ row }) => `${row.original.amountPaid} ${row.original.currency}`,
@@ -83,6 +89,11 @@ export const columns: ColumnDef<PaymentWithUser>[] = [
     accessorKey: "paymentMethod",
     header: "Method",
   },
+  {
+    accessorKey: "utmSource",
+    header: "UTM Source",
+  },
+
   {
     accessorKey: "createdAt",
     header: "Created At",

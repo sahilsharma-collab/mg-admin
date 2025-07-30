@@ -133,6 +133,7 @@ const UserDataClient = () => {
           description: payment.description,
           createdAt: formatDateTime(payment.createdAt),
           updatedAt: formatDateTime(payment.updatedAt),
+          utmSource: payment.utmSource || null,
           user: {
             id: payment.user.id,
             name: payment.user.name,
