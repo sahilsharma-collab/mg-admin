@@ -29,6 +29,8 @@ interface TooltipPayload {
   name: string;
   value: number;
   fill: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload: any;
 }
 
 interface CustomTooltipProps {
@@ -37,12 +39,21 @@ interface CustomTooltipProps {
   label?: string;
 }
 
+// Helper function to format numbers in Indian style
+const formatIndianNumber = (num: number): string => {
+  return num.toLocaleString("en-IN");
+};
+
 const CustomTooltip: React.FC<CustomTooltipProps> = ({
   active,
   payload,
   label,
 }) => {
   if (!active || !payload?.length) return null;
+
+  // Get the original data object from the first payload item
+  const data = payload[0]?.payload;
+
   return (
     <div
       className="custom-tooltip"
@@ -54,12 +65,14 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
         boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
         fontSize: 12,
         color: "#333",
+        minWidth: 200,
       }}
     >
       <p style={{ marginBottom: 8, fontWeight: 600 }}>{label}</p>
-      {payload.map((entry, i) => (
+
+      {/* UPI Data */}
+      <div style={{ marginBottom: 8 }}>
         <div
-          key={i}
           style={{
             display: "flex",
             justifyContent: "space-between",
@@ -72,18 +85,70 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
                 display: "inline-block",
                 width: 10,
                 height: 10,
-                backgroundColor: entry.fill,
+                backgroundColor: "#0ABAB5",
                 marginRight: 6,
                 borderRadius: 2,
               }}
             />
-            {entry.name}
+            UPI Payments
           </span>
           <span style={{ fontWeight: 600 }}>
-            {entry.value.toLocaleString()}
+            {formatIndianNumber(data?.["UPI Payments"] || 0)}
           </span>
         </div>
-      ))}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginLeft: 16,
+            fontSize: 11,
+            color: "#666",
+          }}
+        >
+          <span>Amount:</span>
+          <span>₹{formatIndianNumber(data?.upiAmount || 0)}</span>
+        </div>
+      </div>
+
+      {/* Crypto Data */}
+      <div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: 4,
+          }}
+        >
+          <span style={{ display: "flex", alignItems: "center" }}>
+            <span
+              style={{
+                display: "inline-block",
+                width: 10,
+                height: 10,
+                backgroundColor: "#f97316",
+                marginRight: 6,
+                borderRadius: 2,
+              }}
+            />
+            Crypto Payments
+          </span>
+          <span style={{ fontWeight: 600 }}>
+            {formatIndianNumber(data?.["Crypto Payments"] || 0)}
+          </span>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginLeft: 16,
+            fontSize: 11,
+            color: "#666",
+          }}
+        >
+          <span>Amount:</span>
+          <span>${data?.cryptoAmount?.toLocaleString() || 0}</span>
+        </div>
+      </div>
     </div>
   );
 };
@@ -153,11 +218,13 @@ const PaymentChart: React.FC<PaymentChartProps> = ({
 }) => {
   const { theme } = useTheme();
 
-  // Format data for chart based on selected period
+  // Format data for chart based on selected period - now including amount data
   const chartData = dailyStats.map((d) => ({
     date: formatDateForChart(d.date, period),
     "UPI Payments": d.upiPayments,
     "Crypto Payments": d.cryptoPayments,
+    upiAmount: d.upiAmount * 91,
+    cryptoAmount: d.cryptoAmount,
   }));
 
   return (
