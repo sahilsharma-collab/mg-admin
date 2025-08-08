@@ -25,9 +25,17 @@ interface PackagePaymentStats {
   cryptoAmount: number;
 }
 
+interface CurrentPeriodStats {
+  upiPayments: number;
+  upiAmount: number;
+  cryptoPayments: number;
+  cryptoAmount: number;
+}
+
 interface PaymentStats {
   period: string;
   periodStats: DailyPaymentStats[];
+  currentPeriodStats: CurrentPeriodStats;
   totalStats: {
     totalUpiPayments: number;
     totalUpiAmount: number;
@@ -37,26 +45,60 @@ interface PaymentStats {
   packageStats: PackagePaymentStats[];
 }
 
-const formatINR = (amount: number) => {
-  return amount.toLocaleString("en-IN");
-};
+const formatINR = (amount: number) => amount.toLocaleString("en-IN");
+const formatUSD = (amount: number) => amount.toLocaleString("en-US");
 
-const formatUSD = (amount: number) => {
-  return amount.toLocaleString("en-US");
+const getTotalPeriodLabel = (period: string): string => {
+  switch (period) {
+    case "daily":
+      return "Last 7 Days";
+    case "weekly":
+      return "Last 4 Weeks";
+    case "monthly":
+      return "Last 12 Months";
+    case "custom":
+      return "Selected Date Range";
+    default:
+      return "";
+  }
 };
 
 const HomePage = () => {
   const [loading, setLoading] = useState(true);
   const [paymentStats, setPaymentStats] = useState<PaymentStats | null>(null);
-  const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
+  const [period, setPeriod] = useState<
+    "daily" | "weekly" | "monthly" | "custom" | ""
+  >("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const token = Cookies.get("auth_token");
 
   useEffect(() => {
+    if (period === "custom" && (!startDate || !endDate)) return; // wait for both dates
+
     const fetchStats = async () => {
       try {
         setLoading(true);
+
+        const params = new URLSearchParams();
+
+        if (period === "") {
+          // "All" selected
+          params.append("period", "custom");
+          params.append("startDate", "2025-01-01"); // or earliest possible date in your DB
+          params.append("endDate", new Date().toISOString().split("T")[0]);
+        } else {
+          params.append("period", period);
+          if (period === "custom") {
+            params.append("startDate", startDate);
+            params.append("endDate", endDate);
+          }
+        }
+
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_VIP_URL}/api/payment/stats?period=${period}`,
+          `${
+            process.env.NEXT_PUBLIC_VIP_URL
+          }/api/payment/stats?${params.toString()}`,
           {
             method: "GET",
             headers: {
@@ -65,6 +107,7 @@ const HomePage = () => {
             },
           }
         );
+
         if (!res.ok) throw new Error("Failed to fetch stats");
         const data = await res.json();
         setPaymentStats(data.stats);
@@ -77,102 +120,104 @@ const HomePage = () => {
     };
 
     fetchStats();
-  }, [token, period]);
+  }, [token, period, startDate, endDate]);
 
   return (
     <main className="container-padding mt-4 space-y-7">
-      {/* Stats Section */}
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        {loading ? (
-          <LoadingCard />
-        ) : (
-          paymentStats && (
-            <>
-              <StatCard
-                title="Total Payments"
-                icon={<IconUsers stroke={2} />}
-                value={
-                  paymentStats.totalStats.totalUpiPayments +
-                  paymentStats.totalStats.totalCryptoPayments
-                }
-              />
-              <StatCard
-                title="Total UPI Payments"
-                icon={
-                  <IconCreditCard stroke={2} className="text-green-600 gap-4" />
-                }
-                value={
-                  <>
-                    <p className="text-3xl font-bold">
-                      {paymentStats.totalStats.totalUpiPayments}
-                    </p>
-                    <p className="text-2xl text-green-700 dark:text-green-400">
-                      ₹{formatINR(paymentStats.totalStats.totalUpiAmount * 91)}
-                    </p>
-                  </>
-                }
-              />
+      {/* Global Filter */}
+      <section className="flex flex-wrap gap-4 justify-between items-center">
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold">Payment Dashboard</h1>
+          {paymentStats && (
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              {getTotalPeriodLabel(period)}
+            </span>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+            Filter by:
+          </span>
+          <select
+            value={period}
+            onChange={(e) =>
+              setPeriod(
+                e.target.value as "daily" | "weekly" | "monthly" | "custom"
+              )
+            }
+            className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg
+                     bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300
+                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                     cursor-pointer min-w-[120px]"
+          >
+            <option value="">All</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="custom">Custom</option>
+          </select>
 
-              {paymentStats?.packageStats.map((pkg) => (
+          {/* Show date range only for custom */}
+          {period === "custom" && (
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+              />
+              <span>-</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+              />
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Current Period Stats */}
+
+      {/* Total Stats Section */}
+      <section>
+        <h2 className="text-lg font-semibold mb-4">
+          {getTotalPeriodLabel(period)} Total Stats
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          {loading ? (
+            <LoadingCard />
+          ) : (
+            paymentStats && (
+              <>
                 <StatCard
-                  key={pkg.packageId}
-                  title={`${pkg.packageName.split(" ")[0]} Month UPI Payments`}
+                  title="Total Payments"
+                  icon={<IconUsers stroke={2} />}
+                  value={
+                    paymentStats.totalStats.totalUpiPayments +
+                    paymentStats.totalStats.totalCryptoPayments
+                  }
+                />
+                <StatCard
+                  title="Total UPI Payments"
                   icon={
-                    <IconCreditCard
-                      stroke={2}
-                      className="text-green-600 gap-4"
-                    />
+                    <IconCreditCard stroke={2} className="text-green-600" />
                   }
                   value={
                     <>
-                      <p className="text-3xl font-bold">{pkg.upiPayments}</p>
+                      <p className="text-3xl font-bold">
+                        {paymentStats.totalStats.totalUpiPayments}
+                      </p>
                       <p className="text-2xl text-green-700 dark:text-green-400">
-                        ₹{formatINR(pkg.upiAmount * 91)}
+                        ₹
+                        {formatINR(paymentStats.totalStats.totalUpiAmount * 91)}
                       </p>
                     </>
                   }
                 />
-              ))}
-              <StatCard
-                title="Total Collection"
-                icon={<IconUserBolt stroke={2} />}
-                value={`$${formatUSD(
-                  paymentStats.totalStats.totalUpiAmount +
-                    paymentStats.totalStats.totalCryptoAmount
-                )}`}
-              />
-
-              {/* Combined UPI Payments + Amount */}
-
-              {/* Combined Crypto Payments + Amount */}
-              <StatCard
-                title="Total Crypto Payments"
-                icon={
-                  <Image
-                    src="/Images/usdt.svg"
-                    alt="USDT"
-                    height={24}
-                    width={24}
-                  />
-                }
-                value={
-                  <>
-                    <p className="text-3xl font-bold">
-                      {paymentStats.totalStats.totalCryptoPayments}
-                    </p>
-                    <p className="text-2xl text-orange-600 dark:text-orange-400">
-                      ${formatUSD(paymentStats.totalStats.totalCryptoAmount)}
-                    </p>
-                  </>
-                }
-              />
-
-              {paymentStats?.packageStats.map((pkg) => (
                 <StatCard
-                  key={pkg.packageId}
-                  title={`${
-                    pkg.packageName.split(" ")[0]
-                  } Month Crypto Payments`}
+                  title="Total Crypto Payments"
                   icon={
                     <Image
                       src="/Images/usdt.svg"
@@ -183,28 +228,91 @@ const HomePage = () => {
                   }
                   value={
                     <>
-                      <p className="text-3xl font-bold">{pkg.cryptoPayments}</p>
+                      <p className="text-3xl font-bold">
+                        {paymentStats.totalStats.totalCryptoPayments}
+                      </p>
                       <p className="text-2xl text-orange-600 dark:text-orange-400">
-                        ${formatUSD(pkg.cryptoAmount)}
+                        ${formatUSD(paymentStats.totalStats.totalCryptoAmount)}
                       </p>
                     </>
                   }
                 />
-              ))}
-            </>
-          )
-        )}
+                <StatCard
+                  title="Total Collection"
+                  icon={<IconUserBolt stroke={2} />}
+                  value={`$${formatUSD(
+                    paymentStats.totalStats.totalUpiAmount +
+                      paymentStats.totalStats.totalCryptoAmount
+                  )}`}
+                />
+              </>
+            )
+          )}
+        </div>
       </section>
+
+      {/* Package Stats Section */}
+      {!loading && paymentStats && paymentStats.packageStats.length > 0 && (
+        <section>
+          <h2 className="text-lg font-semibold mb-4">
+            Package-wise Stats ({getTotalPeriodLabel(period)})
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            {/* UPI Package Stats */}
+            {paymentStats.packageStats.map((pkg) => (
+              <StatCard
+                key={`upi-${pkg.packageId}`}
+                title={`${pkg.packageName.split(" ")[0]} Month UPI`}
+                icon={<IconCreditCard stroke={2} className="text-green-600" />}
+                value={
+                  <>
+                    <p className="text-3xl font-bold">{pkg.upiPayments}</p>
+                    <p className="text-2xl text-green-700 dark:text-green-400">
+                      ₹{formatINR(pkg.upiAmount * 91)}
+                    </p>
+                  </>
+                }
+              />
+            ))}
+
+            {/* Crypto Package Stats */}
+            {paymentStats.packageStats.map((pkg) => (
+              <StatCard
+                key={`crypto-${pkg.packageId}`}
+                title={`${pkg.packageName.split(" ")[0]} Month Crypto`}
+                icon={
+                  <Image
+                    src="/Images/usdt.svg"
+                    alt="USDT"
+                    height={24}
+                    width={24}
+                  />
+                }
+                value={
+                  <>
+                    <p className="text-3xl font-bold">{pkg.cryptoPayments}</p>
+                    <p className="text-2xl text-orange-600 dark:text-orange-400">
+                      ${formatUSD(pkg.cryptoAmount)}
+                    </p>
+                  </>
+                }
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Payment Chart */}
       <section>
+        <h2 className="text-lg font-semibold mb-4">
+          Payment Trends ({getTotalPeriodLabel(period)})
+        </h2>
         {loading ? (
           <LoadingCard />
         ) : (
           paymentStats && (
             <PaymentChart
               period={period}
-              onPeriodChange={setPeriod}
               dailyStats={paymentStats.periodStats}
             />
           )

@@ -21,8 +21,7 @@ interface DailyPaymentStats {
 
 interface PaymentChartProps {
   dailyStats: DailyPaymentStats[];
-  period: "daily" | "weekly" | "monthly";
-  onPeriodChange: (period: "daily" | "weekly" | "monthly") => void;
+  period: "daily" | "weekly" | "monthly" | "custom" | "";
 }
 
 interface TooltipPayload {
@@ -197,25 +196,7 @@ const formatDateForChart = (dateString: string, period: string): string => {
   }
 };
 
-// Helper function to get period display label
-const getPeriodLabel = (period: string): string => {
-  switch (period) {
-    case "daily":
-      return "Last 7 Days";
-    case "weekly":
-      return "Last 4 Weeks";
-    case "monthly":
-      return "Last 12 Months";
-    default:
-      return "";
-  }
-};
-
-const PaymentChart: React.FC<PaymentChartProps> = ({
-  dailyStats,
-  period,
-  onPeriodChange,
-}) => {
+const PaymentChart: React.FC<PaymentChartProps> = ({ dailyStats, period }) => {
   const { theme } = useTheme();
 
   // Format data for chart based on selected period - now including amount data
@@ -229,36 +210,13 @@ const PaymentChart: React.FC<PaymentChartProps> = ({
 
   return (
     <div
-      className="bg-[#4A87D833] border dark:border-[#FFFFFF33] border-[#00000033] py-3 rounded-2xl"
+      className="bg-[#4A87D833] border dark:border-[#FFFFFF33] border-[#00000033] py-6 px-4 rounded-2xl"
       style={{ width: "100%", height: 450 }}
     >
-      {/* Header with period selector */}
-      <div className="flex justify-between items-center mx-10 mb-4">
-        <div className="flex gap-6">
-          <LegendDot color="#0ABAB5" label="UPI Payments" />
-          <LegendDot color="#f97316" label="Crypto Payments" />
-        </div>
-
-        {/* Period Selector */}
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-            {getPeriodLabel(period)}
-          </span>
-          <select
-            value={period}
-            onChange={(e) =>
-              onPeriodChange(e.target.value as "daily" | "weekly" | "monthly")
-            }
-            className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg
-                     bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300
-                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                     cursor-pointer"
-          >
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </select>
-        </div>
+      {/* Chart Legend */}
+      <div className="flex justify-center gap-8 mb-6">
+        <LegendDot color="#0ABAB5" label="UPI Payments" />
+        <LegendDot color="#f97316" label="Crypto Payments" />
       </div>
 
       <ResponsiveContainer>
@@ -274,16 +232,34 @@ const PaymentChart: React.FC<PaymentChartProps> = ({
           />
           <XAxis
             dataKey="date"
-            tick={{ fill: theme === "dark" ? "#B3A5C6" : "#333" }}
+            tick={{
+              fill: theme === "dark" ? "#B3A5C6" : "#333",
+              fontSize: 12,
+            }}
             axisLine={{ stroke: theme === "dark" ? "#B3A5C6" : "#333" }}
+            tickLine={{ stroke: theme === "dark" ? "#B3A5C6" : "#333" }}
           />
           <YAxis
-            tick={{ fill: theme === "dark" ? "#B3A5C6" : "#333" }}
+            tick={{
+              fill: theme === "dark" ? "#B3A5C6" : "#333",
+              fontSize: 12,
+            }}
             axisLine={{ stroke: theme === "dark" ? "#B3A5C6" : "#333" }}
+            tickLine={{ stroke: theme === "dark" ? "#B3A5C6" : "#333" }}
           />
           <Tooltip content={<CustomTooltip />} cursor={<CustomCursor />} />
-          <Bar dataKey="UPI Payments" fill="#0ABAB5" />
-          <Bar dataKey="Crypto Payments" fill="#f97316" />
+          <Bar
+            dataKey="UPI Payments"
+            fill="#0ABAB5"
+            radius={[4, 4, 0, 0]}
+            maxBarSize={60}
+          />
+          <Bar
+            dataKey="Crypto Payments"
+            fill="#f97316"
+            radius={[4, 4, 0, 0]}
+            maxBarSize={60}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -299,7 +275,9 @@ const LegendDot: React.FC<{ color: string; label: string }> = ({
       style={{ width: 12, height: 12, backgroundColor: color }}
       className="mr-2 rounded-sm"
     />
-    <span className="text-sm text-gray-700 dark:text-gray-300">{label}</span>
+    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+      {label}
+    </span>
   </div>
 );
 
