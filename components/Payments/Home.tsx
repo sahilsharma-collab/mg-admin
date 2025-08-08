@@ -200,6 +200,14 @@ const HomePage = () => {
                   }
                 />
                 <StatCard
+                  title="Total Collection"
+                  icon={<IconUserBolt stroke={2} />}
+                  value={`$${formatUSD(
+                    paymentStats.totalStats.totalUpiAmount +
+                      paymentStats.totalStats.totalCryptoAmount
+                  )}`}
+                />
+                <StatCard
                   title="Total UPI Payments"
                   icon={
                     <IconCreditCard stroke={2} className="text-green-600" />
@@ -236,14 +244,6 @@ const HomePage = () => {
                       </p>
                     </>
                   }
-                />
-                <StatCard
-                  title="Total Collection"
-                  icon={<IconUserBolt stroke={2} />}
-                  value={`$${formatUSD(
-                    paymentStats.totalStats.totalUpiAmount +
-                      paymentStats.totalStats.totalCryptoAmount
-                  )}`}
                 />
               </>
             )
