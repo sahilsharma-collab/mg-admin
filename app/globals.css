@@ -133,3 +133,12 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Add to your CSS file */
+@media print, (prefers-reduced-motion: reduce) {
+  * {
+    color: rgb(0 0 0) !important;
+    background-color: rgb(255 255 255) !important;
+    border-color: rgb(209 213 219) !important;
+  }
+}
