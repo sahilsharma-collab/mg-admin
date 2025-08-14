@@ -517,7 +517,7 @@ const HomePage = () => {
       icon: <IconCreditCard size={20} />,
     },
     { id: "status", label: "Status", icon: <IconTarget size={20} /> },
-    { id: "kpi", label: "KPI Metrics", icon: <IconTrendingUp size={20} /> },
+    // { id: "kpi", label: "KPI Metrics", icon: <IconTrendingUp size={20} /> },
   ];
 
   if (loading) {
@@ -1249,35 +1249,7 @@ const HomePage = () => {
                     Average Order Value: $
                     {formatUSD(paymentStats.summary.averageOrderValue)}
                   </p>
-                  <p
-                    style={{
-                      fontWeight: "600",
-                      color: "#000000",
-                      margin: "4px 0",
-                    }}
-                  >
-                    Highest Value Order: $
-                    {formatUSD(paymentStats.summary.highestValueOrder)}
-                  </p>
-                  <p
-                    style={{
-                      fontWeight: "600",
-                      color: "#000000",
-                      margin: "4px 0",
-                    }}
-                  >
-                    Lowest Value Order: $
-                    {formatUSD(paymentStats.summary.lowestValueOrder)}
-                  </p>
-                </div>
-                <div
-                  style={{
-                    backgroundColor: "#f3f4f6",
-                    padding: "16px",
-                    borderRadius: "8px",
-                    border: "1px solid #d1d5db",
-                  }}
-                >
+
                   <p
                     style={{
                       fontWeight: "600",
@@ -1286,7 +1258,7 @@ const HomePage = () => {
                     }}
                   >
                     Most Popular Package:{" "}
-                    {paymentStats.summary.mostPopularPackage}
+                    {paymentStats.summary.mostPopularPackage.slice(0, 15)}
                   </p>
                   <p
                     style={{
@@ -1543,7 +1515,7 @@ const HomePage = () => {
                 {getTotalPeriodLabel(period, startDate, endDate)})
               </h2>
 
-              {/* Pie Chart for Package Distribution */}
+              {/* ƒ Chart for Package Distribution */}
               <div className="mb-8">
                 <PieChart
                   title="Package Distribution by Total Amount"
@@ -1818,7 +1790,8 @@ const PieChart = ({
           {title}
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-300 text-center mt-1">
-          Total: {total.toLocaleString()} items
+          Total: {title == "Payment Status Distribution by Count" ? " " : "$"}
+          {total.toLocaleString()}
         </p>
       </div>
 
@@ -1984,7 +1957,7 @@ const PieChart = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {item.label}
+                          {item.label.slice(0, 15)}
                           {isLargest && (
                             <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full">
                               Highest
@@ -1993,10 +1966,10 @@ const PieChart = ({
                         </span>
                         <div className="text-right ml-4">
                           <div className="text-lg font-bold text-gray-900 dark:text-white">
-                            {percentage}%
+                            {item.value.toLocaleString()}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">
-                            {item.value.toLocaleString()}
+                            {percentage}%
                           </div>
                         </div>
                       </div>
@@ -2019,34 +1992,6 @@ const PieChart = ({
         </div>
       </div>
       {/* Footer Stats */}
-      <div className="px-8 py-6 border-t">
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {data.length}
-            </div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              Categories
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {Math.max(...data.map((item) => item.value)).toLocaleString()}
-            </div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              Highest Value
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {Math.round(total / data.length).toLocaleString()}
-            </div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              Average
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
@@ -2063,7 +2008,7 @@ const StatCard = ({
   value: React.ReactNode;
   subtitle?: string;
 }) => (
-  <div className="p-6 space-y-">
+  <div className="p-6 space-y-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg">
     <div className="flex justify-start gap-6 items-center mb-2">
       <h3 className="font-semibold text-gray-700 dark:text-gray-200">
         {title}
@@ -2080,7 +2025,6 @@ const StatCard = ({
     )}
   </div>
 );
-
 const SummaryCard = ({
   title,
   value,
@@ -2108,7 +2052,7 @@ const PackageCard = ({ package: pkg }: { package: PackagePaymentStats }) => (
         <Package size={2} className="text-purple-600 w-5 h-5" />
       </div>
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-        {pkg.packageName}
+        {pkg.packageName.slice(0, 15)}
       </h3>
     </div>
 
