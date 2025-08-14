@@ -13,13 +13,32 @@ import {
   IconTarget,
   IconCurrencyDollar,
   IconCoins,
-  IconDownload,
 } from "@tabler/icons-react";
 import PaymentChart from "../Chart/PaymentChart";
 import Cookies from "js-cookie";
 import { toast } from "react-toastify";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import {
+  Bitcoin,
+  CheckCircle,
+  DollarSign,
+  Download,
+  Package,
+  TrendingUp,
+  Wallet,
+  X,
+} from "lucide-react";
+import { Button } from "../ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { DatePicker } from "../ui/date-picker";
+import { Skeleton } from "../ui/skeleton";
 
 interface DailyPaymentStats {
   date: string;
@@ -150,6 +169,65 @@ const getTotalPeriodLabel = (
       return "All Time";
   }
 };
+
+const MainLoadingSkeleton = () => (
+  <div className="container-padding space-y-7">
+    {/* Header Skeleton */}
+    <section className="flex flex-wrap gap-4 justify-between items-center">
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-7 w-48" />
+        <Skeleton className="h-5 w-24" />
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <Skeleton className="h-9 w-32" />
+        <Skeleton className="h-9 w-32" />
+      </div>
+    </section>
+
+    {/* Tab Navigation Skeleton */}
+    <section className="border-b border-gray-200 dark:border-gray-700 -mt-2">
+      <nav className="flex space-x-8 mb-2">
+        {Array(6)
+          .fill(0)
+          .map((_, i) => (
+            <Skeleton key={i} className="h-8 w-24" />
+          ))}
+      </nav>
+    </section>
+
+    {/* Stats Grid Skeleton */}
+    <section>
+      <Skeleton className="h-6 w-64 mb-4" />
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        {Array(8)
+          .fill(0)
+          .map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+      </div>
+    </section>
+
+    {/* Chart Skeleton */}
+    <section>
+      <Skeleton className="h-6 w-48 mb-4" />
+      <div className="rounded-lg border p-6">
+        <Skeleton className="h-80 w-full" />
+      </div>
+    </section>
+  </div>
+);
+
+// Stat Card Skeleton Component
+const StatCardSkeleton = () => (
+  <div className="p-6 space-y-3 border rounded-lg">
+    <div className="flex justify-start gap-6 items-center">
+      <Skeleton className="h-5 w-24" />
+      <Skeleton className="h-5 w-5 rounded-full" />
+    </div>
+    <Skeleton className="h-8 w-16" />
+    <Skeleton className="h-6 w-20" />
+  </div>
+);
 
 const HomePage = () => {
   const [loading, setLoading] = useState(true);
@@ -416,6 +494,19 @@ const HomePage = () => {
     }
   };
 
+  const clearDateFilters = () => {
+    setStartDate("");
+    setEndDate("");
+  };
+
+  // Helper to format a Date as YYYY-MM-DD in local timezone (avoids UTC shift of toISOString)
+  const formatLocalDate = (d: Date): string => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
   const tabs = [
     { id: "overview", label: "Overview", icon: <IconChartBar size={20} /> },
     { id: "packages", label: "Packages", icon: <IconPackage size={20} /> },
@@ -430,19 +521,15 @@ const HomePage = () => {
   ];
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-gray-900 dark:border-white"></div>
-      </div>
-    );
+    return <MainLoadingSkeleton />;
   }
 
   return (
-    <main className="container-padding mt-4 space-y-7">
+    <main className="container-padding space-y-7">
       {/* Global Filter */}
       <section className="flex flex-wrap gap-4 justify-between items-center">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold">Payment Dashboard</h1>
+          <h1 className="text-xl font-medium">Payment Dashboard</h1>
           {paymentStats && (
             <span className="text-sm text-gray-600 dark:text-gray-400">
               {getTotalPeriodLabel(period, startDate, endDate)}
@@ -450,59 +537,74 @@ const HomePage = () => {
           )}
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-            Filter by:
-          </span>
-          <select
-            value={period}
-            onChange={(e) =>
-              setPeriod(
-                e.target.value as "daily" | "weekly" | "monthly" | "custom"
-              )
-            }
-            className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg
-                     bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300
-                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                     cursor-pointer min-w-[120px]"
-          >
-            <option value="">All</option>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-            <option value="custom">Custom</option>
-          </select>
-
           {/* Show date range only for custom */}
           {period === "custom" && (
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                max={new Date().toISOString().split("T")[0]}
-                className="px-3 py-2 text-sm border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+            <>
+              <DatePicker
+                className="w-[180px]"
+                date={startDate ? new Date(startDate) : undefined}
+                setDate={(date) =>
+                  setStartDate(date ? formatLocalDate(date) : "")
+                }
+                maxDate={new Date()}
+                placeholder="Start date"
               />
-              <span>-</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                max={new Date().toISOString().split("T")[0]}
-                className="px-3 py-2 text-sm border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+              <DatePicker
+                className="w-[180px]"
+                date={endDate ? new Date(endDate) : undefined}
+                setDate={(date) =>
+                  setEndDate(date ? formatLocalDate(date) : "")
+                }
+                maxDate={new Date()}
+                placeholder="End date"
               />
-            </div>
+              {(startDate || endDate) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearDateFilters}
+                  className="border-dashed border border-black dark:border-white focus:ring-[0.1px] h-9"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </>
           )}
+
+          <Select
+            value={period || "all"}
+            onValueChange={(value) =>
+              setPeriod(
+                value === "all"
+                  ? ""
+                  : (value as "daily" | "weekly" | "monthly" | "custom")
+              )
+            }
+          >
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="All" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="daily">Daily</SelectItem>
+              <SelectItem value="weekly">Weekly</SelectItem>
+              <SelectItem value="monthly">Monthly</SelectItem>
+              <SelectItem value="custom">Custom</SelectItem>
+            </SelectContent>
+          </Select>
 
           {/* Export PDF Button */}
           {paymentStats && (
-            <button
+            <Button
               onClick={generatePDF}
               disabled={exporting}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors duration-200"
+              className="bg-[#12121C] dark:bg-[#E8E8E8] rounded-md 
+        hover:bg-[#1e1e2f] dark:hover:bg-[#d0d0d0]
+        transition-colors dark:text-black text-white font-semibold ml-auto"
             >
-              <IconDownload size={16} />
+              <Download className="h-4 w-4" />
               {exporting ? "Generating..." : "Export PDF"}
-            </button>
+            </Button>
           )}
         </div>
       </section>
@@ -631,15 +733,6 @@ const HomePage = () => {
                   Total Collection: $
                   {formatUSD(paymentStats?.currentPeriodStats.totalAmount || 0)}
                 </p>
-                <p
-                  style={{
-                    fontWeight: "600",
-                    color: "#000000",
-                    margin: "4px 0",
-                  }}
-                >
-                  Success Rate: {paymentStats?.currentPeriodStats.successRate}%
-                </p>
               </div>
               <div
                 style={{
@@ -702,7 +795,7 @@ const HomePage = () => {
               <div style={{ marginBottom: "32px" }}>
                 <h3
                   style={{
-                    fontSize: "22px",
+                    fontSize: "30px",
                     fontWeight: 700,
                     color: "#000000",
                     marginBottom: "18px",
@@ -792,16 +885,6 @@ const HomePage = () => {
                         >
                           Crypto Amount
                         </th>
-                        <th
-                          style={{
-                            border: "1px solid #d1d5db",
-                            padding: "8px",
-                            textAlign: "center",
-                            color: "#000000",
-                          }}
-                        >
-                          Success Rate
-                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -876,16 +959,6 @@ const HomePage = () => {
                           >
                             ${formatUSD(pkg.cryptoAmount)}
                           </td>
-                          <td
-                            style={{
-                              border: "1px solid #d1d5db",
-                              padding: "8px",
-                              textAlign: "center",
-                              color: "#000000",
-                            }}
-                          >
-                            {pkg.successRate}%
-                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -900,7 +973,7 @@ const HomePage = () => {
               <div style={{ marginBottom: "32px" }}>
                 <h3
                   style={{
-                    fontSize: "22px",
+                    fontSize: "30px",
                     fontWeight: 700,
                     color: "#000000",
                     marginBottom: "18px",
@@ -960,16 +1033,6 @@ const HomePage = () => {
                         >
                           Success Rate
                         </th>
-                        <th
-                          style={{
-                            border: "1px solid #d1d5db",
-                            padding: "8px",
-                            textAlign: "center",
-                            color: "#000000",
-                          }}
-                        >
-                          Percentage
-                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1004,16 +1067,7 @@ const HomePage = () => {
                           >
                             ${formatUSD(source.totalAmount)}
                           </td>
-                          <td
-                            style={{
-                              border: "1px solid #d1d5db",
-                              padding: "8px",
-                              textAlign: "center",
-                              color: "#000000",
-                            }}
-                          >
-                            {source.successRate}%
-                          </td>
+
                           <td
                             style={{
                               border: "1px solid #d1d5db",
@@ -1038,7 +1092,7 @@ const HomePage = () => {
               <div style={{ marginBottom: "32px" }}>
                 <h3
                   style={{
-                    fontSize: "22px",
+                    fontSize: "30px",
                     fontWeight: 700,
                     color: "#000000",
                     marginBottom: "18px",
@@ -1088,16 +1142,7 @@ const HomePage = () => {
                         >
                           Total Amount
                         </th>
-                        <th
-                          style={{
-                            border: "1px solid #d1d5db",
-                            padding: "8px",
-                            textAlign: "center",
-                            color: "#000000",
-                          }}
-                        >
-                          Success Payments
-                        </th>
+
                         <th
                           style={{
                             border: "1px solid #d1d5db",
@@ -1107,16 +1152,6 @@ const HomePage = () => {
                           }}
                         >
                           Success Rate
-                        </th>
-                        <th
-                          style={{
-                            border: "1px solid #d1d5db",
-                            padding: "8px",
-                            textAlign: "center",
-                            color: "#000000",
-                          }}
-                        >
-                          Percentage
                         </th>
                       </tr>
                     </thead>
@@ -1152,26 +1187,7 @@ const HomePage = () => {
                           >
                             ${formatUSD(method.totalAmount)}
                           </td>
-                          <td
-                            style={{
-                              border: "1px solid #d1d5db",
-                              padding: "8px",
-                              textAlign: "center",
-                              color: "#000000",
-                            }}
-                          >
-                            {method.successPayments}
-                          </td>
-                          <td
-                            style={{
-                              border: "1px solid #d1d5db",
-                              padding: "8px",
-                              textAlign: "center",
-                              color: "#000000",
-                            }}
-                          >
-                            {method.successRate}%
-                          </td>
+
                           <td
                             style={{
                               border: "1px solid #d1d5db",
@@ -1318,15 +1334,15 @@ const HomePage = () => {
       </div>
 
       {/* Tab Navigation */}
-      <section className="border-b border-gray-200 dark:border-gray-700">
+      <section className="border-b border-gray-200 dark:border-gray-700 -mt-2">
         <nav className="flex space-x-8">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+              className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer ${
                 activeTab === tab.id
-                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                  ? "border-[#0ABAB5] text-[#0ABAB5]"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
               }`}
             >
@@ -1736,97 +1752,298 @@ const HomePage = () => {
 export default HomePage;
 
 // PieChart Component
+type DataItem = { label: string; value: number; color: string };
+
 const PieChart = ({
   data,
   title,
 }: {
-  data: Array<{ label: string; value: number; color: string }>;
+  data: Array<DataItem>;
   title: string;
 }) => {
+  const [hoveredSegment, setHoveredSegment] = useState<
+    (DataItem & { index: number }) | null
+  >(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
   if (total === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md">
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-8">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 text-center">
           {title}
         </h3>
-        <div className="flex justify-center items-center h-48 text-gray-500 dark:text-gray-400">
-          No data available
+        <div className="flex justify-center items-center h-64 text-gray-500 dark:text-gray-400">
+          <div className="text-center">
+            <div className="text-6xl mb-4">📊</div>
+            <p className="text-lg">No data available</p>
+          </div>
         </div>
       </div>
     );
   }
 
   let currentAngle = 0;
-  const radius = 80;
-  const centerX = 100;
-  const centerY = 100;
+  const radius = 120; // Increased from 90
+  const innerRadius = 60; // Increased from 45
+  const centerX = 160; // Increased from 120
+  const centerY = 160; // Increased from 120
+
+  // Find the largest segment for emphasis
+  const maxValue = Math.max(...data.map((item) => item.value));
+
+  const handleMouseMove = (
+    event: React.MouseEvent<SVGPathElement>,
+    item: DataItem,
+    index: number
+  ) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setMousePosition({
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    });
+    setHoveredSegment({ ...item, index });
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredSegment(null);
+  };
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md">
-      <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-        {title}
-      </h3>
-      <div className="flex flex-col lg:flex-row gap-6">
-        <div className="flex justify-center">
-          <svg width="200" height="200" className="transform -rotate-90">
-            {data.map((item, index) => {
-              const percentage = (item.value / total) * 100;
-              const angle = (percentage / 100) * 360;
-              const startAngle = currentAngle;
-              currentAngle += angle;
+    <div className="rounded-md border">
+      {/* Header */}
+      <div className="px-8 py-6 border-b">
+        <h3 className="text-base font-semibold text-gray-900 dark:text-white text-center">
+          {title}
+        </h3>
+        <p className="text-sm text-gray-600 dark:text-gray-300 text-center mt-1">
+          Total: {total.toLocaleString()} items
+        </p>
+      </div>
 
-              const startX =
-                centerX + radius * Math.cos((startAngle * Math.PI) / 180);
-              const startY =
-                centerY + radius * Math.sin((startAngle * Math.PI) / 180);
-              const endX =
-                centerX + radius * Math.cos((currentAngle * Math.PI) / 180);
-              const endY =
-                centerY + radius * Math.sin((currentAngle * Math.PI) / 180);
+      <div className="p-8">
+        <div className="grid lg:grid-cols-2 gap-8 items-center">
+          {/* Chart Container */}
+          <div className="relative flex justify-center">
+            <div className="relative">
+              <svg
+                width="320"
+                height="320"
+                className="transform -rotate-90 drop-shadow-lg"
+              >
+                {" "}
+                {/* Increased from 240x240 */}
+                {data.map((item, index) => {
+                  const percentage = (item.value / total) * 100;
+                  const angle = (percentage / 100) * 360;
+                  const startAngle = currentAngle;
+                  currentAngle += angle;
 
-              const largeArcFlag = angle > 180 ? 1 : 0;
+                  const startXOuter =
+                    centerX + radius * Math.cos((startAngle * Math.PI) / 180);
+                  const startYOuter =
+                    centerY + radius * Math.sin((startAngle * Math.PI) / 180);
+                  const endXOuter =
+                    centerX + radius * Math.cos((currentAngle * Math.PI) / 180);
+                  const endYOuter =
+                    centerY + radius * Math.sin((currentAngle * Math.PI) / 180);
 
-              const pathData = [
-                `M ${centerX} ${centerY}`,
-                `L ${startX} ${startY}`,
-                `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`,
-                "Z",
-              ].join(" ");
+                  const startXInner =
+                    centerX +
+                    innerRadius * Math.cos((startAngle * Math.PI) / 180);
+                  const startYInner =
+                    centerY +
+                    innerRadius * Math.sin((startAngle * Math.PI) / 180);
+                  const endXInner =
+                    centerX +
+                    innerRadius * Math.cos((currentAngle * Math.PI) / 180);
+                  const endYInner =
+                    centerY +
+                    innerRadius * Math.sin((currentAngle * Math.PI) / 180);
 
-              return (
-                <path
-                  key={index}
-                  d={pathData}
-                  fill={item.color}
-                  stroke="white"
-                  strokeWidth="2"
-                  className="hover:opacity-80 transition-opacity cursor-pointer"
-                />
-              );
-            })}
-          </svg>
-        </div>
-        <div className="flex-1">
-          <div className="space-y-2">
-            {data.map((item, index) => {
-              const percentage = ((item.value / total) * 100).toFixed(1);
-              return (
-                <div key={index} className="flex items-center gap-3">
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: item.color }}
-                  ></div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400 flex-1">
-                    {item.label}
-                  </span>
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {percentage}%
-                  </span>
+                  const largeArcFlag = angle > 180 ? 1 : 0;
+                  const isLargest = item.value === maxValue;
+
+                  const pathData = [
+                    `M ${startXInner} ${startYInner}`,
+                    `L ${startXOuter} ${startYOuter}`,
+                    `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endXOuter} ${endYOuter}`,
+                    `L ${endXInner} ${endYInner}`,
+                    `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${startXInner} ${startYInner}`,
+                    "Z",
+                  ].join(" ");
+
+                  return (
+                    <path
+                      key={index}
+                      d={pathData}
+                      fill={item.color}
+                      stroke="white"
+                      strokeWidth={isLargest ? "3" : "2"}
+                      className="hover:brightness-110 transition-all duration-300 cursor-pointer hover:scale-105"
+                      style={{
+                        filter: isLargest ? "url(#glow)" : "none",
+                        transformOrigin: `${centerX}px ${centerY}px`,
+                      }}
+                      onMouseMove={(e) => handleMouseMove(e, item, index)}
+                      onMouseLeave={handleMouseLeave}
+                    />
+                  );
+                })}
+              </svg>
+
+              {/* Tooltip */}
+              {hoveredSegment && (
+                <div
+                  className="absolute z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl p-4 pointer-events-none transform -translate-x-1/2 -translate-y-full"
+                  style={{
+                    left: mousePosition.x,
+                    top: mousePosition.y - 10,
+                    minWidth: "200px",
+                  }}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div
+                      className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
+                      style={{ backgroundColor: hoveredSegment.color }}
+                    ></div>
+                    <h4 className="font-semibold text-gray-900 dark:text-white">
+                      {hoveredSegment.label}
+                    </h4>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
+                        Value:
+                      </span>
+                      <span className="font-bold text-gray-900 dark:text-white">
+                        {hoveredSegment.value.toLocaleString()}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
+                        Percentage:
+                      </span>
+                      <span className="font-bold text-gray-900 dark:text-white">
+                        {((hoveredSegment.value / total) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
+                        of Total:
+                      </span>
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
+                        {total.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Progress bar in tooltip */}
+                  <div className="mt-3">
+                    <div className="h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                          backgroundColor: hoveredSegment.color,
+                          width: `${(hoveredSegment.value / total) * 100}%`,
+                        }}
+                      ></div>
+                    </div>
+                  </div>
                 </div>
-              );
-            })}
+              )}
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div className="space-y-3">
+            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+              Breakdown
+            </h4>
+            {data
+              .sort((a, b) => b.value - a.value) // Sort by value descending
+              .map((item, index) => {
+                const percentage = ((item.value / total) * 100).toFixed(1);
+                const isLargest = item.value === maxValue;
+
+                return (
+                  <div
+                    key={index}
+                    className={`flex items-center gap-4 p-3 rounded-lg transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                      isLargest ? "" : ""
+                    }`}
+                  >
+                    <div
+                      className="w-5 h-5 rounded-full shadow-sm border border-white"
+                      style={{ backgroundColor: item.color }}
+                    ></div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                          {item.label}
+                          {isLargest && (
+                            <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full">
+                              Highest
+                            </span>
+                          )}
+                        </span>
+                        <div className="text-right ml-4">
+                          <div className="text-lg font-bold text-gray-900 dark:text-white">
+                            {percentage}%
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {item.value.toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                      {/* Progress bar */}
+                      <div className="mt-2 h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500 ease-out"
+                          style={{
+                            backgroundColor: item.color,
+                            width: `${percentage}%`,
+                            opacity: 0.8,
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      </div>
+      {/* Footer Stats */}
+      <div className="px-8 py-6 border-t">
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              {data.length}
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              Categories
+            </div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+              {Math.max(...data.map((item) => item.value)).toLocaleString()}
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              Highest Value
+            </div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+              {Math.round(total / data.length).toLocaleString()}
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              Average
+            </div>
           </div>
         </div>
       </div>
@@ -1846,14 +2063,14 @@ const StatCard = ({
   value: React.ReactNode;
   subtitle?: string;
 }) => (
-  <div className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-800 dark:to-gray-700 border border-blue-200 dark:border-gray-600 p-6 rounded-2xl space-y-4 shadow-lg hover:shadow-xl transition-shadow">
-    <div className="flex justify-between items-center">
+  <div className="p-6 space-y-">
+    <div className="flex justify-start gap-6 items-center mb-2">
       <h3 className="font-semibold text-gray-700 dark:text-gray-200">
         {title}
       </h3>
       <div className="text-blue-600 dark:text-blue-400">{icon}</div>
     </div>
-    <div className="font-bold text-3xl text-gray-900 dark:text-white">
+    <div className="font-bold text-2xl text-gray-900 dark:text-white mb-1">
       {value}
     </div>
     {subtitle && (
@@ -1873,154 +2090,291 @@ const SummaryCard = ({
   value: string;
   icon: React.ReactNode;
 }) => (
-  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+  <div className="p-6">
     <div className="flex items-center gap-3 mb-3">
-      {icon}
       <h3 className="font-medium text-gray-700 dark:text-gray-300">{title}</h3>
+      {icon}
     </div>
-    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+    <div className="text-xl font-bold text-gray-900 dark:text-white">
       {value}
     </div>
   </div>
 );
 
 const PackageCard = ({ package: pkg }: { package: PackagePaymentStats }) => (
-  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md">
-    <div className="flex items-center gap-3 mb-4">
-      <IconPackage stroke={2} className="text-purple-600" />
-      <h3 className="font-semibold text-gray-900 dark:text-white">
+  <div className="p-6 rounded-lg border">
+    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">
+      <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+        <Package size={2} className="text-purple-600 w-5 h-5" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
         {pkg.packageName}
       </h3>
     </div>
+
     <div className="space-y-3">
-      <div className="flex justify-between">
-        <span className="text-gray-600 dark:text-gray-400">
+      <div className="flex justify-between items-center">
+        <span className="text-gray-600 dark:text-gray-400 font-medium">
           Total Payments:
         </span>
-        <span className="font-semibold">{pkg.totalPayments}</span>
+        <span className="font-semibold text-gray-900 dark:text-white text-lg">
+          {pkg.totalPayments}
+        </span>
       </div>
-      <div className="flex justify-between">
-        <span className="text-gray-600 dark:text-gray-400">Total Amount:</span>
-        <span className="font-semibold">${formatUSD(pkg.totalAmount)}</span>
+
+      <div className="flex justify-between items-center">
+        <span className="text-gray-600 dark:text-gray-400 font-medium">
+          Total Amount:
+        </span>
+        <span className="font-semibold text-gray-900 dark:text-white text-lg">
+          ${formatUSD(pkg.totalAmount)}
+        </span>
       </div>
-      <div className="flex justify-between">
-        <span className="text-green-600">UPI Payments:</span>
-        <span className="font-semibold">{pkg.upiPayments}</span>
+
+      <div className=" rounded-lg">
+        <div className="flex items-center justify-between py-1">
+          <div className="flex items-center gap-2">
+            <Wallet className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            <span className="text-gray-600 dark:text-gray-400 font-medium">
+              UPI Payments:
+            </span>
+          </div>
+          <span className="font-semibold text-gray-900 dark:text-white">
+            {pkg.upiPayments}
+          </span>
+        </div>
+        <div className="flex items-center justify-between py-1 mt-1">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4"></div>
+            <span className="text-gray-600 dark:text-gray-400 font-medium">
+              UPI Amount:
+            </span>
+          </div>
+          <span className="font-semibold text-gray-900 dark:text-white">
+            ₹{formatINR(pkg.upiAmount * 91)}
+          </span>
+        </div>
       </div>
-      <div className="flex justify-between">
-        <span className="text-green-600">UPI Amount:</span>
-        <span className="font-semibold">₹{formatINR(pkg.upiAmount * 91)}</span>
-      </div>
-      <div className="flex justify-between">
-        <span className="text-orange-600">Crypto Payments:</span>
-        <span className="font-semibold">{pkg.cryptoPayments}</span>
-      </div>
-      <div className="flex justify-between">
-        <span className="text-orange-600">Crypto Amount:</span>
-        <span className="font-semibold">${formatUSD(pkg.cryptoAmount)}</span>
-      </div>
-      <div className="flex justify-between">
-        <span className="text-blue-600">Success Rate:</span>
-        <span className="font-semibold">{pkg.successRate}%</span>
+
+      <div className=" rounded-lg">
+        <div className="flex items-center justify-between py-1">
+          <div className="flex items-center gap-2">
+            <Bitcoin className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            <span className="text-gray-600 dark:text-gray-400 font-medium">
+              Crypto Payments:
+            </span>
+          </div>
+          <span className="font-semibold text-gray-900 dark:text-white">
+            {pkg.cryptoPayments}
+          </span>
+        </div>
+        <div className="flex items-center justify-between py-1 mt-1">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4"></div>
+            <span className="text-gray-600 dark:text-gray-400 font-medium">
+              Crypto Amount:
+            </span>
+          </div>
+          <span className="font-semibold text-gray-900 dark:text-white">
+            ${formatUSD(pkg.cryptoAmount)}
+          </span>
+        </div>
       </div>
     </div>
   </div>
 );
 
 const UTMSourceCard = ({ source }: { source: UTMSourceStats }) => (
-  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md">
-    <div className="flex items-center gap-3 mb-4">
-      <IconGlobe stroke={2} className="text-indigo-600" />
-      <h3 className="font-semibold text-gray-900 dark:text-white">
+  <div className="p-6 rounded-lg border">
+    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">
+      <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+        <IconGlobe size={2} className="text-indigo-600 w-5 h-5" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
         {source.source}
       </h3>
     </div>
+
     <div className="space-y-3">
-      <div className="flex justify-between">
-        <span className="text-gray-600 dark:text-gray-400">
+      <div className="flex justify-between items-center">
+        <span className="text-gray-600 dark:text-gray-400 font-medium">
           Total Payments:
         </span>
-        <span className="font-semibold">{source.totalPayments}</span>
-      </div>
-      <div className="flex justify-between">
-        <span className="text-gray-600 dark:text-gray-400">Total Amount:</span>
-        <span className="font-semibold">${formatUSD(source.totalAmount)}</span>
-      </div>
-      <div className="flex justify-between">
-        <span className="text-green-600">UPI Amount:</span>
-        <span className="font-semibold">
-          ₹{formatINR(source.upiAmount * 91)}
+        <span className="font-semibold text-gray-900 dark:text-white text-lg">
+          {source.totalPayments}
         </span>
       </div>
-      <div className="flex justify-between">
-        <span className="text-orange-600">Crypto Amount:</span>
-        <span className="font-semibold">${formatUSD(source.cryptoAmount)}</span>
+      <div className="flex justify-between items-center">
+        <span className="text-gray-600 dark:text-gray-400 font-medium">
+          Total Amount:
+        </span>
+        <span className="font-semibold text-gray-900 dark:text-white text-lg">
+          ${formatUSD(source.totalAmount)}
+        </span>
       </div>
-      <div className="flex justify-between">
-        <span className="text-blue-600">Success Rate:</span>
-        <span className="font-semibold">{source.successRate}%</span>
+      <div className="rounded-lg">
+        <div className="flex items-center justify-between py-1">
+          <div className="flex items-center gap-2">
+            <Wallet className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            <span className="text-gray-600 dark:text-gray-400 font-medium">
+              UPI Amount:
+            </span>
+          </div>
+          <span className="font-semibold text-gray-900 dark:text-white">
+            ₹{formatINR(source.upiAmount * 91)}
+          </span>
+        </div>
       </div>
-      <div className="flex justify-between">
-        <span className="text-purple-600">Percentage:</span>
-        <span className="font-semibold">{source.percentage}%</span>
+      <div className="rounded-lg">
+        <div className="flex items-center justify-between py-1">
+          <div className="flex items-center gap-2">
+            <Bitcoin className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            <span className="text-gray-600 dark:text-gray-400 font-medium">
+              Crypto Amount:
+            </span>
+          </div>
+          <span className="font-semibold text-gray-900 dark:text-white">
+            ${formatUSD(source.cryptoAmount)}
+          </span>
+        </div>
+      </div>
+
+      <div className="rounded-lg">
+        <div className="flex items-center justify-between py-1">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            <span className="text-gray-600 dark:text-gray-400 font-medium">
+              Percentage:
+            </span>
+          </div>
+          <span className="font-semibold text-gray-900 dark:text-white">
+            {source.percentage}%
+          </span>
+        </div>
+        <div className="mt-2">
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div
+              className="bg-purple-500 h-2 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${source.percentage}%` }}
+            ></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 );
 
 const PaymentMethodCard = ({ method }: { method: PaymentMethodStats }) => (
-  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md">
-    <div className="flex items-center gap-3 mb-4">
-      <IconCreditCard stroke={2} className="text-blue-600" />
-      <h3 className="font-semibold text-gray-900 dark:text-white">
+  <div className="p-6 rounded-lg border">
+    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">
+      <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+        <IconCreditCard size={2} className="text-blue-600 w-5 h-5" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
         {method.method}
       </h3>
     </div>
+
     <div className="space-y-3">
-      <div className="flex justify-between">
-        <span className="text-gray-600 dark:text-gray-400">
+      <div className="flex justify-between items-center">
+        <span className="text-gray-600 dark:text-gray-400 font-medium">
           Total Payments:
         </span>
-        <span className="font-semibold">{method.totalPayments}</span>
-      </div>
-      <div className="flex justify-between">
-        <span className="text-gray-600 dark:text-gray-400">Total Amount:</span>
-        <span className="font-semibold">${formatUSD(method.totalAmount)}</span>
-      </div>
-      <div className="flex justify-between">
-        <span className="text-green-600">Success Payments:</span>
-        <span className="font-semibold">{method.successPayments}</span>
-      </div>
-      <div className="flex justify-between">
-        <span className="text-green-600">Success Amount:</span>
-        <span className="font-semibold">
-          ${formatUSD(method.successAmount)}
+        <span className="font-semibold text-gray-900 dark:text-white text-lg">
+          {method.totalPayments}
         </span>
+      </div>
+
+      <div className="flex justify-between items-center">
+        <span className="text-gray-600 dark:text-gray-400 font-medium">
+          Total Amount:
+        </span>
+        <span className="font-semibold text-gray-900 dark:text-white text-lg">
+          ${formatUSD(method.totalAmount)}
+        </span>
+      </div>
+
+      <div className="rounded-lg">
+        <div className="flex items-center justify-between py-1">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            <span className="text-gray-600 dark:text-gray-400 font-medium">
+              Success Payments:
+            </span>
+          </div>
+          <span className="font-semibold text-gray-900 dark:text-white">
+            {method.successPayments}
+          </span>
+        </div>
+      </div>
+
+      <div className="rounded-lg">
+        <div className="flex items-center justify-between py-1">
+          <div className="flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            <span className="text-gray-600 dark:text-gray-400 font-medium">
+              Success Amount:
+            </span>
+          </div>
+          <span className="font-semibold text-gray-900 dark:text-white">
+            ${formatUSD(method.successAmount)}
+          </span>
+        </div>
       </div>
     </div>
   </div>
 );
 
 const StatusCard = ({ status }: { status: StatusStats }) => (
-  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-xl shadow-md">
-    <div className="flex items-center gap-3 mb-4">
-      <IconTarget stroke={2} className="text-red-600" />
-      <h3 className="font-semibold text-gray-900 dark:text-white">
+  <div className="p-6 rounded-lg border">
+    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">
+      <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
+        <IconTarget size={2} className="text-red-600 w-5 h-5" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
         {status.status}
       </h3>
     </div>
+
     <div className="space-y-3">
-      <div className="flex justify-between">
-        <span className="text-gray-600 dark:text-gray-400">Count:</span>
-        <span className="font-semibold">{status.count}</span>
+      <div className="flex justify-between items-center">
+        <span className="text-gray-600 dark:text-gray-400 font-medium">
+          Count:
+        </span>
+        <span className="font-semibold text-gray-900 dark:text-white text-lg">
+          {status.count}
+        </span>
       </div>
-      <div className="flex justify-between">
-        <span className="text-gray-600 dark:text-gray-400">Amount:</span>
-        <span className="font-semibold">${formatUSD(status.amount)}</span>
+
+      <div className="flex justify-between items-center">
+        <span className="text-gray-600 dark:text-gray-400 font-medium">
+          Amount:
+        </span>
+        <span className="font-semibold text-gray-900 dark:text-white text-lg">
+          ${formatUSD(status.amount)}
+        </span>
       </div>
-      <div className="flex justify-between">
-        <span className="text-blue-600">Percentage:</span>
-        <span className="font-semibold">{status.percentage}%</span>
+
+      <div className="rounded-lg">
+        <div className="flex items-center justify-between py-1">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            <span className="text-gray-600 dark:text-gray-400 font-medium">
+              Percentage:
+            </span>
+          </div>
+          <span className="font-semibold text-gray-900 dark:text-white">
+            {status.percentage}%
+          </span>
+        </div>
+        <div className="mt-2">
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div
+              className="bg-blue-500 h-2 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${status.percentage}%` }}
+            ></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
