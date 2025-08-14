@@ -624,36 +624,36 @@ const HomePage = () => {
           }}
         >
           {/* Header */}
-          <div style={{ textAlign: "center", marginBottom: "32px" }}>
+          <div style={{ textAlign: "center", marginBottom: "64px" }}>
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
+                justifyContent: "left",
                 gap: "16px",
-                marginBottom: "16px",
+                marginBottom: "32px",
               }}
             >
               <img
                 src="/Images/logo.png"
                 alt="Market Genius VIP Logo"
-                style={{ height: "64px", width: "auto" }}
+                style={{ height: "128px", width: "auto" }}
               />
               <div style={{ textAlign: "left" }}>
                 <h1
                   style={{
-                    fontSize: "30px",
+                    fontSize: "64px",
                     fontWeight: "bold",
                     color: "#000000",
                     margin: 0,
-                    letterSpacing: "0.5px",
+                    letterSpacing: "1px",
                   }}
                 >
                   MARKET GENIUS VIP
                 </h1>
                 <p
                   style={{
-                    fontSize: "22px",
+                    fontSize: "30px",
                     color: "#000000",
                     margin: 0,
                     fontWeight: 600,
@@ -665,7 +665,7 @@ const HomePage = () => {
             </div>
             <h2
               style={{
-                fontSize: "24px",
+                fontSize: "32px",
                 fontWeight: 700,
                 color: "#000000",
                 marginBottom: "8px",
@@ -675,7 +675,7 @@ const HomePage = () => {
             </h2>
             <p
               style={{
-                fontSize: "16px",
+                fontSize: "20px",
                 color: "#000000",
               }}
             >
@@ -687,7 +687,7 @@ const HomePage = () => {
           <div style={{ marginBottom: "32px" }}>
             <h3
               style={{
-                fontSize: "22px",
+                fontSize: "28px",
                 fontWeight: 700,
                 color: "#000000",
                 marginBottom: "18px",
@@ -702,7 +702,7 @@ const HomePage = () => {
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
                 gap: "16px",
-                fontSize: "32px",
+                fontSize: "24px",
               }}
             >
               <div
@@ -1213,7 +1213,7 @@ const HomePage = () => {
             <div style={{ marginBottom: "32px" }}>
               <h3
                 style={{
-                  fontSize: "22px",
+                  fontSize: "28px",
                   fontWeight: 700,
                   color: "#000000",
                   marginBottom: "18px",
@@ -1228,7 +1228,7 @@ const HomePage = () => {
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
                   gap: "16px",
-                  fontSize: "32px",
+                  fontSize: "24px",
                 }}
               >
                 <div
