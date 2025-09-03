@@ -67,6 +67,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                 href: "/payments",
                 label: "All Payments",
               },
+              {
+                href: "/renewals",
+                label: "All Renewals",
+              },
 
               {
                 href: "/payment-dashboard",
