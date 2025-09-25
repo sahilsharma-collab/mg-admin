@@ -124,6 +124,7 @@ const ReferralRequestClient = () => {
           // Add raw date objects for filtering
           createdAtRaw: new Date(request.createdAt),
           updatedAtRaw: new Date(request.updatedAt),
+          broker: request.broker,
         })
       );
 

@@ -28,6 +28,7 @@ export interface ReferralRequestResponse {
     exnessId: string;
     exnessVerified: boolean;
   };
+  broker: string;
 }
 
 export type ReferralRequestColumn = {
@@ -185,8 +186,12 @@ export const Columns = (
     enableHiding: false,
   },
   {
+    accessorKey: "broker",
+    header: "Broker",
+  },
+  {
     accessorKey: "exnessId",
-    header: "Exness ID",
+    header: "Account ID",
   },
   {
     accessorKey: "userName",
