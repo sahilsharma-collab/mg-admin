@@ -248,7 +248,7 @@ const ReferralRequestClient = () => {
           onChange={handleSearchFieldChange}
         >
           <option value="userEmail">Search by Email</option>
-          <option value="exnessId">Search by Exness ID</option>
+          <option value="exnessId">Search by Exness or Mazi ID</option>
         </select>
 
         {/* Date filters */}
