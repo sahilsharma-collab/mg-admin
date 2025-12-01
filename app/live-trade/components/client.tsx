@@ -2,27 +2,46 @@
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Cookies from "js-cookie";
 import { columns, LiveTradeColumn, LiveTradeResponseColumn } from "./columns";
 import { CellAction } from "./cell-actions";
 import { Row } from "@tanstack/react-table";
+
+interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  limit: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
 
 const LiveTradeClient = () => {
   const [formattedLiveTrade, setFormattedLiveTrade] = useState<
     LiveTradeColumn[]
   >([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    currentPage: 1,
+    totalPages: 1,
+    totalCount: 0,
+    limit: 10,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  });
   const router = useRouter();
   const token = Cookies.get("auth_token");
   const [refreshCounter, setRefreshCounter] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  useEffect(() => {
-    const fetchMarketAnalysis = async () => {
+  const fetchLiveTrades = useCallback(
+    async (page: number, limit: number) => {
       try {
         setLoading(true);
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_PROD_URL}/api/trade`,
+          `${process.env.NEXT_PUBLIC_PROD_URL}/api/trade?page=${page}&limit=${limit}`,
           {
             method: "GET",
             headers: {
@@ -56,30 +75,47 @@ const LiveTradeClient = () => {
             title: trade.title?.slice(0, 30) + "...",
             description: trade.description,
             imgUrl: trade.imgUrl,
-            reactionsCount: trade._count.reaction,
-            viewCount: trade._count.TradeViews,
+            reactionsCount: trade._count?.reaction || 0,
+            viewCount: trade._count?.TradeViews || 0,
             createdAt: formatDateTime(trade.createdAt),
             updatedAt: formatDateTime(trade.updatedAt),
             reactions: trade.reaction,
             createdAtRaw: new Date(trade.createdAt),
             updatedAtRaw: new Date(trade.updatedAt),
-            impressionCount: trade.impressionCount,
+            impressionCount: trade.impressionCount || 0,
           })
         );
 
         setFormattedLiveTrade(formattedData);
+
+        // Set pagination info from server response
+        if (data.pagination) {
+          setPagination(data.pagination);
+        }
       } catch (error) {
         console.error("Error fetching live trade:", error);
       } finally {
         setLoading(false);
       }
-    };
+    },
+    [token]
+  );
 
-    fetchMarketAnalysis();
-  }, [refreshCounter]);
+  useEffect(() => {
+    fetchLiveTrades(currentPage, pageSize);
+  }, [currentPage, pageSize, refreshCounter, fetchLiveTrades]);
 
   const refreshData = () => {
     setRefreshCounter((prev) => prev + 1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(1); // Reset to first page when changing page size
   };
 
   const columnsWithRefresh = columns.map((col) => {
@@ -112,6 +148,11 @@ const LiveTradeClient = () => {
           </Button>
         }
         enableDateFilter={true}
+        // Server-side pagination props
+        serverSidePagination={true}
+        paginationInfo={pagination}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
       />
     </div>
   );
