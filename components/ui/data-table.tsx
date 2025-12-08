@@ -286,15 +286,14 @@ export function DataTable<TData extends DateFilterableData, TValue>({
 
   // Handle rows per page change
   const handleRowsPerPageChange = (value: string) => {
+    const newSize = value === "All" ? filteredRows : parseInt(value);
+
     if (serverSidePagination && onPageSizeChange) {
-      const newSize = value === "All" ? filteredRows : parseInt(value);
       onPageSizeChange(newSize);
+      // Also update local state for server-side pagination
+      setRowsPerPage(newSize);
     } else {
-      if (value === "All") {
-        setRowsPerPage(filteredRows);
-      } else {
-        setRowsPerPage(parseInt(value));
-      }
+      setRowsPerPage(newSize);
     }
     // Page index is reset in the useEffect (for client-side)
   };

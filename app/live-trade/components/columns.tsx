@@ -41,9 +41,10 @@ export type LiveTradeResponseColumn = {
   imgUrl: string | null;
   createdAt: string;
   updatedAt: string;
-  reaction: Reaction[];
+  reaction?: Reaction[];
+  reactionCounts?: Record<string, number>; // Grouped reaction counts from backend
   _count: {
-    reaction: number;
+    reaction?: number;
     TradeViews: number;
   };
   impressionCount: number;

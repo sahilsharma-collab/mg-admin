@@ -70,20 +70,30 @@ const LiveTradeClient = () => {
         };
 
         const formattedData: LiveTradeColumn[] = data.LiveTrade.map(
-          (trade: LiveTradeResponseColumn) => ({
-            id: trade.id,
-            title: trade.title?.slice(0, 30) + "...",
-            description: trade.description,
-            imgUrl: trade.imgUrl,
-            reactionsCount: trade._count?.reaction || 0,
-            viewCount: trade._count?.TradeViews || 0,
-            createdAt: formatDateTime(trade.createdAt),
-            updatedAt: formatDateTime(trade.updatedAt),
-            reactions: trade.reaction,
-            createdAtRaw: new Date(trade.createdAt),
-            updatedAtRaw: new Date(trade.updatedAt),
-            impressionCount: trade.impressionCount || 0,
-          })
+          (trade: LiveTradeResponseColumn) => {
+            // Calculate total reactions from grouped reaction counts
+            const totalReactions = trade.reactionCounts
+              ? Object.values(trade.reactionCounts).reduce(
+                  (sum: number, count: number) => sum + count,
+                  0
+                )
+              : 0;
+
+            return {
+              id: trade.id,
+              title: trade.title?.slice(0, 30) + "...",
+              description: trade.description,
+              imgUrl: trade.imgUrl,
+              reactionsCount: totalReactions,
+              viewCount: trade._count?.TradeViews || 0,
+              createdAt: formatDateTime(trade.createdAt),
+              updatedAt: formatDateTime(trade.updatedAt),
+              reactions: trade.reaction || [],
+              createdAtRaw: new Date(trade.createdAt),
+              updatedAtRaw: new Date(trade.updatedAt),
+              impressionCount: trade.impressionCount || 0,
+            };
+          }
         );
 
         setFormattedLiveTrade(formattedData);
