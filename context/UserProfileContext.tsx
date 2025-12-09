@@ -87,11 +87,32 @@ export const UserProfileProvider = ({
 
       if (response.data.success) {
         const token = response.data.token;
-        Cookies.set("auth_token", response.data.token, {
+
+        // Fetch user profile to check role before completing login
+        const profileResponse = await axios.get(
+          `${process.env.NEXT_PUBLIC_PROD_URL}/api/profile`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        // Check if user has ADMIN role
+        if (
+          profileResponse.data.success &&
+          profileResponse.data.user?.role !== "ADMIN"
+        ) {
+          toast.error("ADMIN role not found. Access denied.");
+          return false;
+        }
+
+        Cookies.set("auth_token", token, {
           expires: 30,
           path: "/",
         });
-        await fetchUserProfile(token);
+        setUser(profileResponse.data.user);
         toast.success("Logged in successfully");
         return true;
       } else {
