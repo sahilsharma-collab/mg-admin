@@ -7,6 +7,18 @@ import Cookies from "js-cookie";
 import { columns, LiveTradeColumn, LiveTradeResponseColumn } from "./columns";
 import { CellAction } from "./cell-actions";
 import { Row } from "@tanstack/react-table";
+import { toast } from "react-toastify";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface PaginationInfo {
   currentPage: number;
@@ -35,6 +47,102 @@ const LiveTradeClient = () => {
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [warmingUp, setWarmingUp] = useState(false);
+  const [coolingDown, setCoolingDown] = useState(false);
+  const [acuStatus, setAcuStatus] = useState<{
+    minCapacity: number;
+    maxCapacity: number;
+    status: string;
+    isScaledUp: boolean;
+  } | null>(null);
+  const [acuLoading, setAcuLoading] = useState(true);
+
+  const fetchACUStatus = useCallback(async () => {
+    try {
+      setAcuLoading(true);
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_PROD_URL}/api/acu-status`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setAcuStatus(data);
+    } catch (error) {
+      console.error("Error fetching ACU status:", error);
+    } finally {
+      setAcuLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchACUStatus();
+  }, [fetchACUStatus]);
+
+  const handleWarmup = async () => {
+    try {
+      setWarmingUp(true);
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_PROD_URL}/api/warm-db`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.statusText}`);
+      }
+
+      toast.success("Database warmup successful!");
+      fetchACUStatus();
+    } catch (error) {
+      console.error("Error warming up database:", error);
+      toast.error("Failed to warm up database");
+    } finally {
+      setWarmingUp(false);
+    }
+  };
+
+  const handleCooldown = async () => {
+    try {
+      setCoolingDown(true);
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_PROD_URL}/api/cool-db`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.statusText}`);
+      }
+
+      toast.success("Database cooldown successful!");
+      fetchACUStatus();
+    } catch (error) {
+      console.error("Error cooling down database:", error);
+      toast.error("Failed to cool down database");
+    } finally {
+      setCoolingDown(false);
+    }
+  };
 
   const fetchLiveTrades = useCallback(
     async (page: number, limit: number) => {
@@ -48,7 +156,7 @@ const LiveTradeClient = () => {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
-          }
+          },
         );
 
         if (!response.ok) {
@@ -75,7 +183,7 @@ const LiveTradeClient = () => {
             const totalReactions = trade.reactionCounts
               ? Object.values(trade.reactionCounts).reduce(
                   (sum: number, count: number) => sum + count,
-                  0
+                  0,
                 )
               : 0;
 
@@ -93,7 +201,7 @@ const LiveTradeClient = () => {
               updatedAtRaw: new Date(trade.updatedAt),
               impressionCount: trade.impressionCount || 0,
             };
-          }
+          },
         );
 
         setFormattedLiveTrade(formattedData);
@@ -108,7 +216,7 @@ const LiveTradeClient = () => {
         setLoading(false);
       }
     },
-    [token]
+    [token],
   );
 
   useEffect(() => {
@@ -150,12 +258,76 @@ const LiveTradeClient = () => {
         loading={loading}
         title={<h1 className="text-xl font-semibold">Live Trade List</h1>}
         actionButton={
-          <Button
-            onClick={() => router.push(`/live-trade/new`)}
-            className="bg-[#0ABAB5] rounded-full px-6 hover:bg-[#089e99] transition-colors dark:text-white"
-          >
-            Add Live Trade
-          </Button>
+          <div className="flex items-center gap-4">
+            {/* ACU Status Display */}
+            <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-full">
+              {acuLoading ? (
+                <span className="text-sm text-gray-500">Loading...</span>
+              ) : acuStatus ? (
+                <>
+                  <span className="text-sm font-medium">
+                    ACU: {acuStatus.minCapacity}
+                  </span>
+                  <span
+                    className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                      acuStatus.isScaledUp
+                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                        : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                    }`}
+                  >
+                    {acuStatus.isScaledUp ? "Scaled Up" : "Scaled Down"}
+                  </span>
+                </>
+              ) : (
+                <span className="text-sm text-gray-500">
+                  Status unavailable
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleWarmup}
+                disabled={warmingUp}
+                className="bg-orange-500 rounded-full px-6 hover:bg-orange-600 transition-colors dark:text-white"
+              >
+                {warmingUp ? "Warming up..." : "Warmup DB"}
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    disabled={coolingDown}
+                    className="bg-blue-500 rounded-full px-6 hover:bg-blue-600 transition-colors dark:text-white"
+                  >
+                    {coolingDown ? "Cooling down..." : "Cooldown DB"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to scale down the database capacity?
+                      This may affect performance during active traffic.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-red-500 hover:bg-red-600 hover:!text-white"
+                      onClick={handleCooldown}
+                    >
+                      Yes, Cooldown
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button
+                onClick={() => router.push(`/live-trade/new`)}
+                className="bg-[#0ABAB5] rounded-full px-6 hover:bg-[#089e99] transition-colors dark:text-white"
+              >
+                Add Live Trade
+              </Button>
+            </div>
+          </div>
         }
         enableDateFilter={true}
         // Server-side pagination props
