@@ -136,10 +136,10 @@ export const columns: ColumnDef<LiveTradeColumn>[] = [
     accessorKey: "viewCount",
     header: "Views",
   },
-  {
-    accessorKey: "impressionCount",
-    header: "Impressions",
-  },
+  // {
+  //   accessorKey: "impressionCount",
+  //   header: "Impressions",
+  // },
   {
     accessorKey: "createdAt",
     header: "Date",

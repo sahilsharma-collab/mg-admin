@@ -110,7 +110,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     },
     {
       href: "/live-trade",
-      label: "Live Trades",
+      label: "VIP Trades",
       icon: <IconChartAreaLine stroke={2} />,
     },
     {
