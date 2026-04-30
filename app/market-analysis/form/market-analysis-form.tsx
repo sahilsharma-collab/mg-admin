@@ -19,7 +19,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-toastify";
 import Cookies from "js-cookie";
-import Image from "next/image";
+import ImageUpload from "@/components/ui/image-upload";
 
 // Updated Form Schema - only title is required
 const formSchema = z.object({
@@ -256,51 +256,19 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
                                     <FormItem>
                                         <FormLabel>Image (Optional)</FormLabel>
                                         <FormControl>
-                                            <Input
-                                                id="image-upload"
-                                                type="file"
-                                                accept="image/*"
+                                            <ImageUpload
+                                                value={field.value || ""}
                                                 disabled={loading}
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        setImageFile(file);
-                                                        field.onChange(URL.createObjectURL(file));
-                                                    }
+                                                onChange={(file, preview) => {
+                                                    setImageFile(file);
+                                                    field.onChange(preview);
+                                                }}
+                                                onRemove={() => {
+                                                    field.onChange("");
+                                                    setImageFile(null);
                                                 }}
                                             />
                                         </FormControl>
-                                        {field.value && (
-                                            <div className="relative mt-2 w-fit">
-                                                <div className="rounded-lg overflow-hidden border border-gray-200 shadow-sm">
-                                                    <Image
-                                                        src={field.value}
-                                                        alt="Preview"
-                                                        width={150}
-                                                        height={150}
-                                                        className="object-cover"
-                                                    />
-                                                </div>
-                                                <Button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        field.onChange("");
-                                                        setImageFile(null);
-                                                        const fileInput = document.getElementById("image-upload") as HTMLInputElement;
-                                                        if (fileInput) {
-                                                            fileInput.value = "";
-                                                        }
-                                                    }}
-                                                    className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-6 rounded-full shadow-md hover:bg-red-600 transition-colors"
-                                                    aria-label="Remove image"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                                                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                                                    </svg>
-                                                </Button>
-                                            </div>
-                                        )}
                                         <FormMessage />
                                     </FormItem>
                                 )}
