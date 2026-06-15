@@ -42,6 +42,7 @@ export type ReferralRequestColumn = {
   userEmail: string;
   userExnessId: string;
   exnessVerified: boolean;
+  broker: string;
   isSelected?: boolean;
 };
 
@@ -129,7 +130,8 @@ export const Columns = (
   refreshData: () => void,
   selectedRowIds: number[],
   setSelectedRowIds: (ids: number[]) => void,
-  setStatus: (status: string) => void
+  setStatus: (status: string) => void,
+  setBroker: (broker: string) => void
 ): ColumnDef<ReferralRequestColumn>[] => [
   {
     id: "select",
@@ -187,7 +189,38 @@ export const Columns = (
   },
   {
     accessorKey: "broker",
-    header: "Broker",
+    header: ({ table }) => (
+      <div className="flex items-center gap-2">
+        <span>Broker</span>
+        <Select
+          value={
+            (table.getColumn("broker")?.getFilterValue() as string) ?? "ALL"
+          }
+          onValueChange={(value) => {
+            table
+              .getColumn("broker")
+              ?.setFilterValue(value === "ALL" ? undefined : value);
+
+            setBroker(value === "ALL" ? "" : value);
+          }}
+        >
+          <SelectTrigger className="w-[120px] h-8 bg-white dark:bg-[#2E2941] border border-[#0000001A] dark:border-[#FFFFFF33] focus:ring-[0.1px] focus:ring-[#0ABAB5] focus:border-[#0ABAB5]">
+            <SelectValue placeholder="Filter" />
+          </SelectTrigger>
+          <SelectContent className="bg-white dark:bg-[#2E2941] border border-[#0000001A] dark:border-[#FFFFFF33]">
+            <SelectItem value="ALL">All</SelectItem>
+            <SelectItem value="EXNESS">Exness</SelectItem>
+            <SelectItem value="MAZI">Mazi</SelectItem>
+            <SelectItem value="ZUPERIOR">Zuperior</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    ),
+    enableColumnFilter: true,
+    filterFn: (row, id, value) => {
+      if (!value || value === "ALL") return true;
+      return row.getValue(id) === value;
+    },
   },
   {
     accessorKey: "exnessId",

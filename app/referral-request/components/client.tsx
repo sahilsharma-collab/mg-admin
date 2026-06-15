@@ -19,6 +19,21 @@ export interface EnhancedReferralRequestColumn extends ReferralRequestColumn {
   updatedAtRaw: Date;
 }
 
+const formatDateTime = (dateString: string) => {
+  const date = new Date(dateString);
+  const formattedDate = date.toLocaleDateString("en-US");
+  const formattedTime = date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return `${formattedDate} ${formattedTime}`;
+};
+
+// Escape a value for safe CSV output (wrap in quotes, double inner quotes)
+const escapeCsv = (value: unknown) =>
+  `"${String(value ?? "").replace(/"/g, '""')}"`;
+
 const ReferralRequestClient = () => {
   const [formattedRequests, setFormattedRequests] = useState<
     EnhancedReferralRequestColumn[]
@@ -43,6 +58,8 @@ const ReferralRequestClient = () => {
   });
 
   const [status, setStatus] = useState<string>("");
+  const [broker, setBroker] = useState<string>("");
+  const [isExporting, setIsExporting] = useState<boolean>(false);
 
   // Handle initial loading only once
   useEffect(() => {
@@ -55,13 +72,12 @@ const ReferralRequestClient = () => {
     initialize();
   }, [isInitialized, resetPagination]);
 
-  // Fetch data when pagination or search changes
-  const fetchRequests = useCallback(async () => {
-    try {
-      setLoading(true);
+  // Build the request URL applying all active filters (shared by table fetch + CSV export)
+  const buildRequestUrl = useCallback(
+    (pageArg: number, limitArg: number) => {
       const url = new URL(`${process.env.NEXT_PUBLIC_PROD_URL}/api/exness/`);
-      url.searchParams.append("page", page.toString());
-      url.searchParams.append("limit", limit.toString());
+      url.searchParams.append("page", pageArg.toString());
+      url.searchParams.append("limit", limitArg.toString());
 
       // Add search parameters if query exists
       if (searchQuery) {
@@ -76,6 +92,10 @@ const ReferralRequestClient = () => {
         url.searchParams.append("status", status);
       }
 
+      if (broker) {
+        url.searchParams.append("broker", broker);
+      }
+
       // Add date range parameters if they exist
       if (dateRange.startDate) {
         url.searchParams.append("startDate", dateRange.startDate);
@@ -83,6 +103,17 @@ const ReferralRequestClient = () => {
       if (dateRange.endDate) {
         url.searchParams.append("endDate", dateRange.endDate);
       }
+
+      return url;
+    },
+    [searchQuery, searchField, status, broker, dateRange]
+  );
+
+  // Fetch data when pagination or search changes
+  const fetchRequests = useCallback(async () => {
+    try {
+      setLoading(true);
+      const url = buildRequestUrl(page, limit);
 
       const response = await fetch(url.toString(), {
         method: "GET",
@@ -97,17 +128,6 @@ const ReferralRequestClient = () => {
       }
 
       const data = await response.json();
-
-      const formatDateTime = (dateString: string) => {
-        const date = new Date(dateString);
-        const formattedDate = date.toLocaleDateString("en-US");
-        const formattedTime = date.toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        });
-        return `${formattedDate} ${formattedTime}`;
-      };
 
       const formattedData: EnhancedReferralRequestColumn[] = data.requests.map(
         (request: ReferralRequestResponse) => ({
@@ -136,7 +156,7 @@ const ReferralRequestClient = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, searchQuery, searchField, dateRange, token, status]);
+  }, [page, limit, buildRequestUrl, token]);
 
   useEffect(() => {
     if (isInitialized) {
@@ -211,31 +231,101 @@ const ReferralRequestClient = () => {
     refreshData,
     selectedRowIds,
     setSelectedRowIds,
-    setStatus
+    setStatus,
+    setBroker
   );
 
-  const downloadCSV = () => {
-    // CSV header
-    let csv =
-      "ID,User ID,Exness ID,Status,Created At,Updated At,User Name,User Email,User Exness ID,Exness Verified\n";
+  const downloadCSV = async () => {
+    const EXPORT_PAGE_SIZE = 500;
 
-    // Add data rows
-    formattedRequests.forEach((request) => {
-      csv += `"${request.id}","${request.userId}","${request.exnessId}","${request.status}","${request.createdAt}","${request.updatedAt}","${request.userName}","${request.userEmail}","${request.userExnessId}","${request.exnessVerified}"\n`;
-    });
+    const fetchPage = async (pageArg: number): Promise<ReferralRequestResponse[]> => {
+      const response = await fetch(buildRequestUrl(pageArg, EXPORT_PAGE_SIZE).toString(), {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`Error: ${response.statusText}`);
+      }
+      const data = await response.json();
+      return data.requests as ReferralRequestResponse[];
+    };
 
-    // Create download link
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute(
-      "download",
-      `referral_requests_${new Date().toISOString().split("T")[0]}.csv`
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      setIsExporting(true);
+
+      // First page also tells us how many pages exist
+      const firstResponse = await fetch(
+        buildRequestUrl(1, EXPORT_PAGE_SIZE).toString(),
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!firstResponse.ok) {
+        throw new Error(`Error: ${firstResponse.statusText}`);
+      }
+      const firstData = await firstResponse.json();
+      const totalPages: number = firstData.pagination.totalPages;
+      const allRequests: ReferralRequestResponse[] = [...firstData.requests];
+
+      // Fetch the remaining pages in parallel, then preserve page order
+      if (totalPages > 1) {
+        const remainingPages = Array.from(
+          { length: totalPages - 1 },
+          (_, i) => i + 2
+        );
+        const pages = await Promise.all(remainingPages.map(fetchPage));
+        pages.forEach((requests) => allRequests.push(...requests));
+      }
+
+      // CSV header
+      let csv =
+        "ID,User ID,Account ID,Broker,Status,Created At,Updated At,User Name,User Email,User Exness ID\n";
+
+      // Add data rows
+      allRequests.forEach((request) => {
+        csv +=
+          [
+            request.id,
+            request.userId,
+            request.exnessId,
+            request.broker,
+            request.status,
+            formatDateTime(request.createdAt),
+            formatDateTime(request.updatedAt),
+            request.user?.name,
+            request.user?.email,
+            request.user?.exnessId,
+          ]
+            .map(escapeCsv)
+            .join(",") + "\n";
+      });
+
+      // Create download link
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `referral_requests_${new Date().toISOString().split("T")[0]}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error exporting referral requests:", error);
+      toast.error("Failed to export referral requests.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -301,10 +391,11 @@ const ReferralRequestClient = () => {
           <>
             <Button
               onClick={downloadCSV}
+              disabled={isExporting}
               className="bg-[#0ABAB5] hover:bg-[#089e99] transition-colors dark:text-white rounded-full"
             >
               <Download className="h-4 w-4 -mr-1" />
-              Export
+              {isExporting ? "Exporting..." : "Export"}
             </Button>
             <Button
               onClick={handleBulkUpdateClick}
