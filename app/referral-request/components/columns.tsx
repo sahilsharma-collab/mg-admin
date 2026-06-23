@@ -13,6 +13,7 @@ import { toast } from "react-toastify";
 import axios from "axios";
 import { useState } from "react";
 import Cookies from "js-cookie";
+import { RejectReasonModal } from "./RejectReasonModal";
 
 export interface ReferralRequestResponse {
   id: number;
@@ -56,9 +57,10 @@ const StatusCell = ({
   refreshData: () => void;
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
   const token = Cookies.get("auth_token");
 
-  const handleStatusChange = async (newStatus: string) => {
+  const updateStatus = async (newStatus: string, rejectionReason?: string) => {
     try {
       setIsUpdating(true);
       await axios.post(
@@ -66,6 +68,8 @@ const StatusCell = ({
         {
           requestId: requestId,
           status: newStatus,
+          // Only send a reason on rejection, and only when one was entered.
+          ...(rejectionReason ? { rejectionReason } : {}),
         },
         {
           headers: {
@@ -85,6 +89,20 @@ const StatusCell = ({
     }
   };
 
+  const handleStatusChange = (newStatus: string) => {
+    // Rejection goes through a modal so an optional reason can be added.
+    if (newStatus === "REJECTED") {
+      setRejectOpen(true);
+      return;
+    }
+    updateStatus(newStatus);
+  };
+
+  const handleConfirmReject = async (reason: string) => {
+    await updateStatus("REJECTED", reason);
+    setRejectOpen(false);
+  };
+
   let statusColor = "";
   switch (value) {
     case "PENDING":
@@ -101,28 +119,37 @@ const StatusCell = ({
   }
 
   return (
-    <Select
-      value={value}
-      onValueChange={handleStatusChange}
-      disabled={isUpdating}
-    >
-      <SelectTrigger
-        className={`w-[8rem] h-8 border-none shadow-none rounded-full ${statusColor}`}
+    <>
+      <Select
+        value={value}
+        onValueChange={handleStatusChange}
+        disabled={isUpdating}
       >
-        <SelectValue placeholder={value} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="PENDING" className="text-yellow-600">
-          PENDING
-        </SelectItem>
-        <SelectItem value="APPROVED" className="text-green-600">
-          APPROVED
-        </SelectItem>
-        <SelectItem value="REJECTED" className="text-red-600">
-          REJECTED
-        </SelectItem>
-      </SelectContent>
-    </Select>
+        <SelectTrigger
+          className={`w-[8rem] h-8 border-none shadow-none rounded-full ${statusColor}`}
+        >
+          <SelectValue placeholder={value} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="PENDING" className="text-yellow-600">
+            PENDING
+          </SelectItem>
+          <SelectItem value="APPROVED" className="text-green-600">
+            APPROVED
+          </SelectItem>
+          <SelectItem value="REJECTED" className="text-red-600">
+            REJECTED
+          </SelectItem>
+        </SelectContent>
+      </Select>
+
+      <RejectReasonModal
+        isOpen={rejectOpen}
+        onClose={() => setRejectOpen(false)}
+        onConfirm={handleConfirmReject}
+        loading={isUpdating}
+      />
+    </>
   );
 };
 

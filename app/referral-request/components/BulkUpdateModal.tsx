@@ -10,6 +10,7 @@ import {
     SelectContent,
     SelectItem,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { toast } from "react-toastify";
@@ -30,9 +31,11 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
     onSuccess,
 }) => {
     const [status, setStatus] = useState<string>("");
+    const [rejectionReason, setRejectionReason] = useState<string>("");
     const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState(0);
     const token = Cookies.get("auth_token");
+    const trimmedReason = rejectionReason.trim();
 
     const handleBulkUpdate = async () => {
         if (!status) {
@@ -57,7 +60,11 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
                         `${process.env.NEXT_PUBLIC_PROD_URL}/api/exness/verify`,
                         {
                             requestId: requestId,
-                            status: status
+                            status: status,
+                            // Only attach a reason when rejecting and one was entered.
+                            ...(status === "REJECTED" && trimmedReason
+                                ? { rejectionReason: trimmedReason }
+                                : {}),
                         },
                         {
                             headers: {
@@ -138,6 +145,23 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
                                 </SelectContent>
                             </Select>
                         </div>
+
+                        {status === "REJECTED" && (
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium mb-1">
+                                    Reason for rejection{" "}
+                                    <span className="text-gray-400">(optional)</span>
+                                </label>
+                                <Textarea
+                                    value={rejectionReason}
+                                    onChange={(e) => setRejectionReason(e.target.value)}
+                                    placeholder="Add a reason (optional). Sent to every selected user. Leave blank to use the default message."
+                                    className="min-h-[90px]"
+                                    maxLength={1000}
+                                    disabled={loading}
+                                />
+                            </div>
+                        )}
 
                         {loading && (
                             <div className="mb-4">
