@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { IconUsers, IconUserBolt, IconUserCheck, IconUserExclamation } from '@tabler/icons-react';
 import UserChart from '../Chart/UserChart';
-import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
+import { apiFetch } from "@/lib/api";
 
 interface DashboardStats {
     totalUsers: number;
@@ -25,17 +25,15 @@ const HomePage = () => {
     const [chartLoading, setChartLoading] = useState(true);
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [monthlyStats, setMonthlyStats] = useState<MonthlyStat[]>([]);
-    const token = Cookies.get('auth_token');
 
     // Fetch dashboard stats independently
     useEffect(() => {
         const fetchStats = async () => {
             try {
                 setStatsLoading(true);
-                const response = await fetch(`${process.env.NEXT_PUBLIC_PROD_URL}/api/admin/dashboard-stats`, {
+                const response = await apiFetch("/api/admin/dashboard-stats", {
                     method: "GET",
                     headers: {
-                        "Authorization": `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                 });
@@ -52,17 +50,16 @@ const HomePage = () => {
         };
 
         fetchStats();
-    }, [token]);
+    }, []);
 
     // Fetch monthly stats independently
     useEffect(() => {
         const fetchMonthlyStats = async () => {
             try {
                 setChartLoading(true);
-                const response = await fetch(`${process.env.NEXT_PUBLIC_PROD_URL}/api/admin/monthly-stats`, {
+                const response = await apiFetch("/api/admin/monthly-stats", {
                     method: "GET",
                     headers: {
-                        "Authorization": `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                 });
@@ -79,7 +76,7 @@ const HomePage = () => {
         };
 
         fetchMonthlyStats();
-    }, [token]);
+    }, []);
 
     return (
         <main className='container-padding mt-4 space-y-7'>

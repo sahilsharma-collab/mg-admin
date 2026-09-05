@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { format } from 'date-fns';
-import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -17,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { apiFetch } from "@/lib/api";
 
 interface Issue {
     id: number;
@@ -45,7 +45,6 @@ const IssuePage = ({ issueId }: { issueId: string }) => {
     const [issue, setIssue] = useState<Issue | null>(null);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
-    const token = Cookies.get('auth_token');
 
     const {
         register,
@@ -68,12 +67,11 @@ const IssuePage = ({ issueId }: { issueId: string }) => {
         const fetchIssue = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/issue/${issueId}`,
+                const response = await apiFetch(
+                    `/api/issue/${issueId}`,
                     {
                         method: "GET",
                         headers: {
-                            "Authorization": `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }
@@ -95,7 +93,7 @@ const IssuePage = ({ issueId }: { issueId: string }) => {
         };
 
         fetchIssue();
-    }, [issueId, token, setValue]);
+    }, [issueId, setValue]);
 
     const formatDateTime = (dateString: string) => {
         const date = new Date(dateString);
@@ -118,12 +116,11 @@ const IssuePage = ({ issueId }: { issueId: string }) => {
     const handleStatusUpdate = async (data: StatusUpdateFormData) => {
         try {
             setUpdating(true);
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/issue/${issueId}`,
+            const response = await apiFetch(
+                `/api/issue/${issueId}`,
                 {
                     method: "PUT",
                     headers: {
-                        "Authorization": `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
@@ -138,12 +135,11 @@ const IssuePage = ({ issueId }: { issueId: string }) => {
             toast.success("Issue status updated successfully");
 
             // Refetch the issue to get updated data
-            const fetchResponse = await fetch(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/issue/${issueId}`,
+            const fetchResponse = await apiFetch(
+                `/api/issue/${issueId}`,
                 {
                     method: "GET",
                     headers: {
-                        "Authorization": `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                 }

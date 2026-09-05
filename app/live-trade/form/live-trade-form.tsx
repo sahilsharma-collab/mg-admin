@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import * as z from "zod";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-toastify";
-import Cookies from "js-cookie";
 import ImageUpload from "@/components/ui/image-upload";
+import { api } from "@/lib/api";
 
 // Updated Form Schema - only title is required
 const formSchema = z.object({
@@ -48,7 +48,6 @@ const LiveTradeForm: React.FC<LiveTradeFormProps> = ({ ltId }) => {
         ? "Live Trade updated."
         : "Live Trade created.";
     const action = isEdit ? "Update" : "Create";
-    const token = Cookies.get("auth_token");
 
     const form = useForm<LiveTradeFormValues>({
         resolver: zodResolver(formSchema),
@@ -65,11 +64,10 @@ const LiveTradeForm: React.FC<LiveTradeFormProps> = ({ ltId }) => {
             const fetchLiveTrade = async () => {
                 try {
                     setFetching(true);
-                    const response = await axios.get(
-                        `${process.env.NEXT_PUBLIC_PROD_URL}/api/trade/${ltId}`,
+                    const response = await api.get(
+                        `/api/trade/${ltId}`,
                         {
                             headers: {
-                                Authorization: `Bearer ${token}`,
                                 "Content-Type": "application/json",
                             },
                         }
@@ -90,7 +88,7 @@ const LiveTradeForm: React.FC<LiveTradeFormProps> = ({ ltId }) => {
             };
             fetchLiveTrade();
         }
-    }, [ltId, isEdit, form, token]);
+    }, [ltId, isEdit, form]);
 
     // Handle Image Upload
     const handleImageUpload = async (file: File | null) => {
@@ -100,12 +98,11 @@ const LiveTradeForm: React.FC<LiveTradeFormProps> = ({ ltId }) => {
             const formData = new FormData();
             formData.append("image", file);
 
-            const response = await axios.post(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/upload`,
+            const response = await api.post(
+                "/api/upload",
                 formData,
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`,
                         "Content-Type": "multipart/form-data",
                     },
                 }
@@ -138,24 +135,22 @@ const LiveTradeForm: React.FC<LiveTradeFormProps> = ({ ltId }) => {
 
             if (isEdit && ltId) {
                 // Update Live Trade
-                await axios.put(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/trade/${ltId}`,
+                await api.put(
+                    `/api/trade/${ltId}`,
                     payload,
                     {
                         headers: {
-                            Authorization: `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }
                 );
             } else {
                 // Create Live Trade
-                await axios.post(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/trade`,
+                await api.post(
+                    "/api/trade",
                     payload,
                     {
                         headers: {
-                            Authorization: `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }

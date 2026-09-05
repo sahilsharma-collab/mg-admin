@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import * as z from "zod";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-toastify";
-import Cookies from "js-cookie";
+import { api } from "@/lib/api";
 
 // Form Schema - question and answer are required
 const formSchema = z.object({
@@ -47,7 +47,6 @@ const FAQForm: React.FC<FAQFormProps> = ({ faqId }) => {
         ? "FAQ updated successfully."
         : "FAQ created successfully.";
     const action = isEdit ? "Update" : "Create";
-    const token = Cookies.get("auth_token");
 
     const form = useForm<FAQFormValues>({
         resolver: zodResolver(formSchema),
@@ -63,11 +62,10 @@ const FAQForm: React.FC<FAQFormProps> = ({ faqId }) => {
             const fetchFAQ = async () => {
                 try {
                     setFetching(true);
-                    const response = await axios.get(
-                        `${process.env.NEXT_PUBLIC_PROD_URL}/api/faq/${faqId}`,
+                    const response = await api.get(
+                        `/api/faq/${faqId}`,
                         {
                             headers: {
-                                Authorization: `Bearer ${token}`,
                                 "Content-Type": "application/json",
                             },
                         }
@@ -87,7 +85,7 @@ const FAQForm: React.FC<FAQFormProps> = ({ faqId }) => {
             };
             fetchFAQ();
         }
-    }, [faqId, isEdit, form, token]);
+    }, [faqId, isEdit, form]);
 
     // Handle Form Submission
     const onSubmit = async (data: FAQFormValues) => {
@@ -101,24 +99,22 @@ const FAQForm: React.FC<FAQFormProps> = ({ faqId }) => {
 
             if (isEdit && faqId) {
                 // Update FAQ
-                await axios.put(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/faq/${faqId}`,
+                await api.put(
+                    `/api/faq/${faqId}`,
                     payload,
                     {
                         headers: {
-                            Authorization: `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }
                 );
             } else {
                 // Create FAQ
-                await axios.post(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/faq`,
+                await api.post(
+                    "/api/faq",
                     payload,
                     {
                         headers: {
-                            Authorization: `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }

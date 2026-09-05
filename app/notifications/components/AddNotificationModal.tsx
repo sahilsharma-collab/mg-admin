@@ -4,7 +4,7 @@ import { X, MailPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { toast } from "react-toastify";
-import Cookies from 'js-cookie';
+import { apiFetch } from "@/lib/api";
 
 interface AddNotificationModalProps {
     isOpen: boolean;
@@ -18,7 +18,6 @@ export const AddNotificationModal: React.FC<AddNotificationModalProps> = ({
     onNotificationAdded,
 }) => {
     const [loading, setLoading] = useState(false);
-    const token = Cookies.get('auth_token');
     const [notificationData, setNotificationData] = useState({
         title: "",
         body: "",
@@ -40,10 +39,9 @@ export const AddNotificationModal: React.FC<AddNotificationModalProps> = ({
 
         try {
             setLoading(true);
-            const response = await fetch(`${process.env.NEXT_PUBLIC_PROD_URL}/api/notification/send-notification`, {
+            const response = await apiFetch("/api/notification/send-notification", {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({

@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
-import Cookies from "js-cookie";
 import {
   Columns,
   ReferralRequestColumn,
@@ -12,6 +11,7 @@ import { toast } from "react-toastify";
 import { Download } from "lucide-react";
 import { usePagination } from "@/context/pagination-context";
 import { DataTableWithApiPagination } from "@/components/ui/data-table2";
+import { apiFetch, withQuery } from "@/lib/api";
 
 // Update the interface to include raw date fields
 export interface EnhancedReferralRequestColumn extends ReferralRequestColumn {
@@ -42,7 +42,6 @@ const ReferralRequestClient = () => {
   const [totalRequests, setTotalRequests] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(0);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
-  const token = Cookies.get("auth_token");
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [selectedRowIds, setSelectedRowIds] = useState<number[]>([]);
   const [isBulkUpdateModalOpen, setIsBulkUpdateModalOpen] = useState(false);
@@ -75,36 +74,16 @@ const ReferralRequestClient = () => {
   // Build the request URL applying all active filters (shared by table fetch + CSV export)
   const buildRequestUrl = useCallback(
     (pageArg: number, limitArg: number) => {
-      const url = new URL(`${process.env.NEXT_PUBLIC_PROD_URL}/api/exness/`);
-      url.searchParams.append("page", pageArg.toString());
-      url.searchParams.append("limit", limitArg.toString());
-
-      // Add search parameters if query exists
-      if (searchQuery) {
-        if (searchField === "userEmail") {
-          url.searchParams.append("userEmail", searchQuery);
-        } else if (searchField === "exnessId") {
-          url.searchParams.append("exnessId", searchQuery);
-        }
-      }
-
-      if (status) {
-        url.searchParams.append("status", status);
-      }
-
-      if (broker) {
-        url.searchParams.append("broker", broker);
-      }
-
-      // Add date range parameters if they exist
-      if (dateRange.startDate) {
-        url.searchParams.append("startDate", dateRange.startDate);
-      }
-      if (dateRange.endDate) {
-        url.searchParams.append("endDate", dateRange.endDate);
-      }
-
-      return url;
+      return withQuery("/api/exness/", {
+        page: pageArg,
+        limit: limitArg,
+        userEmail: searchField === "userEmail" ? searchQuery : null,
+        exnessId: searchField === "exnessId" ? searchQuery : null,
+        status,
+        broker,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+      });
     },
     [searchQuery, searchField, status, broker, dateRange]
   );
@@ -115,10 +94,9 @@ const ReferralRequestClient = () => {
       setLoading(true);
       const url = buildRequestUrl(page, limit);
 
-      const response = await fetch(url.toString(), {
+      const response = await apiFetch(url.toString(), {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
@@ -156,7 +134,7 @@ const ReferralRequestClient = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, buildRequestUrl, token]);
+  }, [page, limit, buildRequestUrl]);
 
   useEffect(() => {
     if (isInitialized) {
@@ -239,10 +217,9 @@ const ReferralRequestClient = () => {
     const EXPORT_PAGE_SIZE = 500;
 
     const fetchPage = async (pageArg: number): Promise<ReferralRequestResponse[]> => {
-      const response = await fetch(buildRequestUrl(pageArg, EXPORT_PAGE_SIZE).toString(), {
+      const response = await apiFetch(buildRequestUrl(pageArg, EXPORT_PAGE_SIZE).toString(), {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
@@ -257,12 +234,11 @@ const ReferralRequestClient = () => {
       setIsExporting(true);
 
       // First page also tells us how many pages exist
-      const firstResponse = await fetch(
+      const firstResponse = await apiFetch(
         buildRequestUrl(1, EXPORT_PAGE_SIZE).toString(),
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }

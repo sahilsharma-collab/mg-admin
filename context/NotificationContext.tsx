@@ -1,8 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import Cookies from "js-cookie";
 import { toast } from "react-toastify";
+import { apiFetch } from "@/lib/api";
+import { useUserProfile } from "@/context/UserProfileContext";
 
 export interface Notification {
   id: number;
@@ -58,21 +59,22 @@ export const NotificationProvider = ({
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [refreshCounter, setRefreshCounter] = useState(0);
-  const token = Cookies.get("auth_token");
+  // Polling runs every 10 seconds for as long as the panel is open, so it must
+  // not run at all while signed out — on /login that would be a 401 every tick.
+  const { user } = useUserProfile();
 
   const refreshNotifications = () => setRefreshCounter((prev) => prev + 1);
 
   const fetchNotifications = async () => {
-    if (!token) return;
+    if (!user) return;
 
     try {
       setLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/notification/get-notification`,
+      const response = await apiFetch(
+        "/api/notification/get-notification",
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -91,16 +93,15 @@ export const NotificationProvider = ({
   };
 
   const fetchOriginalNotifications = async () => {
-    if (!token) return;
+    if (!user) return;
 
     try {
       setLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/notification/get-all-notification`,
+      const response = await apiFetch(
+        "/api/notification/get-all-notification",
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -119,15 +120,14 @@ export const NotificationProvider = ({
 
   // Lightweight check for new notifications (only counts unread)
   const checkForNewNotifications = async () => {
-    if (!token) return unreadCount;
+    if (!user) return unreadCount;
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/notification/get-notification`,
+      const response = await apiFetch(
+        "/api/notification/get-notification",
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -146,12 +146,11 @@ export const NotificationProvider = ({
   const markAsRead = async (id: number) => {
     console.log("sdfdsfsdfsdf", id);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/notification/read-notification/${id}`,
+      const response = await apiFetch(
+        `/api/notification/read-notification/${id}`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -168,12 +167,11 @@ export const NotificationProvider = ({
 
   const markAllAsRead = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/notification/read-all-notification`,
+      const response = await apiFetch(
+        "/api/notification/read-all-notification",
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -189,12 +187,11 @@ export const NotificationProvider = ({
 
   const deleteNotification = async (id: number) => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/notification/delete/${id}`,
+      const response = await apiFetch(
+        `/api/notification/delete/${id}`,
         {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -210,7 +207,7 @@ export const NotificationProvider = ({
 
   // Polling effect
   useEffect(() => {
-    if (!token) return;
+    if (!user) return;
 
     const POLLING_INTERVAL = 10000; // 10 seconds
 
@@ -226,12 +223,12 @@ export const NotificationProvider = ({
 
     // Cleanup interval on unmount
     return () => clearInterval(intervalId);
-  }, [token, unreadCount]);
+  }, [unreadCount, user]);
 
   useEffect(() => {
     fetchNotifications();
     fetchOriginalNotifications();
-  }, [refreshCounter, token]);
+  }, [refreshCounter, user]);
 
   return (
     <NotificationContext.Provider

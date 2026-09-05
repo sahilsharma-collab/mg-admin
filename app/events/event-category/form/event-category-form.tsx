@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import * as z from "zod";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-toastify";
-import Cookies from "js-cookie";
 import ImageUpload from "@/components/ui/image-upload";
+import { api } from "@/lib/api";
 
 // Form Schema
 const formSchema = z.object({
@@ -55,7 +55,6 @@ const EventCategoryForm: React.FC<EventCategoryFormProps> = ({ categoryId }) => 
         ? "Event Category updated."
         : "Event Category created.";
     const action = isEdit ? "Update" : "Create";
-    const token = Cookies.get("auth_token");
 
     const form = useForm<EventCategoryFormValues>({
         resolver: zodResolver(formSchema),
@@ -73,11 +72,10 @@ const EventCategoryForm: React.FC<EventCategoryFormProps> = ({ categoryId }) => 
             const fetchEventCategory = async () => {
                 try {
                     setFetching(true);
-                    const response = await axios.get(
-                        `${process.env.NEXT_PUBLIC_PROD_URL}/api/event/category/${categoryId}`,
+                    const response = await api.get(
+                        `/api/event/category/${categoryId}`,
                         {
                             headers: {
-                                Authorization: `Bearer ${token}`,
                                 "Content-Type": "application/json",
                             },
                         }
@@ -99,7 +97,7 @@ const EventCategoryForm: React.FC<EventCategoryFormProps> = ({ categoryId }) => 
             };
             fetchEventCategory();
         }
-    }, [categoryId, isEdit, form, token]);
+    }, [categoryId, isEdit, form]);
 
     // Handle Image Upload
     const handleImageUpload = async (file: File) => {
@@ -107,12 +105,11 @@ const EventCategoryForm: React.FC<EventCategoryFormProps> = ({ categoryId }) => 
             const formData = new FormData();
             formData.append("image", file);
 
-            const response = await axios.post(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/upload`,
+            const response = await api.post(
+                "/api/upload",
                 formData,
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`,
                         "Content-Type": "multipart/form-data",
                     },
                 }
@@ -149,24 +146,22 @@ const EventCategoryForm: React.FC<EventCategoryFormProps> = ({ categoryId }) => 
 
             if (isEdit && categoryId) {
                 // Update Event Category
-                await axios.put(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/event/category/${categoryId}`,
+                await api.put(
+                    `/api/event/category/${categoryId}`,
                     payload,
                     {
                         headers: {
-                            Authorization: `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }
                 );
             } else {
                 // Create Event Category
-                await axios.post(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/event/category`,
+                await api.post(
+                    "/api/event/category",
                     payload,
                     {
                         headers: {
-                            Authorization: `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }

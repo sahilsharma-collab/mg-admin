@@ -3,9 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { format } from 'date-fns';
-import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
-import axios from 'axios';
 import {
     Select,
     SelectContent,
@@ -15,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { api } from "@/lib/api";
 
 interface PostReport {
     id: number;
@@ -46,18 +45,16 @@ const PostPage = ({ postId }: { postId: string }) => {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [status, setStatus] = useState("PENDING");
-    const token = Cookies.get('auth_token');
     const router = useRouter();
 
     useEffect(() => {
         const fetchReport = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/report/${postId}`,
+                const response = await api.get(
+                    `/api/post/report/${postId}`,
                     {
                         headers: {
-                            "Authorization": `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }
@@ -78,7 +75,7 @@ const PostPage = ({ postId }: { postId: string }) => {
         };
 
         fetchReport();
-    }, [postId, token]);
+    }, [postId]);
 
     const formatDateTime = (dateString: string) => {
         const date = new Date(dateString);
@@ -108,12 +105,11 @@ const PostPage = ({ postId }: { postId: string }) => {
                 blockUser: true,
             };
 
-            const response = await axios.post(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/report/handle`,
+            const response = await api.post(
+                "/api/post/report/handle",
                 requestBody,
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                 }

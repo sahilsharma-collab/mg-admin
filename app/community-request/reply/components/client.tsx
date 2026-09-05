@@ -1,13 +1,12 @@
 "use client";
 import { DataTable } from '@/components/ui/data-table';
 import React, { useEffect, useState } from 'react';
-import Cookies from 'js-cookie';
 import { columns, ReferralReplyColumn, ReferralReplyResponse } from './columns';
+import { apiFetch } from "@/lib/api";
 
 const ReferralReplyClient = () => {
     const [formattedRequests, setFormattedRequests] = useState<ReferralReplyColumn[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
-    const token = Cookies.get('auth_token');
     const [refreshCounter, setRefreshCounter] = useState(0);
 
     useEffect(() => {
@@ -16,10 +15,9 @@ const ReferralReplyClient = () => {
                 setLoading(true);
 
                 // Make a GET request to the new API endpoint
-                const response = await fetch(`${process.env.NEXT_PUBLIC_PROD_URL}/api/post/reply/report`, {
+                const response = await apiFetch("/api/post/reply/report", {
                     method: "GET",
                     headers: {
-                        "Authorization": `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                 });

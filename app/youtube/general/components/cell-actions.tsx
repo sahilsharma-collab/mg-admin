@@ -1,6 +1,5 @@
 "use client";
 
-import axios from "axios";
 import { Copy, MoreHorizontal, Trash } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -12,8 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { YouTubeVideoColumn } from "./columns";
 import { toast } from "react-toastify";
-import Cookies from 'js-cookie';
 import { DeleteConfirmationModal } from "@/components/Modal/DeleteConformationModal";
+import { api } from "@/lib/api";
 
 interface CellActionProps {
     data: YouTubeVideoColumn;
@@ -26,14 +25,12 @@ export const CellAction: React.FC<CellActionProps> = ({
 }) => {
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const token = Cookies.get('auth_token');
 
     const handleDelete = async () => {
         try {
             setLoading(true);
-            await axios.delete(`${process.env.NEXT_PUBLIC_PROD_URL}/api/video/${data.id}`, {
+            await api.delete(`/api/video/${data.id}`, {
                 headers: {
-                    "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/json",
                 }
             });

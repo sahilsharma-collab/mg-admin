@@ -1,25 +1,23 @@
 "use client"
 import { DataTable } from '@/components/ui/data-table';
 import React, { useEffect, useState } from 'react';
-import Cookies from 'js-cookie';
 import { columns, BlockedUserColumn, BlockedUserResponse } from './columns';
 import { CellAction } from './cell-actions';
 import { Row } from "@tanstack/react-table";
+import { apiFetch } from "@/lib/api";
 
 const BlockedUsersClient = () => {
     const [formattedUsers, setFormattedUsers] = useState<BlockedUserColumn[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
-    const token = Cookies.get('auth_token');
     const [refreshCounter, setRefreshCounter] = useState(0);
 
     useEffect(() => {
         const fetchBlockedUsers = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`${process.env.NEXT_PUBLIC_PROD_URL}/api/profile/blocked`, {
+                const response = await apiFetch("/api/profile/blocked", {
                     method: "GET",
                     headers: {
-                        "Authorization": `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                 });

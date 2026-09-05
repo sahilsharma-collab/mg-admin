@@ -1,11 +1,11 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
-import Cookies from "js-cookie";
 import { columns, PaymentWithUser } from "./columns";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { usePagination } from "@/context/pagination-context";
 import { DataTableWithApiPagination } from "@/components/ui/data-table2";
+import { vipFetch, withQuery } from "@/lib/api";
 
 const RenewalsDataClient = () => {
   const [formattedRenewals, setFormattedRenewals] = useState<PaymentWithUser[]>(
@@ -15,7 +15,6 @@ const RenewalsDataClient = () => {
   const [totalRenewals, setTotalRenewals] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(0);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
-  const token = Cookies.get("auth_token");
   const { page, limit, setPage, setLimit, resetPagination } = usePagination();
   const [searchQuery, setSearchQuery] = useState("");
   const [dateRange, setDateRange] = useState<{
@@ -50,36 +49,18 @@ const RenewalsDataClient = () => {
   const fetchRenewals = useCallback(async () => {
     try {
       setLoading(true);
-      const url = new URL(
-        `${process.env.NEXT_PUBLIC_VIP_URL}/api/payment/renewals`
-      );
-      url.searchParams.append("page", page.toString());
-      url.searchParams.append("limit", limit.toString());
+      const path = withQuery("/api/payment/renewals", {
+        page,
+        limit,
+        email: searchQuery,
+        paymentMethod,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+      });
 
-      // Add search parameters if query exists (email only)
-      if (searchQuery) {
-        url.searchParams.append("email", searchQuery);
-      }
-
-      // Add payment method if set
-      if (paymentMethod) {
-        url.searchParams.append("paymentMethod", paymentMethod);
-      }
-
-      // Add date range parameters if they exist
-      if (dateRange.startDate) {
-        url.searchParams.append("startDate", dateRange.startDate);
-      }
-      if (dateRange.endDate) {
-        url.searchParams.append("endDate", dateRange.endDate);
-      }
-
-      const response = await fetch(url.toString(), {
+      const response = await vipFetch(path, {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       });
 
       if (!response.ok) {
@@ -135,7 +116,7 @@ const RenewalsDataClient = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, searchQuery, dateRange, paymentMethod, token]);
+  }, [page, limit, searchQuery, dateRange, paymentMethod]);
 
   useEffect(() => {
     if (isInitialized) {

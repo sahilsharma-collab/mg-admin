@@ -13,8 +13,8 @@ import { UserColumn } from "./columns";
 import { RoleUpdateModal } from "./RoleUpdateModal";
 import { DeleteUserModal } from "./DeleteUserModal"; // Added new modal
 import { X } from "lucide-react";
-import Cookies from "js-cookie";
 import { toast } from "react-toastify";
+import { apiFetch } from "@/lib/api";
 
 interface CellActionProps {
   data: UserColumn;
@@ -26,14 +26,12 @@ export const CellAction: React.FC<CellActionProps> = ({ data, onSuccess }) => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // Added delete modal state
 
   const removeExness = async () => {
-    const token = Cookies.get("auth_token");
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/exness/remove/${data.id}`,
+      const response = await apiFetch(
+        `/api/exness/remove/${data.id}`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }

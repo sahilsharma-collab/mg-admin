@@ -1,7 +1,6 @@
 "use client";
 import { DataTable } from "@/components/ui/data-table";
 import React, { useEffect, useState } from "react";
-import Cookies from "js-cookie";
 import { columns, IssueColumn, IssueResponseColumn } from "./columns";
 import { Row } from "@tanstack/react-table";
 import { toast } from "react-toastify";
@@ -10,6 +9,7 @@ import { CellAction } from "./cell-actions";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 // Update the interface to include raw date fields
 export interface EnhancedIssueColumn extends IssueColumn {
@@ -22,19 +22,17 @@ const IssuesClient = () => {
     []
   );
   const [loading, setLoading] = useState<boolean>(true);
-  const token = Cookies.get("auth_token");
   const [refreshCounter, setRefreshCounter] = useState(0);
 
   useEffect(() => {
     const fetchIssues = async () => {
       try {
         setLoading(true);
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_PROD_URL}/api/issue`,
+        const response = await apiFetch(
+          "/api/issue",
           {
             method: "GET",
             headers: {
-              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           }
@@ -83,7 +81,7 @@ const IssuesClient = () => {
     };
 
     fetchIssues();
-  }, [refreshCounter, token]);
+  }, [refreshCounter]);
 
   const refreshData = () => setRefreshCounter((prev) => prev + 1);
 

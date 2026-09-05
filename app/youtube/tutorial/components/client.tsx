@@ -3,26 +3,24 @@ import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
-import Cookies from 'js-cookie';
 import { columns, YouTubeVideoColumn } from './columns';
 import { CellAction } from './cell-actions';
 import { Row } from "@tanstack/react-table";
+import { apiFetch } from "@/lib/api";
 
 const YouTubeTutorialClient = () => {
     const [formattedVideos, setFormattedVideos] = useState<YouTubeVideoColumn[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const router = useRouter();
-    const token = Cookies.get('auth_token');
     const [refreshCounter, setRefreshCounter] = useState(0);
 
     useEffect(() => {
         const fetchYouTubeVideos = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`${process.env.NEXT_PUBLIC_PROD_URL}/api/video/tutorial`, {
+                const response = await apiFetch("/api/video/tutorial", {
                     method: "GET",
                     headers: {
-                        "Authorization": `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                 });

@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import * as z from "zod";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-toastify";
-import Cookies from "js-cookie";
 import ImageUpload from "@/components/ui/image-upload";
+import { api } from "@/lib/api";
 
 // Updated Form Schema - only title is required
 const formSchema = z.object({
@@ -48,7 +48,6 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
         ? "Market Analysis updated."
         : "Market Analysis created.";
     const action = isEdit ? "Update" : "Create";
-    const token = Cookies.get("auth_token");
 
     const form = useForm<MarketAnalysisFormValues>({
         resolver: zodResolver(formSchema),
@@ -65,11 +64,10 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
             const fetchMarketAnalysis = async () => {
                 try {
                     setFetching(true);
-                    const response = await axios.get(
-                        `${process.env.NEXT_PUBLIC_PROD_URL}/api/market/${maId}`,
+                    const response = await api.get(
+                        `/api/market/${maId}`,
                         {
                             headers: {
-                                Authorization: `Bearer ${token}`,
                                 "Content-Type": "application/json",
                             },
                         }
@@ -90,7 +88,7 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
             };
             fetchMarketAnalysis();
         }
-    }, [maId, isEdit, form, token]);
+    }, [maId, isEdit, form]);
 
     // Handle Image Upload
     const handleImageUpload = async (file: File | null) => {
@@ -100,12 +98,11 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
             const formData = new FormData();
             formData.append("image", file);
 
-            const response = await axios.post(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/upload`,
+            const response = await api.post(
+                "/api/upload",
                 formData,
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`,
                         "Content-Type": "multipart/form-data",
                     },
                 }
@@ -138,24 +135,22 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
 
             if (isEdit && maId) {
                 // Update Market Analysis
-                await axios.put(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/market/${maId}`,
+                await api.put(
+                    `/api/market/${maId}`,
                     payload,
                     {
                         headers: {
-                            Authorization: `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }
                 );
             } else {
                 // Create Market Analysis
-                await axios.post(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/market`,
+                await api.post(
+                    "/api/market",
                     payload,
                     {
                         headers: {
-                            Authorization: `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }

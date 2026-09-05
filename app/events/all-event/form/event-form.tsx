@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import * as z from "zod";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -17,7 +17,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "react-toastify";
-import Cookies from "js-cookie";
 import {
   Select,
   SelectContent,
@@ -28,6 +27,7 @@ import {
 import { DateTimePicker } from "@/components/ui/datetime-picker";
 import Image from "next/image";
 import { EventCategoryResponseColumn } from "../../event-category/components/columns";
+import { api } from "@/lib/api";
 
 // Form Schema - currency pair NOT included in the form schema
 const formSchema = z.object({
@@ -68,7 +68,6 @@ const EventForm: React.FC<EventFormProps> = ({ eventId }) => {
   const title = isEdit ? "Edit Event" : "Create Event";
   const toastMessage = isEdit ? "Event updated." : "Event created.";
   const action = isEdit ? "Update" : "Create";
-  const token = Cookies.get("auth_token");
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(formSchema),
@@ -84,11 +83,10 @@ const EventForm: React.FC<EventFormProps> = ({ eventId }) => {
     const fetchCategories = async () => {
       try {
         setFetchingCategories(true);
-        const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_PROD_URL}/api/event/category`,
+        const response = await api.get(
+          "/api/event/category",
           {
             headers: {
-              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           }
@@ -127,7 +125,7 @@ const EventForm: React.FC<EventFormProps> = ({ eventId }) => {
       }
     };
     fetchCategories();
-  }, [token]);
+  }, []);
 
   // Filter categories when currency pair changes
   useEffect(() => {
@@ -159,11 +157,10 @@ const EventForm: React.FC<EventFormProps> = ({ eventId }) => {
       const fetchEvent = async () => {
         try {
           setFetching(true);
-          const response = await axios.get(
-            `${process.env.NEXT_PUBLIC_PROD_URL}/api/event/${eventId}`,
+          const response = await api.get(
+            `/api/event/${eventId}`,
             {
               headers: {
-                Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
               },
             }
@@ -195,7 +192,7 @@ const EventForm: React.FC<EventFormProps> = ({ eventId }) => {
       };
       fetchEvent();
     }
-  }, [eventId, isEdit, form, token, categories]);
+  }, [eventId, isEdit, form, categories]);
 
   // Handle Form Submission
   const onSubmit = async (data: EventFormValues) => {
@@ -210,24 +207,22 @@ const EventForm: React.FC<EventFormProps> = ({ eventId }) => {
 
       if (isEdit && eventId) {
         // Update Event
-        await axios.put(
-          `${process.env.NEXT_PUBLIC_PROD_URL}/api/event/${eventId}`,
+        await api.put(
+          `/api/event/${eventId}`,
           payload,
           {
             headers: {
-              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           }
         );
       } else {
         // Create Event
-        await axios.post(
-          `${process.env.NEXT_PUBLIC_PROD_URL}/api/event`,
+        await api.post(
+          "/api/event",
           payload,
           {
             headers: {
-              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           }

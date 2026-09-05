@@ -1,26 +1,24 @@
 "use client";
 import { DataTable } from '@/components/ui/data-table';
 import React, { useEffect, useState } from 'react';
-import Cookies from 'js-cookie';
 import { columns, ModeratorColumn, ModeratorResponseColumn, } from './columns';
 import { toast } from "react-toastify";
 import { Row } from '@tanstack/react-table';
 import { CellAction } from './cell-actions';
+import { apiFetch } from "@/lib/api";
 
 const ModeratorClient = () => {
     const [formattedModerators, setFormattedModerators] = useState<ModeratorColumn[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
-    const token = Cookies.get('auth_token');
     const [refreshCounter, setRefreshCounter] = useState(0);
 
     useEffect(() => {
         const fetchAdmins = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`${process.env.NEXT_PUBLIC_PROD_URL}/api/admin/moderators`, {
+                const response = await apiFetch("/api/admin/moderators", {
                     method: "GET",
                     headers: {
-                        "Authorization": `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                 });
@@ -59,7 +57,7 @@ const ModeratorClient = () => {
         };
 
         fetchAdmins();
-    }, [token, refreshCounter]);
+    }, [refreshCounter]);
 
     const refreshData = () => {
         setRefreshCounter(prev => prev + 1);

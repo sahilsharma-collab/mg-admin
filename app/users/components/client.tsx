@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
-import Cookies from "js-cookie";
 import { columns, UserColumn } from "./columns";
 import { CellAction } from "./cell-actions";
 import { Row } from "@tanstack/react-table";
@@ -8,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { usePagination } from "@/context/pagination-context";
 import { DataTableWithApiPagination } from "@/components/ui/data-table2";
+import { apiFetch, withQuery } from "@/lib/api";
 
 // Update the interface to include raw date fields if not already present
 export interface EnhancedUserColumn extends UserColumn {
@@ -25,7 +25,6 @@ const UserDataClient = () => {
   const [totalPages, setTotalPages] = useState<number>(0);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const [refreshCounter, setRefreshCounter] = useState(0);
-  const token = Cookies.get("auth_token");
   const { page, limit, setPage, setLimit, resetPagination } = usePagination();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchField, setSearchField] = useState<string>("email"); // Default search field
@@ -52,35 +51,18 @@ const UserDataClient = () => {
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const url = new URL(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/profile/paginated/all`
-      );
-      url.searchParams.append("page", page.toString());
-      url.searchParams.append("limit", limit.toString());
+      const path = withQuery("/api/profile/paginated/all", {
+        page,
+        limit,
+        email: searchField === "email" ? searchQuery : null,
+        exnessId: searchField === "exnessId" ? searchQuery : null,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+      });
 
-      // Add search parameters if query exists
-      if (searchQuery) {
-        if (searchField === "email") {
-          url.searchParams.append("email", searchQuery);
-        } else if (searchField === "exnessId") {
-          url.searchParams.append("exnessId", searchQuery);
-        }
-      }
-
-      // Add date range parameters if they exist
-      if (dateRange.startDate) {
-        url.searchParams.append("startDate", dateRange.startDate);
-      }
-      if (dateRange.endDate) {
-        url.searchParams.append("endDate", dateRange.endDate);
-      }
-
-      const response = await fetch(url.toString(), {
+      const response = await apiFetch(path, {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       });
 
       if (!response.ok) {
@@ -127,7 +109,7 @@ const UserDataClient = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, searchQuery, searchField, dateRange, token]);
+  }, [page, limit, searchQuery, searchField, dateRange]);
 
   useEffect(() => {
     if (isInitialized) {

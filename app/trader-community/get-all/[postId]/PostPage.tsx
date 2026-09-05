@@ -3,11 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { format } from 'date-fns';
-import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { apiFetch } from "@/lib/api";
 
 interface Reaction {
     id: number;
@@ -70,7 +70,6 @@ const countTotalReplies = (replies: Reply[]): number => {
 const PostPage = ({ postId }: { postId: string }) => {
     const [post, setPost] = useState<Post | null>(null);
     const [loading, setLoading] = useState(true);
-    const token = Cookies.get('auth_token');
 
     const {
         setValue,
@@ -86,12 +85,11 @@ const PostPage = ({ postId }: { postId: string }) => {
         const fetchPost = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/${postId}`,
+                const response = await apiFetch(
+                    `/api/post/${postId}`,
                     {
                         method: "GET",
                         headers: {
-                            "Authorization": `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }
@@ -112,7 +110,7 @@ const PostPage = ({ postId }: { postId: string }) => {
         };
 
         fetchPost();
-    }, [postId, token, setValue]);
+    }, [postId, setValue]);
 
     const formatDateTime = (dateString: string) => {
         const date = new Date(dateString);

@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { toast } from 'react-toastify';
-import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import { api } from "@/lib/api";
 
 type FormValues = {
   email: string;
@@ -28,7 +28,7 @@ const ResetPasswordForm = () => {
   const sendOTP = async (data: { email: string }) => {
     setIsLoading(true);
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_PROD_URL}/api/auth/forgot-password`, {
+      const response = await api.post("/api/auth/forgot-password", {
         email: data.email
       });
 
@@ -50,7 +50,7 @@ const ResetPasswordForm = () => {
 
     setIsLoading(true);
     try {
-      await axios.post(`${process.env.NEXT_PUBLIC_PROD_URL}/api/auth/reset-password`, {
+      await api.post("/api/auth/reset-password", {
         email: data.email,
         otp: data.otp,
         newPassword: data.newPassword

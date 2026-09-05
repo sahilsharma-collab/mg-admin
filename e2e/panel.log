@@ -1,0 +1,12 @@
+npm notice run market-genius-admin@0.1.0 npx
+npm notice run 'next' start -p 4332
+ ⨯ Failed to start server
+Error: listen EADDRINUSE: address already in use :::4332
+    at <unknown> (Error: listen EADDRINUSE: address already in use :::4332)
+    at new Promise (<anonymous>) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 4332
+}

@@ -15,7 +15,6 @@ import {
   IconCoins,
 } from "@tabler/icons-react";
 import PaymentChart from "../Chart/PaymentChart";
-import Cookies from "js-cookie";
 import { toast } from "react-toastify";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -39,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { DatePicker } from "../ui/date-picker";
 import { Skeleton } from "../ui/skeleton";
+import { vipFetch } from "@/lib/api";
 
 interface DailyPaymentStats {
   date: string;
@@ -239,7 +239,6 @@ const HomePage = () => {
   const [endDate, setEndDate] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
   const [exporting, setExporting] = useState(false);
-  const token = Cookies.get("auth_token");
   const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -262,14 +261,11 @@ const HomePage = () => {
           }
         }
 
-        const res = await fetch(
-          `${
-            process.env.NEXT_PUBLIC_VIP_URL
-          }/api/payment/stats?${params.toString()}`,
+        const res = await vipFetch(
+          `/api/payment/stats?${params.toString()}`,
           {
             method: "GET",
             headers: {
-              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           }
@@ -287,7 +283,7 @@ const HomePage = () => {
     };
 
     fetchStats();
-  }, [token, period, startDate, endDate]);
+  }, [period, startDate, endDate]);
 
   const generatePDF = async () => {
     if (!paymentStats || !reportRef.current) return;

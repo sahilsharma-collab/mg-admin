@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
-import Cookies from "js-cookie";
 import { toast } from "react-toastify";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -39,6 +38,7 @@ import {
 } from "@/components/ui/dialog";
 import { UserIcon } from "lucide-react";
 import { useTheme } from "@/context/theme-context";
+import { apiFetch } from "@/lib/api";
 
 interface Reaction {
   id: number;
@@ -105,7 +105,6 @@ export default function PostPage({ postId }: { postId: string }) {
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("details");
-  const token = Cookies.get("auth_token");
 
   const {
     register,
@@ -127,12 +126,11 @@ export default function PostPage({ postId }: { postId: string }) {
     const fetchPost = async () => {
       try {
         setLoading(true);
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/${postId}`,
+        const response = await apiFetch(
+          `/api/post/${postId}`,
           {
             method: "GET",
             headers: {
-              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           }
@@ -153,7 +151,7 @@ export default function PostPage({ postId }: { postId: string }) {
     };
 
     fetchPost();
-  }, [postId, token, setValue]);
+  }, [postId, setValue]);
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -164,7 +162,7 @@ export default function PostPage({ postId }: { postId: string }) {
   const [suspendLoading, setSuspendLoading] = useState(false);
 
   const suspendUser = async () => {
-    if (!token || !userToSuspend) {
+    if (!userToSuspend) {
       toast.error("User ID is required to suspend a user");
       return;
     }
@@ -172,13 +170,12 @@ export default function PostPage({ postId }: { postId: string }) {
     setSuspendLoading(true);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/profile/block/${userToSuspend}`,
+      const response = await apiFetch(
+        `/api/profile/block/${userToSuspend}`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({}),
         }
@@ -219,12 +216,11 @@ export default function PostPage({ postId }: { postId: string }) {
 
   const onSubmit = async (data: PostUpdateFormData) => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/${postId}/status`,
+      const response = await apiFetch(
+        `/api/post/${postId}/status`,
         {
           method: "PATCH",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(data),
@@ -244,13 +240,10 @@ export default function PostPage({ postId }: { postId: string }) {
 
   const handleDeleteReply = async (replyId: number) => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/reply/${replyId}`,
+      const response = await apiFetch(
+        `/api/post/reply/${replyId}`,
         {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
         }
       );
 

@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import * as z from "zod";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -17,7 +17,7 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { toast } from "react-toastify";
-import Cookies from "js-cookie";
+import { api } from "@/lib/api";
 
 // Form Schema
 const formSchema = z.object({
@@ -44,7 +44,6 @@ const YouTubeGeneralForm: React.FC<YouTubeGeneralFormProps> = ({ videoId }) => {
         ? "General YouTube Video updated."
         : "General YouTube Video added.";
     const action = isEdit ? "Update" : "Add";
-    const token = Cookies.get("auth_token");
 
     const form = useForm<YouTubeGeneralFormValues>({
         resolver: zodResolver(formSchema),
@@ -59,11 +58,10 @@ const YouTubeGeneralForm: React.FC<YouTubeGeneralFormProps> = ({ videoId }) => {
             const fetchYouTubeVideo = async () => {
                 try {
                     setFetching(true);
-                    const response = await axios.get(
-                        `${process.env.NEXT_PUBLIC_PROD_URL}/api/video/${videoId}`,
+                    const response = await api.get(
+                        `/api/video/${videoId}`,
                         {
                             headers: {
-                                Authorization: `Bearer ${token}`,
                                 "Content-Type": "application/json",
                             },
                         }
@@ -83,7 +81,7 @@ const YouTubeGeneralForm: React.FC<YouTubeGeneralFormProps> = ({ videoId }) => {
             };
             fetchYouTubeVideo();
         }
-    }, [videoId, isEdit, form, token]);
+    }, [videoId, isEdit, form]);
 
     // Handle Video Preview
     const handleVideoPreview = (videoId: string) => {
@@ -102,24 +100,22 @@ const YouTubeGeneralForm: React.FC<YouTubeGeneralFormProps> = ({ videoId }) => {
 
             if (isEdit && videoId) {
                 // Update YouTube Video
-                await axios.put(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/video/${videoId}`,
+                await api.put(
+                    `/api/video/${videoId}`,
                     payload,
                     {
                         headers: {
-                            Authorization: `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }
                 );
             } else {
                 // Create YouTube Video
-                await axios.post(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/video`,
+                await api.post(
+                    "/api/video",
                     payload,
                     {
                         headers: {
-                            Authorization: `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }

@@ -12,7 +12,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { toast } from "react-toastify";
-import Cookies from "js-cookie";
+import { apiFetch } from "@/lib/api";
 
 interface RoleUpdateModalProps {
   isOpen: boolean;
@@ -34,16 +34,14 @@ export const RoleUpdateModal: React.FC<RoleUpdateModalProps> = ({
 }) => {
   const [selectedRole, setSelectedRole] = useState(user.role);
   const [loading, setLoading] = useState(false);
-  const token = Cookies.get("auth_token");
 
   const handleRoleUpdate = async () => {
     try {
       setLoading(true);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_PROD_URL}/api/admin/assign-role`, {
+      const response = await apiFetch("/api/admin/assign-role", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({

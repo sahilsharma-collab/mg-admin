@@ -1,26 +1,24 @@
 "use client";
 import { DataTable } from '@/components/ui/data-table';
 import React, { useEffect, useState } from 'react';
-import Cookies from 'js-cookie';
 import { columns, AdminColumn, AdminResponseColumn } from './columns';
 import { toast } from "react-toastify";
 import { CellAction } from './cell-actions';
 import { Row } from '@tanstack/react-table';
+import { apiFetch } from "@/lib/api";
 
 const AdminClient = () => {
     const [formattedAdmins, setFormattedAdmins] = useState<AdminColumn[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
-    const token = Cookies.get('auth_token');
     const [refreshCounter, setRefreshCounter] = useState(0);
 
     useEffect(() => {
         const fetchAdmins = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`${process.env.NEXT_PUBLIC_PROD_URL}/api/admin/get-all`, {
+                const response = await apiFetch("/api/admin/get-all", {
                     method: "GET",
                     headers: {
-                        "Authorization": `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                 });
@@ -59,7 +57,7 @@ const AdminClient = () => {
         };
 
         fetchAdmins();
-    }, [token, refreshCounter]);
+    }, [refreshCounter]);
 
     const refreshData = () => {
         setRefreshCounter(prev => prev + 1);

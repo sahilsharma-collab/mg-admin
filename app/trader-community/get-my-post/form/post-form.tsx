@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import * as z from "zod";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-toastify";
-import Cookies from "js-cookie";
 import ImageUpload from "@/components/ui/image-upload";
+import { api } from "@/lib/api";
 
 // Form Schema
 const formSchema = z.object({
@@ -45,7 +45,6 @@ const PostForm: React.FC<PostFormProps> = ({ postId }) => {
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(false);
     const [imageFile, setImageFile] = useState<File | null>(null);
-    const token = Cookies.get("auth_token");
 
     const form = useForm<PostFormValues>({
         resolver: zodResolver(formSchema),
@@ -61,11 +60,10 @@ const PostForm: React.FC<PostFormProps> = ({ postId }) => {
         const fetchPost = async () => {
             try {
                 setFetching(true);
-                const response = await axios.get(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/${postId}`,
+                const response = await api.get(
+                    `/api/post/${postId}`,
                     {
                         headers: {
-                            Authorization: `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }
@@ -85,7 +83,7 @@ const PostForm: React.FC<PostFormProps> = ({ postId }) => {
             }
         };
         fetchPost();
-    }, [postId, form, token]);
+    }, [postId, form]);
 
     // Handle Image Upload
     const handleImageUpload = async (file: File) => {
@@ -93,12 +91,11 @@ const PostForm: React.FC<PostFormProps> = ({ postId }) => {
             const formData = new FormData();
             formData.append("image", file);
 
-            const response = await axios.post(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/upload`,
+            const response = await api.post(
+                "/api/upload",
                 formData,
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`,
                         "Content-Type": "multipart/form-data",
                     },
                 }
@@ -133,12 +130,11 @@ const PostForm: React.FC<PostFormProps> = ({ postId }) => {
             };
 
             // Update Post
-            await axios.put(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/${postId}`,
+            await api.put(
+                `/api/post/${postId}`,
                 payload,
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                 }

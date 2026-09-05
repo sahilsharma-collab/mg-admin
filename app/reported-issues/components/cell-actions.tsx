@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Copy, Eye, MoreHorizontal, Trash, CheckCircle } from "lucide-react";
 import { IssueColumn } from "./columns";
 import { toast } from "react-toastify";
-import Cookies from "js-cookie";
 import { DeleteConfirmationModal } from "@/components/Modal/DeleteConformationModal";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { apiFetch } from "@/lib/api";
 import {
     Select,
     SelectTrigger,
@@ -25,7 +25,6 @@ interface CellActionProps {
 }
 
 export const CellAction: React.FC<CellActionProps> = ({ data, onRefresh }) => {
-    const token = Cookies.get('auth_token');
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -36,10 +35,9 @@ export const CellAction: React.FC<CellActionProps> = ({ data, onRefresh }) => {
     const handleDelete = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_PROD_URL}/api/issue/${data.id}`, {
+            const response = await apiFetch(`/api/issue/${data.id}`, {
                 method: "DELETE",
                 headers: {
-                    "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/json",
                 },
             });
@@ -60,10 +58,9 @@ export const CellAction: React.FC<CellActionProps> = ({ data, onRefresh }) => {
     const handleStatusUpdate = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_PROD_URL}/api/issue/${data.id}`, {
+            const response = await apiFetch(`/api/issue/${data.id}`, {
                 method: "PUT",
                 headers: {
-                    "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({

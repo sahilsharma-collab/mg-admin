@@ -1,0 +1,39 @@
+19774:C 05 Sep 2026 18:50:02.960 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+19774:C 05 Sep 2026 18:50:02.960 * Redis version=8.10.1, bits=64, commit=00000000, modified=1, pid=19774, just started
+19774:C 05 Sep 2026 18:50:02.961 * Configuration loaded
+19774:M 05 Sep 2026 18:50:02.961 * monotonic clock: ARM CNTVCT @ 24 ticks/us
+19774:M 05 Sep 2026 18:50:02.962 # Failed to write PID file: Permission denied
+19774:M 05 Sep 2026 18:50:02.962 * Running mode=standalone, port=6398.
+19774:M 05 Sep 2026 18:50:02.962 # WARNING: The TCP backlog setting of 511 cannot be enforced because kern.ipc.somaxconn is set to the lower value of 128.
+19774:M 05 Sep 2026 18:50:02.963 * Server initialized
+19774:M 05 Sep 2026 18:50:02.963 * Ready to accept connections tcp
+19774:M 05 Sep 2026 18:50:02.963 # WARNING: Redis does not require authentication. Redis will accept connections from any local client.
+19774:M 05 Sep 2026 18:50:09.472 * User requested shutdown...
+19774:M 05 Sep 2026 18:50:09.472 * Removing the pid file.
+19774:M 05 Sep 2026 18:50:09.472 # Redis is now ready to exit, bye bye...
+20075:C 05 Sep 2026 18:51:54.517 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+20075:C 05 Sep 2026 18:51:54.517 * Redis version=8.10.1, bits=64, commit=00000000, modified=1, pid=20075, just started
+20075:C 05 Sep 2026 18:51:54.517 * Configuration loaded
+20075:M 05 Sep 2026 18:51:54.518 * monotonic clock: ARM CNTVCT @ 24 ticks/us
+20075:M 05 Sep 2026 18:51:54.518 # Failed to write PID file: Permission denied
+20075:M 05 Sep 2026 18:51:54.518 * Running mode=standalone, port=6398.
+20075:M 05 Sep 2026 18:51:54.518 # WARNING: The TCP backlog setting of 511 cannot be enforced because kern.ipc.somaxconn is set to the lower value of 128.
+20075:M 05 Sep 2026 18:51:54.519 * Server initialized
+20075:M 05 Sep 2026 18:51:54.519 * Ready to accept connections tcp
+20075:M 05 Sep 2026 18:51:54.519 # WARNING: Redis does not require authentication. Redis will accept connections from any local client.
+20075:M 05 Sep 2026 18:51:58.986 * User requested shutdown...
+20075:M 05 Sep 2026 18:51:58.986 * Removing the pid file.
+20075:M 05 Sep 2026 18:51:58.987 # Redis is now ready to exit, bye bye...
+20303:C 05 Sep 2026 18:51:59.218 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+20303:C 05 Sep 2026 18:51:59.218 * Redis version=8.10.1, bits=64, commit=00000000, modified=1, pid=20303, just started
+20303:C 05 Sep 2026 18:51:59.219 * Configuration loaded
+20303:M 05 Sep 2026 18:51:59.219 * monotonic clock: ARM CNTVCT @ 24 ticks/us
+20303:M 05 Sep 2026 18:51:59.219 # Failed to write PID file: Permission denied
+20303:M 05 Sep 2026 18:51:59.220 * Running mode=standalone, port=6398.
+20303:M 05 Sep 2026 18:51:59.220 # WARNING: The TCP backlog setting of 511 cannot be enforced because kern.ipc.somaxconn is set to the lower value of 128.
+20303:M 05 Sep 2026 18:51:59.220 * Server initialized
+20303:M 05 Sep 2026 18:51:59.220 * Ready to accept connections tcp
+20303:M 05 Sep 2026 18:51:59.220 # WARNING: Redis does not require authentication. Redis will accept connections from any local client.
+20303:M 05 Sep 2026 18:52:03.518 * User requested shutdown...
+20303:M 05 Sep 2026 18:52:03.518 * Removing the pid file.
+20303:M 05 Sep 2026 18:52:03.519 # Redis is now ready to exit, bye bye...

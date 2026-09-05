@@ -11,9 +11,8 @@ import {
     SelectItem,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import axios from "axios";
-import Cookies from "js-cookie";
 import { toast } from "react-toastify";
+import { api } from "@/lib/api";
 
 interface BulkUpdateModalProps {
     isOpen: boolean;
@@ -34,7 +33,6 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
     const [rejectionReason, setRejectionReason] = useState<string>("");
     const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState(0);
-    const token = Cookies.get("auth_token");
     const trimmedReason = rejectionReason.trim();
 
     const handleBulkUpdate = async () => {
@@ -56,8 +54,8 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
             for (let i = 0; i < selectedIds.length; i++) {
                 const requestId = selectedIds[i];
                 try {
-                    await axios.post(
-                        `${process.env.NEXT_PUBLIC_PROD_URL}/api/exness/verify`,
+                    await api.post(
+                        "/api/exness/verify",
                         {
                             requestId: requestId,
                             status: status,
@@ -68,7 +66,6 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
                         },
                         {
                             headers: {
-                                Authorization: `Bearer ${token}`,
                                 "Content-Type": "application/json",
                             },
                         }

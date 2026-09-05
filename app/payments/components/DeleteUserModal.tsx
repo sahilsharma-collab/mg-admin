@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "react-toastify";
-import Cookies from "js-cookie";
+import { apiFetch } from "@/lib/api";
 
 interface DeleteUserModalProps {
     isOpen: boolean;
@@ -25,19 +25,15 @@ export const DeleteUserModal: React.FC<DeleteUserModalProps> = ({
     onSuccess,
 }) => {
     const [loading, setLoading] = useState(false);
-    const token = Cookies.get("auth_token");
 
     const handleDeleteUser = async () => {
         try {
             setLoading(true);
 
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/admin/delete-user/${user.id}`,
+            const response = await apiFetch(
+                `/api/admin/delete-user/${user.id}`,
                 {
                     method: "DELETE",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
                 }
             );
 
