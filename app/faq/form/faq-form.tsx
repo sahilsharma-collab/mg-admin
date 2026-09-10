@@ -19,6 +19,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-toastify";
 import { api } from "@/lib/api";
+import type { CreateFaqInput } from "@/contracts/api-types";
 
 // Form Schema - question and answer are required
 const formSchema = z.object({
@@ -92,7 +93,10 @@ const FAQForm: React.FC<FAQFormProps> = ({ faqId }) => {
         try {
             setLoading(true);
 
-            const payload = {
+            // P3-8: pinned to the API's request contract, generated from its Zod
+            // schemas. A drift in either direction is a compile error here rather
+            // than a 400 in production. See contracts/README.md.
+            const payload: CreateFaqInput = {
                 question: data.question,
                 answer: data.answer,
             };

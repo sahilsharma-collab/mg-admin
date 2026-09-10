@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-toastify";
 import ImageUpload from "@/components/ui/image-upload";
 import { api } from "@/lib/api";
+import type { CreateMarketAnalysisInput } from "@/contracts/api-types";
 
 // Updated Form Schema - only title is required
 const formSchema = z.object({
@@ -127,7 +128,10 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
                 imgUrl = await handleImageUpload(imageFile);
             }
 
-            const payload = {
+            // P3-8: pinned to the API's request contract, generated from its Zod
+            // schemas. A drift in either direction is a compile error here rather
+            // than a 400 in production. See contracts/README.md.
+            const payload: CreateMarketAnalysisInput = {
                 title: data.title,
                 description: data.description || null, // Send null if empty
                 imgUrl: imgUrl || null, // Send null if empty

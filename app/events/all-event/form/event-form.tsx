@@ -28,6 +28,7 @@ import { DateTimePicker } from "@/components/ui/datetime-picker";
 import Image from "next/image";
 import { EventCategoryResponseColumn } from "../../event-category/components/columns";
 import { api } from "@/lib/api";
+import type { CreateEventInput } from "@/contracts/api-types";
 
 // Form Schema - currency pair NOT included in the form schema
 const formSchema = z.object({
@@ -199,7 +200,10 @@ const EventForm: React.FC<EventFormProps> = ({ eventId }) => {
     try {
       setLoading(true);
 
-      const payload = {
+      // P3-8: pinned to the API's request contract, generated from its Zod
+      // schemas. A drift in either direction is a compile error here rather
+      // than a 400 in production. See contracts/README.md.
+      const payload: CreateEventInput = {
         categoryId: parseInt(data.categoryId),
         date: data.date.toISOString(),
         notificationTime: parseInt(data.notificationTime),

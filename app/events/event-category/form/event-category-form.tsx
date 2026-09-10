@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-toastify";
 import ImageUpload from "@/components/ui/image-upload";
 import { api } from "@/lib/api";
+import type { CreateEventCategoryInput } from "@/contracts/api-types";
 
 // Form Schema
 const formSchema = z.object({
@@ -137,7 +138,10 @@ const EventCategoryForm: React.FC<EventCategoryFormProps> = ({ categoryId }) => 
                 }
             }
 
-            const payload = {
+            // P3-8: pinned to the API's request contract, generated from its Zod
+            // schemas. A drift in either direction is a compile error here rather
+            // than a 400 in production. See contracts/README.md.
+            const payload: CreateEventCategoryInput = {
                 title: data.title,
                 description: data.description,
                 imgUrl: imgUrl,

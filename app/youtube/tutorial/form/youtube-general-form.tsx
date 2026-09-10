@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/form";
 import { toast } from "react-toastify";
 import { api } from "@/lib/api";
+import type { AddVideoInput } from "@/contracts/api-types";
 
 // Form Schema
 const formSchema = z.object({
@@ -93,7 +94,10 @@ const YouTubeGeneralForm: React.FC<YouTubeTutorialFormProps> = ({ videoId }) => 
         try {
             setLoading(true);
 
-            const payload = {
+            // P3-8: pinned to the API's request contract, generated from its Zod
+            // schemas. A drift in either direction is a compile error here rather
+            // than a 400 in production. See contracts/README.md.
+            const payload: AddVideoInput = {
                 videoId: data.videoId,
                 type: "TUTORIAL",
             };
