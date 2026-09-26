@@ -4,10 +4,16 @@
  * Source of truth: market-genius-api-typescript/schemas/*.schema.ts
  * Regenerate with:  npm run contracts:build
  *
- * These are the shapes `validateRequest` enforces. A request that does not
- * satisfy the type here is rejected with a 400 before any handler runs, so
- * a consumer that compiles against this file cannot send a body the API
- * will refuse for shape reasons.
+ * These are the shapes `validateRequest` accepts, as they appear ON THE
+ * WIRE — the input side of each schema, before Zod applies its defaults and
+ * transforms. A body that satisfies the type here passes the shape check, so
+ * a consumer that compiles against this file cannot send a body the API will
+ * refuse for shape reasons.
+ *
+ * That guarantee runs one way only. Satisfying the type is necessary, not
+ * sufficient: value-level rules TypeScript cannot express — minimum lengths,
+ * email format, digit patterns, enum membership on a plain string — are still
+ * enforced at runtime and can still answer 400.
  *
  * Fully expanded on purpose: there are no imports, no dependency on zod and
  * no build step, so this file can simply be copied into a consumer.
@@ -35,7 +41,7 @@ export type UpdateVersionInput = {
 export type CheckUpdatesInput = {
   platform: string;
   currentVersion: string;
-  currentBuildNumber?: number | undefined;
+  currentBuildNumber?: string | number | undefined;
 };
 
 export type PlatformParam = { platform: 'android' | 'ios'; };
@@ -104,9 +110,17 @@ export type EngagementInput = {
 
 // ── event.schema.ts ─────────────────────────────────────────────
 
-export type CreateEventInput = { categoryId: number; date: string; notificationTime?: number | undefined; };
+export type CreateEventInput = {
+  categoryId: number;
+  date: string;
+  notificationTime?: string | number | undefined;
+};
 
-export type UpdateEventInput = { categoryId: number; date: string; notificationTime?: number | undefined; };
+export type UpdateEventInput = {
+  categoryId: number;
+  date: string;
+  notificationTime?: string | number | undefined;
+};
 
 export type CreateEventCategoryInput = {
   title: string;
@@ -211,7 +225,7 @@ export type DeregisterDeviceInput = { token: string; };
 export type CursorChannel = 'LIVE_TRADE_VERIFIED' | 'LIVE_TRADE_UNVERIFIED' | 'MARKET_ANALYSIS' | 'EVENT' | 'COMMUNITY';
 
 export type MissedNotificationsInput = {
-  cursors: Partial<Record<'LIVE_TRADE_VERIFIED' | 'LIVE_TRADE_UNVERIFIED' | 'MARKET_ANALYSIS' | 'EVENT' | 'COMMUNITY', string>>;
+  cursors?: Partial<Record<'LIVE_TRADE_VERIFIED' | 'LIVE_TRADE_UNVERIFIED' | 'MARKET_ANALYSIS' | 'EVENT' | 'COMMUNITY', string>> | undefined;
   limit?: number | undefined;
 };
 
@@ -363,12 +377,12 @@ export type StartVerificationInput = {
 
 export type CompleteRegistrationInput = {
   email: string;
-  phone: string | undefined;
-  countryCode: string;
   password: string;
   name: string;
   userName: string;
   deviceId: string;
+  phone?: string | undefined;
+  countryCode?: string | undefined;
   city?: string | undefined;
   imgUrl?: string | undefined;
 };
