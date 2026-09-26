@@ -362,6 +362,7 @@ export type GetUsersQuery = {
   exnessId?: string | undefined;
   startDate?: string | undefined;
   endDate?: string | undefined;
+  exactCount?: 'true' | 'false' | undefined;
 };
 
 export type UserIdParam = { userId: string; };
