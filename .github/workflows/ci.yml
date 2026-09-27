@@ -1,0 +1,119 @@
+# There was no CI in this repository. `next build` typechecks as a side effect
+# and `eslint .` was only ever run by hand — which is how `context/` went
+# unlinted for as long as the script was `next lint`, since that walks only its
+# own default directories.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: lint · typecheck · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # Separate from the build on purpose. `next build` does typecheck, but it
+      # fails on the first error after several minutes of bundling; this answers
+      # the same question in seconds and keeps the signal distinguishable.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+        env:
+          # The panel reads this at build time. It is not a secret — it is the
+          # public API base — and a placeholder keeps the build hermetic.
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+
+  # The e2e suite boots a production build of the panel against a real API,
+  # which means checking out the API repository as well. It is not part of the
+  # PR gate for that reason: a red run here would usually mean the other
+  # repository moved, not that this change is wrong. Run it on demand, and
+  # before a release.
+  e2e:
+    name: end-to-end (manual)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      E2E_PG_USER: postgres
+      E2E_PG_HOST: 127.0.0.1
+      E2E_PG_PORT: '5432'
+      E2E_PG_DB: mg_e2e
+      E2E_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/mg_e2e
+      PGPASSWORD: postgres
+      E2E_API_DIR: ${{ github.workspace }}/api
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: admin
+
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/market-genius-api-typescript
+          path: api
+          token: ${{ secrets.API_REPO_TOKEN || github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install psql and redis-server
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client redis-server
+          sudo systemctl stop redis-server || true
+          sudo systemctl disable redis-server || true
+
+      - run: npm ci
+        working-directory: api
+      - run: npm ci
+        working-directory: admin
+
+      - name: End-to-end suite
+        run: npm run test:e2e
+        working-directory: admin
+
+      - name: Upload e2e log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-e2e-log
+          path: admin/e2e/*.log
+          if-no-files-found: ignore
