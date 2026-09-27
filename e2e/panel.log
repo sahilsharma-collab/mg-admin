@@ -1,12 +1,8 @@
 npm notice run market-genius-admin@0.1.0 npx
 npm notice run 'next' start -p 4332
- ⨯ Failed to start server
-Error: listen EADDRINUSE: address already in use :::4332
-    at <unknown> (Error: listen EADDRINUSE: address already in use :::4332)
-    at new Promise (<anonymous>) {
-  code: 'EADDRINUSE',
-  errno: -48,
-  syscall: 'listen',
-  address: '::',
-  port: 4332
-}
+   ▲ Next.js 15.2.8
+   - Local:        http://localhost:4332
+   - Network:      http://192.168.1.112:4332
+
+ ✓ Starting...
+ ✓ Ready in 277ms
