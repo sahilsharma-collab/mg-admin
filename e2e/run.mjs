@@ -427,6 +427,137 @@ const cleanup = async () => {
   ok("no component reads the session cookie any more", cookieReads === "", cookieReads);
 
   // ───────────────────────────────────────────────────────────────────
+  G("The product flows an admin actually performs");
+
+  // Audit P2-19 asked for smoke coverage of the panel's real work, not just its
+  // session handling. Every one of these goes through the panel's proxy with
+  // nothing but the cookie, which is the path a logged-in admin's browser uses,
+  // and every one is checked in the database rather than trusted from the
+  // response body — a 200 that wrote nothing is the failure worth catching.
+  //
+  // PUSH_ENABLED is false for this run, so publishing does not attempt FCM.
+
+  // `J` returns its own `headers`, so spreading it over AS_ADMIN REPLACES them
+  // and the cookie is lost — the request then arrives unauthenticated. These
+  // two helpers merge instead, which is the only safe way to combine them.
+  // The database is not rebuilt on every run, so fixtures are scoped to this
+  // one. Without it a second run counts the first run's rows and fails on a
+  // difference that says nothing about the code.
+  const RUN = Date.now().toString(36);
+
+  const AJ = (body, method = "POST") => ({
+    method,
+    headers: { ...AS_ADMIN.headers, "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const A = (method = "POST") => ({ method, headers: { ...AS_ADMIN.headers } });
+
+  // — publish a live trade ——————————————————————————————————————————————
+  const trade = await req(PANEL, "/api/mg/main/api/trade",
+    AJ({ title: `E2E Trade ${RUN}`, description: "opened" }));
+  ok("an admin can publish a live trade", trade.status === 200 || trade.status === 201,
+    `${trade.status} ${trade.text.slice(0, 200)}`);
+  // Read back from the database rather than trusting the response shape: the
+  // controllers differ in what they echo, and an id parsed out of the wrong
+  // field would feed NaN into psql and take the whole harness down.
+  const tradeId = Number(psql(`SELECT id FROM "LiveTrade" WHERE title='E2E Trade ${RUN}' ORDER BY id DESC LIMIT 1;`));
+  ok("  and it is persisted", Number.isInteger(tradeId) && tradeId > 0, trade.text.slice(0, 200));
+
+  // — pin and unpin ——————————————————————————————————————————————————————
+  const pin = await req(PANEL, `/api/mg/main/api/trade/pin/${tradeId}`, A());
+  eq("pinning succeeds", pin.status, 200);
+  eq("  and the row says so", psql(`SELECT "isPinned" FROM "LiveTrade" WHERE id=${Number(tradeId)};`), "t");
+
+  const unpin = await req(PANEL, `/api/mg/main/api/trade/unpin/${tradeId}`, A());
+  eq("unpinning succeeds", unpin.status, 200);
+  eq("  and the row says so", psql(`SELECT "isPinned" FROM "LiveTrade" WHERE id=${Number(tradeId)};`), "f");
+
+  // — attach a PDF ———————————————————————————————————————————————————————
+  // The upload endpoint itself needs S3, which this harness has no business
+  // standing up. What is asserted instead is the rule that governs an attached
+  // key once it exists, which is where a mistake would actually reach a user.
+  const withPdf = await req(PANEL, `/api/mg/main/api/trade/${tradeId}`,
+    AJ({ title: `E2E Trade ${RUN}`, pdfKey: "live-trade-pdfs/e2e.pdf", pdfName: "e2e.pdf", pdfSize: 1024 }, "PUT"));
+  eq("a trade PDF can be attached", withPdf.status, 200);
+  eq("  and the key is stored",
+    psql(`SELECT "pdfKey" FROM "LiveTrade" WHERE id=${Number(tradeId)};`), "live-trade-pdfs/e2e.pdf");
+
+  const badPdf = await req(PANEL, `/api/mg/main/api/trade/${tradeId}`,
+    AJ({ title: `E2E Trade ${RUN}`, pdfKey: "live-trade-pdfs/e2e.pdf" }, "PUT"));
+  eq("a PDF key without its name and size is rejected", badPdf.status, 400);
+
+  // — publish a market analysis —————————————————————————————————————————
+  const analysis = await req(PANEL, "/api/mg/main/api/market",
+    AJ({ title: `E2E Analysis ${RUN}`, description: "outlook" }));
+  ok("an admin can publish a market analysis",
+    analysis.status === 200 || analysis.status === 201,
+    `${analysis.status} ${analysis.text.slice(0, 200)}`);
+  eq("  and it is persisted",
+    psql(`SELECT count(*) FROM "Market_analysis" WHERE title='E2E Analysis ${RUN}';`), "1");
+
+  // The prefix rule exists so an admin cannot attach an arbitrary S3 object —
+  // including one from another tenant's prefix — to a published analysis.
+  const wrongPrefix = await req(PANEL, "/api/mg/main/api/market",
+    AJ({ title: "Bad prefix", pdfKey: "somewhere-else/x.pdf", pdfName: "x.pdf", pdfSize: 10 }));
+  eq("a market-analysis PDF outside its own prefix is rejected", wrongPrefix.status, 400);
+
+  // — publish an event ———————————————————————————————————————————————————
+  // description, imgUrl and currencyPair are optional in the request schema but
+  // NOT NULL in the table, so a title-only body fails at the database.
+  const category = await req(PANEL, "/api/mg/main/api/event/category",
+    AJ({ title: `E2E Category ${RUN}`, description: "d", imgUrl: "i", currencyPair: "EURUSD" }));
+  ok("an event category can be created",
+    category.status === 200 || category.status === 201, category.text.slice(0, 200));
+  // The column is `name`; `title` is the request field the controller maps from.
+  const categoryId = Number(psql(`SELECT id FROM "EventCategory" WHERE name='E2E Category ${RUN}' ORDER BY id DESC LIMIT 1;`));
+  ok("  and the category row exists", Number.isInteger(categoryId) && categoryId > 0, category.text.slice(0, 200));
+
+  const event = await req(PANEL, "/api/mg/main/api/event",
+    AJ({ categoryId, date: new Date(Date.now() + 86_400_000).toISOString() }));
+  ok("an admin can publish an event",
+    event.status === 200 || event.status === 201, event.text.slice(0, 200));
+  eq("  and it is persisted",
+    psql(`SELECT count(*) FROM "Event" WHERE "categoryId"=${categoryId};`), "1");
+
+  // — send a notification ————————————————————————————————————————————————
+  const send = await req(PANEL, "/api/mg/main/api/notification/send-notification",
+    AJ({ title: `E2E Broadcast ${RUN}`, body: "hello" }));
+  ok("an admin can send a notification",
+    send.status === 200 || send.status === 201, `${send.status} ${send.text.slice(0, 200)}`);
+  eq("  and the Notification row is written",
+    psql(`SELECT count(*) FROM "Notification" WHERE title='E2E Broadcast ${RUN}';`), "1");
+
+  // — moderation —————————————————————————————————————————————————————————
+  const reports = await req(PANEL, "/api/mg/main/api/post/report", AS_ADMIN);
+  eq("an admin can read the moderation queue", reports.status, 200);
+
+  // ───────────────────────────────────────────────────────────────────
+  G("None of it is reachable without the admin role");
+
+  // The panel refuses a non-admin at login, which is asserted above — so a
+  // non-admin can never hold a panel cookie and the proxy is not the thing
+  // under test here. What matters is that the API refuses on its OWN
+  // authority: the panel is one client among several, and a gate that lives
+  // only in the panel is a gate any other caller walks around.
+  //
+  // So these go straight at the API with a plain user's bearer token.
+  for (const [name, path, opts] of [
+    ["publish a live trade", "/api/trade", J({ title: "nope" })],
+    ["publish a market analysis", "/api/market", J({ title: "nope" })],
+    ["send a notification", "/api/notification/send-notification",
+      J({ title: "nope", body: "nope" })],
+    ["pin a trade", `/api/trade/pin/${tradeId}`, { method: "POST" }],
+    ["read the moderation queue", "/api/post/report", {}],
+  ]) {
+    const res = await req(API, path, {
+      ...opts,
+      headers: { ...(opts.headers ?? {}), authorization: `Bearer ${plainToken}` },
+    });
+    ok(`a non-admin cannot ${name}`, res.status === 401 || res.status === 403,
+      `${res.status} ${res.text.slice(0, 120)}`);
+  }
+
+  // ───────────────────────────────────────────────────────────────────
   console.log(`\n\x1b[1m${pass} passed, ${fail} failed\x1b[0m`);
   if (failures.length) {
     console.log("\n\x1b[31mFailures:\x1b[0m");
