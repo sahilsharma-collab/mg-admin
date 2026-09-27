@@ -30,7 +30,6 @@ const FAQClient = () => {
                 }
 
                 const data = await response.json();
-                console.log("FAQ Data:", data);
 
                 const formatDateTime = (dateString: string) => {
                     const date = new Date(dateString);

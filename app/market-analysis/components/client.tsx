@@ -58,7 +58,6 @@ const MarketAnalysisClient = () => {
         }
 
         const data = await response.json();
-        console.log("Market Analysis Data:", data);
 
         const formatDateTime = (dateString: string) => {
           const date = new Date(dateString);

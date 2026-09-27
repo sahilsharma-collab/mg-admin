@@ -52,7 +52,6 @@ const ok = (n, cond, detail = "") => {
          console.log(`  \x1b[31m✗ ${n}\x1b[0m${detail ? ` — ${detail}` : ""}`); }
 };
 const eq = (n, a, e) => ok(n, a === e, `expected ${JSON.stringify(e)}, got ${JSON.stringify(a)}`);
-const note = (n) => console.log(`  \x1b[33m•\x1b[0m ${n}`);
 
 const psql = (sql) => execFileSync("psql",
   ["-h", PG_HOST, "-p", PG_PORT, "-U", PG_USER, "-d", PG_DB, "-tAc", sql],
@@ -91,7 +90,9 @@ const procs = [];
 const bootLogged = (cmd, args, cwd, env, tag, url, tries = 120) => {
   const logPath = join(E2E_DIR, `${tag}.log`);
   rmSync(logPath, { force: true });
-  const out = openSync(logPath, "a");
+  // "w", not "a": in append mode each run stacked onto the previous run's
+  // output, so a failure investigation read stale lines from an older run.
+  const out = openSync(logPath, "w");
   const child = spawn(cmd, args, { cwd, stdio: ["ignore", out, out], env });
   procs.push(child);
   return (async () => {

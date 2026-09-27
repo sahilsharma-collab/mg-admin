@@ -36,7 +36,7 @@ const ResetPasswordForm = () => {
       setOtpSent(true);
     } catch (error) {
       toast.error("Failed to send OTP");
-      console.log("Failed to send OTP", error)
+      console.error("Failed to send OTP", error)
     } finally {
       setIsLoading(false);
     }
@@ -60,7 +60,7 @@ const ResetPasswordForm = () => {
       router.push('/login');
     } catch (error) {
       toast.error("Password reset failed");
-      console.log("Password failed", error)
+      console.error("Password failed", error)
     } finally {
       setIsLoading(false);
     }

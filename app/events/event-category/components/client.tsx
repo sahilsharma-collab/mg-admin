@@ -30,7 +30,6 @@ const EventCategoryClient = () => {
                 }
 
                 const data = await response.json();
-                console.log("Event Categories Data:", data);
 
                 const formatDateTime = (dateString: string) => {
                     const date = new Date(dateString);

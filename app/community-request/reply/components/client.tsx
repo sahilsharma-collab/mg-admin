@@ -27,7 +27,6 @@ const ReferralReplyClient = () => {
                 }
 
                 const data = await response.json();
-                console.log("Reply Report Data:", data);
 
                 const formatDateTime = (dateString: string) => {
                     const date = new Date(dateString);

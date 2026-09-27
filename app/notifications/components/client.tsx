@@ -73,7 +73,7 @@ const NotificationsClient = () => {
       refreshNotifications();
       setIsMarkAllModalOpen(false);
     } catch (error) {
-      console.log("Error marking all notifications as read:", error);
+      console.error("Error marking all notifications as read:", error);
     }
   };
 

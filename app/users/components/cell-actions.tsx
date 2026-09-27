@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UserColumn } from "./columns";
+import type { UserColumn } from "./columns";
 import { RoleUpdateModal } from "./RoleUpdateModal";
 import { DeleteUserModal } from "./DeleteUserModal"; // Added new modal
 import { X } from "lucide-react";

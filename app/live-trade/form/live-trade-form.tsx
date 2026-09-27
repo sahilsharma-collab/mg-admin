@@ -166,13 +166,13 @@ const LiveTradeForm: React.FC<LiveTradeFormProps> = ({ ltId }) => {
             toast.success(toastMessage);
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
-                console.log("Axios Error:", error.response?.data || error.message);
+                console.error("Axios Error:", error.response?.data || error.message);
                 toast.error(error.response?.data?.message || "Something went wrong.");
             } else if (error instanceof Error) {
-                console.log("Error:", error.message);
+                console.error("Error:", error.message);
                 toast.error(error.message || "Something went wrong.");
             } else {
-                console.log("Unknown Error:", error);
+                console.error("Unknown Error:", error);
                 toast.error("Something went wrong.");
             }
         } finally {

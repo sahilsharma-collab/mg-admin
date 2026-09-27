@@ -10,7 +10,7 @@ import {
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { RoleUpdateModal } from "@/app/users/components/RoleUpdateModal";
-import { ModeratorColumn } from "./columns";
+import type { ModeratorColumn } from "./columns";
 
 interface CellActionProps {
     data: ModeratorColumn;

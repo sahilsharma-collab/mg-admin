@@ -30,7 +30,6 @@ const EventClient = () => {
                 }
 
                 const data = await response.json();
-                console.log("Events Data:", data);
 
                 const formatDateTime = (dateString: string) => {
                     const date = new Date(dateString);

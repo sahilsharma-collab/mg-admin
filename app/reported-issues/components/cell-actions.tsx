@@ -2,7 +2,7 @@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Copy, Eye, MoreHorizontal, Trash, CheckCircle } from "lucide-react";
-import { IssueColumn } from "./columns";
+import type { IssueColumn } from "./columns";
 import { toast } from "react-toastify";
 import { DeleteConfirmationModal } from "@/components/Modal/DeleteConformationModal";
 import { useState } from "react";

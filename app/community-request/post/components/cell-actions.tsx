@@ -10,7 +10,7 @@ import {
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { toast } from "react-toastify";
-import { ReferralRequestColumn } from "./columns";
+import type { ReferralRequestColumn } from "./columns";
 
 interface CellActionProps {
     data: ReferralRequestColumn;

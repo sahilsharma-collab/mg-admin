@@ -28,7 +28,6 @@ const CommunityGetMyClient = () => {
                 }
 
                 const data = await response.json();
-                console.log("Posts Data:", data);
 
                 const formatDateTime = (dateString: string) => {
                     const date = new Date(dateString);

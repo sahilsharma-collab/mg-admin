@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# e2e run artifacts (server stdout, redis log, redis dump)
+e2e/*.log
+e2e/redis/

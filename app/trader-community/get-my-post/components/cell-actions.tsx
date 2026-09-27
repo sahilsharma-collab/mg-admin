@@ -9,7 +9,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { CommunityPostColumn } from "./columns";
+import type { CommunityPostColumn } from "./columns";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { DeleteConfirmationModal } from "@/components/Modal/DeleteConformationModal";

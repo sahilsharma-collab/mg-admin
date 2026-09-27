@@ -10,7 +10,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { MarketAnalysisColumn } from "./columns";
+import type { MarketAnalysisColumn } from "./columns";
 import { toast } from "react-toastify";
 import { DeleteConfirmationModal } from "@/components/Modal/DeleteConformationModal";
 import { api } from "@/lib/api";

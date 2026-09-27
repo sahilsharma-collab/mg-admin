@@ -96,7 +96,6 @@ const UserDataClient = () => {
         )}`;
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const formattedData: PaymentWithUser[] = data.payments.map(
         (payment: PaymentWithUser) => ({
           id: payment.id,

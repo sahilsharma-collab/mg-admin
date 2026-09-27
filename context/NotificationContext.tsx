@@ -144,7 +144,6 @@ export const NotificationProvider = ({
   };
 
   const markAsRead = async (id: number) => {
-    console.log("sdfdsfsdfsdf", id);
     try {
       const response = await apiFetch(
         `/api/notification/read-notification/${id}`,

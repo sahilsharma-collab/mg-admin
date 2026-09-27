@@ -83,7 +83,6 @@ const UserDataClient = () => {
         )}`;
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const formattedData: EnhancedUserColumn[] = data.users.map(
         (user: EnhancedUserColumn) => ({
           id: user.id,

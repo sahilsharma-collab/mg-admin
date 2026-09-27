@@ -9,7 +9,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { BlockedUserColumn } from "./columns";
+import type { BlockedUserColumn } from "./columns";
 import { UnblockUserModal } from "./UnblockUserModal";
 
 interface CellActionProps {

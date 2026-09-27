@@ -10,7 +10,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { EventCategoryColumn } from "./columns";
+import type { EventCategoryColumn } from "./columns";
 import { toast } from "react-toastify";
 import { DeleteConfirmationModal } from "@/components/Modal/DeleteConformationModal";
 import { api } from "@/lib/api";

@@ -11,7 +11,7 @@ import {
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { toast } from "react-toastify";
-import { LiveTradeColumn } from "./columns";
+import type { LiveTradeColumn } from "./columns";
 import { DeleteConfirmationModal } from "@/components/Modal/DeleteConformationModal";
 import { api } from "@/lib/api";
 

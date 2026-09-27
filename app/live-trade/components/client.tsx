@@ -159,7 +159,6 @@ const LiveTradeClient = () => {
         }
 
         const data = await response.json();
-        console.log("Live Trade Data:", data);
 
         const formatDateTime = (dateString: string) => {
           const date = new Date(dateString);
