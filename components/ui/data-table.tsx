@@ -153,11 +153,6 @@ export function DataTable<TData extends DateFilterableData, TValue>({
     }
   }, [fromDate, toDate, data, enableDateFilter, onDateFilterChange]);
 
-  // Define filter functions for column initialization
-  // const columnHelper = {
-  //     filterFn: commaSeparatedFilterFn
-  // };
-
   const table = useReactTable({
     data: filteredData,
     columns,

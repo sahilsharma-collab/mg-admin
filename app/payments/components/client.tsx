@@ -1,8 +1,6 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
 import { columns, PaymentWithUser } from "./columns";
-// import { CellAction } from "./cell-actions";
-// import { Row } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { usePagination } from "@/context/pagination-context";
@@ -148,10 +146,6 @@ const UserDataClient = () => {
     }
   }, [fetchUsers, isInitialized, refreshCounter]);
 
-  // const refreshData = () => {
-  //   setRefreshCounter((prev) => prev + 1);
-  // };
-
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     setPage(1); // Reset to first page when searching
@@ -228,18 +222,6 @@ const UserDataClient = () => {
     link.click();
     document.body.removeChild(link);
   };
-
-  const columnsWithActions = columns.map((col) => {
-    if (col.id === "actions") {
-      return {
-        ...col,
-        // cell: ({ row }: { row: Row<PaymentWithUser> }) => (
-        //   <CellAction data={row.original} onSuccess={refreshData} />
-        // ),
-      };
-    }
-    return col;
-  });
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
@@ -333,7 +315,7 @@ const UserDataClient = () => {
 
       <DataTableWithApiPagination
         redirectUrl=""
-        columns={columnsWithActions}
+        columns={columns}
         data={formattedUsers}
         loading={loading}
         title={

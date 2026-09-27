@@ -27,13 +27,6 @@ const RenewalsDataClient = () => {
 
   const [paymentMethod, setPaymentMethod] = useState<string>("");
 
-  // Method options with display and API value mapping
-  //   const methodOptions = [
-  //     { display: "All Methods", value: "" },
-  //     { display: "UPI", value: "UPI" },
-  //     { display: "CRYPTO", value: "CRYPTO" },
-  //   ];
-
   // Handle initial loading only once
   useEffect(() => {
     const initialize = async () => {
@@ -140,12 +133,6 @@ const RenewalsDataClient = () => {
     }));
     setPage(1); // Reset to first page when changing date filters
   };
-
-  // Handle method change
-  //   const handleMethodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-  //     setPaymentMethod(e.target.value);
-  //     setPage(1); // Reset to first page when changing method
-  //   };
 
   // Clear all filters
   const handleClearFilters = () => {

@@ -5,8 +5,6 @@ import React from "react";
 import { columns, NotificationColumn } from "./columns";
 import { CellAction } from "./cell-actions";
 import { Row } from "@tanstack/react-table";
-// import { toast } from "react-toastify";
-import { MarkAllAsReadModal } from "./MarkAllAsReadModal";
 import { useNotifications } from "@/context/NotificationContext";
 import { AddNotificationModal } from "./AddNotificationModal";
 
@@ -16,11 +14,9 @@ const NotificationsClient = () => {
     unreadCount,
     loading,
     deleteNotification,
-    markAllAsRead,
     refreshNotifications,
   } = useNotifications();
 
-  const [isMarkAllModalOpen, setIsMarkAllModalOpen] = React.useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
 
   const formatDateTime = (dateString: string) => {
@@ -59,24 +55,6 @@ const NotificationsClient = () => {
     return col;
   });
 
-  // const handleMarkAllRead = () => {
-  //   if (unreadCount === 0) {
-  //     toast.info("No unread notifications to mark");
-  //   } else {
-  //     setIsMarkAllModalOpen(true);
-  //   }
-  // };
-
-  const handleConfirmMarkAll = async () => {
-    try {
-      await markAllAsRead();
-      refreshNotifications();
-      setIsMarkAllModalOpen(false);
-    } catch (error) {
-      console.error("Error marking all notifications as read:", error);
-    }
-  };
-
   return (
     <div className="container-padding">
       <DataTable
@@ -103,22 +81,10 @@ const NotificationsClient = () => {
             >
               Add Notification
             </Button>
-            {/* <Button
-              onClick={handleMarkAllRead}
-              className="bg-[#0ABAB5] rounded-full px-6 hover:bg-[#089e99] transition-colors dark:text-white"
-            >
-              Mark All as Read
-            </Button> */}
           </>
         }
       />
 
-      <MarkAllAsReadModal
-        isOpen={isMarkAllModalOpen}
-        onClose={() => setIsMarkAllModalOpen(false)}
-        unreadCount={unreadCount}
-        onConfirm={handleConfirmMarkAll}
-      />
       <AddNotificationModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
