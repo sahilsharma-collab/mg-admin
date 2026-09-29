@@ -15,7 +15,7 @@
  */
 import { spawn, execFileSync } from "child_process";
 import { createServer } from "http";
-import { readFileSync, rmSync, openSync, mkdirSync } from "fs";
+import { readFileSync, readdirSync, rmSync, openSync, mkdirSync } from "fs";
 import { setTimeout as sleep } from "timers/promises";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
@@ -1020,38 +1020,165 @@ const cleanup = async () => {
     blockUserCallSites.split("\n").filter(Boolean).length, 4);
 
   // ───────────────────────────────────────────────────────────────────
-  G("Destructive panel actions that fire on a single click");
+  G("Destructive panel actions confirm before they fire");
 
-  // Documented, not judged: whether any of these deserves a confirmation
-  // dialog is a product decision. What the suite can do is pin the current
-  // behaviour, so that adding one is a deliberate change that updates a spec
-  // rather than a silent difference nobody notices either way.
+  // This group used to pin the opposite: three menu items that fired on the
+  // first click, recorded so that adding a confirmation would be a deliberate
+  // change rather than a silent one. That has now happened, so what needs
+  // pinning is the shape of each gate — the menu item only opens a dialog, and
+  // the destructive request is reachable only from the dialog's confirm step.
+  //
+  // Most of what follows reads source text, because a client component is the
+  // one thing this harness cannot drive: there is no browser here, and these
+  // modals render nothing at all until they are opened, so the panel's own HTML
+  // has nothing to say about them. What an operator's clicks actually do is
+  // covered properly next door, in jsdom — cell-actions.test.tsx,
+  // PostPage.test.tsx and AddNotificationModal.test.tsx all drive these dialogs
+  // for real. This group is the wiring check underneath that, and its last two
+  // assertions are the ones that look at what is actually shipped.
+  //
+  // Source regexes are brittle to refactors by construction, so each is written
+  // to break when the gate goes rather than when the code is merely moved. The
+  // rule this group learned the hard way:
+  // "does `handleSubmit` appear in this file" kept passing right through the
+  // change below, because `onClick={handleSubmit}` is still there — on the
+  // confirm-stage button of a dialog that did not exist when it was written.
+  // An assertion that cannot fail is worse than one that is merely red.
   const source = (...parts) => {
     try { return readFileSync(join(ADMIN_DIR, ...parts), "utf8"); } catch { return ""; }
   };
 
+  // Slices the body of a `const <name> = (…) => { … }` by brace matching, so an
+  // assertion can be about what a handler does and in what order rather than
+  // what the file happens to contain. Returns "" when there is no such handler,
+  // which fails its callers — the safe direction for a helper like this.
+  const fnBody = (src, name) => {
+    const start = src.indexOf(`const ${name} =`);
+    const open = start < 0 ? -1 : src.indexOf("{", src.indexOf("=>", start));
+    if (open < 0) return "";
+    for (let i = open, depth = 0; i < src.length; i++) {
+      if (src[i] === "{") depth++;
+      else if (src[i] === "}" && --depth === 0) return src.slice(open + 1, i);
+    }
+    return "";
+  };
+
   const cellActions = source("app", "users", "components", "cell-actions.tsx");
-  ok("Remove Exness fires straight from the menu item",
-    /onClick=\{\(\)\s*=>\s*removeExness\(\)\}/.test(cellActions),
-    "the call site moved — re-check whether it now confirms");
-  ok("  while Delete User, in the same menu, opens a modal first",
+  ok("Remove Exness opens a confirmation instead of firing",
+    /onClick=\{\(\)\s*=>\s*setIsRemoveExnessModalOpen\(true\)\}/.test(cellActions) &&
+    !/onClick=\{[^}]*removeExness\(/.test(cellActions),
+    "a menu item calls removeExness directly — the single click is back");
+  ok("  and the removal itself is the dialog's confirm action",
+    /<DeleteConfirmationModal[\s\S]{0,400}?isOpen=\{isRemoveExnessModalOpen\}[\s\S]{0,400}?onConfirm=\{removeExness\}/
+      .test(cellActions),
+    "removeExness is no longer wired to a confirmation dialog");
+  ok("  and Delete User, in the same menu, still opens a modal first",
     /setIsDeleteModalOpen\(true\)/.test(cellActions),
     "Delete User no longer opens a modal");
 
   const mobilePost = source("app", "trader-community", "get-MobileView", "[postId]", "PostPage.tsx");
-  ok("Delete Reply fires straight from the menu item",
-    /onClick=\{\(\)\s*=>\s*handleDeleteReply\(reply\.id\)\}/.test(mobilePost),
-    "the call site moved — re-check whether it now confirms");
-  ok("  while Suspend User, in the same menu, arms a confirmation first",
+  ok("Delete Reply opens a confirmation instead of firing",
+    /onClick=\{\(\)\s*=>\s*setReplyToDelete\(reply\.id\)\}/.test(mobilePost) &&
+    !/onClick=\{[^}]*handleDeleteReply\(/.test(mobilePost),
+    "a menu item calls handleDeleteReply directly — the single click is back");
+  ok("  and the delete itself is the dialog's confirm action",
+    /<DeleteConfirmationModal[\s\S]{0,400}?isOpen=\{replyToDelete !== null\}[\s\S]{0,400}?onConfirm=\{handleDeleteReply\}/
+      .test(mobilePost),
+    "handleDeleteReply is no longer wired to a confirmation dialog");
+  // The handler takes no reply id any more: it reads the one the dialog armed.
+  // Without this it would still be callable with an argument from anywhere.
+  ok("  and it will not run with nothing armed",
+    /=== null\)\s*return;/.test(fnBody(mobilePost, "handleDeleteReply")),
+    "the delete no longer checks that a dialog armed a reply first");
+  ok("  and Suspend User, in the same menu, still arms a confirmation",
     /setUserToSuspend\(reply\.authorId\)/.test(mobilePost),
     "Suspend User no longer arms a confirmation");
 
+  // The broadcast is the one worth spelling out, because it is the one whose
+  // old assertion survived the fix and went on describing a click that is no
+  // longer possible. A yes/no dialog would not be much of a gate for something
+  // that fans out to every registered user and cannot be recalled, so the
+  // component asks for the phrase to be typed. Each part of that is asserted
+  // separately: which stage each button belongs to, that the send refuses
+  // before it fetches, and that the button stays disabled until it matches.
   const notifyModal = source("app", "notifications", "components", "AddNotificationModal.tsx");
-  ok("Send Notification submits on the first click",
-    /onClick=\{handleSubmit\}/.test(notifyModal),
-    "the call site moved — re-check whether it now confirms");
 
-  // And the server offers no second step to lean on: one POST is the whole
+  const phrase = notifyModal.match(/export const CONFIRM_PHRASE = "([^"]*)"/)?.[1] ?? "";
+  ok("the broadcast is gated on a phrase the operator has to type",
+    phrase.length >= 2,
+    `CONFIRM_PHRASE is ${JSON.stringify(phrase)} — nothing has to be typed to satisfy that`);
+
+  // Slicing the compose branch out is the whole point: the file as a whole
+  // does contain `handleSubmit`, and matching it there is what went wrong.
+  const composeStage = (() => {
+    const at = notifyModal.indexOf('stage === "compose" ?');
+    if (at < 0) return "";
+    const rest = notifyModal.slice(at);
+    const end = rest.search(/\n\s*\) : \(/);
+    return end < 0 ? "" : rest.slice(0, end);
+  })();
+  ok("  the compose step can only ask for a review, not send",
+    composeStage.length > 0 &&
+    /onClick=\{handleReview\}/.test(composeStage) &&
+    !/handleSubmit/.test(composeStage),
+    "the first button can reach the send again");
+  ok("  and reviewing only moves to the confirm stage",
+    /setStage\("confirm"\)/.test(fnBody(notifyModal, "handleReview")) &&
+    !/send-notification/.test(fnBody(notifyModal, "handleReview")),
+    "handleReview broadcasts rather than staging a confirmation");
+
+  // Ordering, not presence: the refusal has to come before the POST. A check
+  // underneath the fetch would read almost the same and stop nothing.
+  const submitBody = fnBody(notifyModal, "handleSubmit");
+  const gateAt = submitBody.search(/!==\s*CONFIRM_PHRASE/);
+  const sendAt = submitBody.indexOf("/api/notification/send-notification");
+  ok("  and the send itself refuses before it posts, phrase or no button",
+    gateAt >= 0 && sendAt > gateAt && /^[\s\S]{0,200}?return;/.test(submitBody.slice(gateAt)),
+    `phrase check at ${gateAt}, POST at ${sendAt} — the send is not behind the phrase`);
+  ok("  with the confirm button disabled until the phrase matches",
+    /const armed\s*=[\s\S]{0,160}?CONFIRM_PHRASE/.test(notifyModal) &&
+    /disabled=\{loading \|\| !armed\}/.test(notifyModal),
+    "the confirm button is no longer gated on the typed phrase");
+
+  // And once, on the artefact a browser is actually served rather than on the
+  // source it was built from. This is the assertion the five above are standing
+  // in for: it survives a rename or a reformat, and it is the only one of them
+  // that would notice the gate being compiled away. It can only be made when
+  // this run built the panel — see E2E_SKIP_PANEL_BUILD.
+  if (skippedBuilds.includes("the panel")) {
+    console.log("  \x1b[33m! not checking the shipped bundle — the panel was not " +
+      "rebuilt, so .next is whatever was compiled last\x1b[0m");
+  } else {
+    const chunkDir = join(ADMIN_DIR, ".next", "static", "chunks", "app", "notifications");
+    // By the chunk that carries the POST, not by filename: the hash moves every
+    // build, and picking the wrong file would make both assertions below say
+    // something about code this page does not run.
+    const chunk = (() => {
+      try {
+        return readdirSync(chunkDir)
+          .filter((f) => /^page-.*\.js$/.test(f))
+          .map((f) => readFileSync(join(chunkDir, f), "utf8"))
+          .find((c) => c.includes("/api/notification/send-notification")) ?? "";
+      } catch { return ""; }
+    })();
+    // Two strings that exist only in the confirm stage. The toast inside the
+    // guard is deliberately not one of them: it would make this assertion and
+    // the next one fail together for the same reason and tell you less.
+    ok("  and the confirm stage ships in the bundle the browser downloads",
+      chunk.includes("Confirm broadcast") && chunk.includes("Back to editing"),
+      `the /notifications client chunk (${chunk.length} bytes) has no confirm stage in it`);
+    // Minified, but the shape survives: the phrase comparison and its `return`
+    // sit ahead of the URL, in the same shipped function.
+    const shippedGate = chunk.search(/\.trim\(\)\.toUpperCase\(\)!==/);
+    const shippedSend = chunk.indexOf("/api/notification/send-notification");
+    ok("  ahead of the POST, in the shipped code and not only in the source",
+      shippedGate >= 0 && shippedSend > shippedGate &&
+      /^[\s\S]{0,200}?return\}/.test(chunk.slice(shippedGate)),
+      `gate at ${shippedGate}, POST at ${shippedSend} in the shipped chunk`);
+  }
+
+  // And the server offers no second step to lean on, which is why every gate
+  // above is a client-side one and has to be real: one POST is the whole
   // broadcast, and there is no draft, no preview and nothing to recall.
   const broadcast = await req(PANEL, "/api/mg/main/api/notification/send-notification",
     AJ({ title: `E2E Unrecallable ${RUN}`, body: "sent" }));

@@ -8,12 +8,44 @@ import { Download } from "lucide-react";
 import { usePagination } from "@/context/pagination-context";
 import { DataTableWithApiPagination } from "@/components/ui/data-table2";
 import { apiFetch, withQuery } from "@/lib/api";
+import { toCsv } from "@/lib/csv";
 
 // Update the interface to include raw date fields if not already present
 export interface EnhancedUserColumn extends UserColumn {
   createdAtRaw: Date;
   updatedAtRaw: Date;
   emailVerified: boolean;
+}
+
+/**
+ * Headers and readers for the users export, in file order.
+ *
+ * Kept as data rather than a template string so every field goes through
+ * `toCsv`, which quotes it and neutralises spreadsheet formulas (see lib/csv.ts
+ * — a display name is user-controlled and may be either a quoted mess or a
+ * live `=HYPERLINK(...)` payload).
+ */
+const USER_CSV_COLUMNS = [
+  ["ID", (u: EnhancedUserColumn) => u.id],
+  ["Name", (u: EnhancedUserColumn) => u.name],
+  ["Email", (u: EnhancedUserColumn) => u.email],
+  ["Role", (u: EnhancedUserColumn) => u.role],
+  ["Phone", (u: EnhancedUserColumn) => u.phone || ""],
+  ["Exness ID", (u: EnhancedUserColumn) => u.exnessId || ""],
+  ["Created At", (u: EnhancedUserColumn) => u.createdAt],
+  ["Updated At", (u: EnhancedUserColumn) => u.updatedAt],
+  ["Exness Verified", (u: EnhancedUserColumn) => u.exnessVerified],
+  ["Email Verified", (u: EnhancedUserColumn) => u.emailVerified],
+] as const;
+
+/** The exact file the download button writes. Exported so tests can parse it. */
+export function buildUsersCsv(
+  users: readonly EnhancedUserColumn[]
+): string {
+  return toCsv([
+    USER_CSV_COLUMNS.map(([header]) => header),
+    ...users.map((user) => USER_CSV_COLUMNS.map(([, read]) => read(user))),
+  ]);
 }
 
 const UserDataClient = () => {
@@ -154,15 +186,7 @@ const UserDataClient = () => {
   };
 
   const downloadCSV = () => {
-    let csv =
-      "ID,Name,Email,Role,Phone,Exness ID,Created At,Updated At,Exness Verified,Email Verified\n";
-    formattedUsers.forEach((user) => {
-      csv += `"${user.id}","${user.name}","${user.email}","${user.role}","${
-        user.phone || ""
-      }","${user.exnessId || ""}","${user.createdAt}","${user.updatedAt}","${
-        user.exnessVerified
-      }","${user.emailVerified}"\n`;
-    });
+    const csv = buildUsersCsv(formattedUsers);
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);

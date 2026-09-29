@@ -6,6 +6,49 @@ import { Download } from "lucide-react";
 import { usePagination } from "@/context/pagination-context";
 import { DataTableWithApiPagination } from "@/components/ui/data-table2";
 import { vipFetch, withQuery } from "@/lib/api";
+import { toCsv } from "@/lib/csv";
+
+/**
+ * Headers and readers for the renewals export, in file order.
+ *
+ * Every field goes through `toCsv`, which quotes it and neutralises
+ * spreadsheet formulas (see lib/csv.ts). `description`, `user.name` and
+ * `package.name` are all user- or operator-supplied free text.
+ */
+const RENEWAL_CSV_COLUMNS = [
+  ["id", (r: PaymentWithUser) => r.id],
+  ["amount", (r: PaymentWithUser) => r.amount],
+  ["currency", (r: PaymentWithUser) => r.currency],
+  ["paymentMethod", (r: PaymentWithUser) => r.paymentMethod],
+  ["status", (r: PaymentWithUser) => r.status],
+  ["cregisId", (r: PaymentWithUser) => r.cregisId || ""],
+  ["amountPaid", (r: PaymentWithUser) => r.amountPaid || ""],
+  ["telegramLink", (r: PaymentWithUser) => r.telegramLink || ""],
+  ["description", (r: PaymentWithUser) => r.description || ""],
+  ["createdAt", (r: PaymentWithUser) => r.createdAt],
+  ["updatedAt", (r: PaymentWithUser) => r.updatedAt],
+  ["utmSource", (r: PaymentWithUser) => r.utmSource || ""],
+  ["user.id", (r: PaymentWithUser) => r.user.id],
+  ["user.name", (r: PaymentWithUser) => r.user.name],
+  ["user.email", (r: PaymentWithUser) => r.user.email],
+  ["user.phoneNumber", (r: PaymentWithUser) => r.user.phoneNumber],
+  ["user.country", (r: PaymentWithUser) => r.user.country],
+  ["package.id", (r: PaymentWithUser) => r.package.id],
+  ["package.name", (r: PaymentWithUser) => r.package.name],
+  ["package.duration", (r: PaymentWithUser) => r.package.duration],
+] as const;
+
+/** The exact file the download button writes. Exported so tests can parse it. */
+export function buildRenewalsCsv(
+  renewals: readonly PaymentWithUser[]
+): string {
+  return toCsv([
+    RENEWAL_CSV_COLUMNS.map(([header]) => header),
+    ...renewals.map((renewal) =>
+      RENEWAL_CSV_COLUMNS.map(([, read]) => read(renewal))
+    ),
+  ]);
+}
 
 const RenewalsDataClient = () => {
   const [formattedRenewals, setFormattedRenewals] = useState<PaymentWithUser[]>(
@@ -143,23 +186,7 @@ const RenewalsDataClient = () => {
   };
 
   const downloadCSV = () => {
-    let csv =
-      "id,amount,currency,paymentMethod,status,cregisId,amountPaid,telegramLink,description,createdAt,updatedAt,utmSource,user.id,user.name,user.email,user.phoneNumber,user.country,package.id,package.name,package.duration\n";
-    formattedRenewals.forEach((renewal) => {
-      csv += `"${renewal.id}","${renewal.amount}","${renewal.currency}","${
-        renewal.paymentMethod
-      }","${renewal.status}","${renewal.cregisId || ""}","${
-        renewal.amountPaid || ""
-      }","${renewal.telegramLink || ""}","${renewal.description || ""}","${
-        renewal.createdAt
-      }","${renewal.updatedAt}","${renewal.utmSource || ""}","${
-        renewal.user.id
-      }","${renewal.user.name}","${renewal.user.email}","${
-        renewal.user.phoneNumber
-      }","${renewal.user.country}","${renewal.package.id}","${
-        renewal.package.name
-      }","${renewal.package.duration}"\n`;
-    });
+    const csv = buildRenewalsCsv(formattedRenewals);
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);

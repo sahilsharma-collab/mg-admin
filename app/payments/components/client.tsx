@@ -6,8 +6,49 @@ import { Download } from "lucide-react";
 import { usePagination } from "@/context/pagination-context";
 import { DataTableWithApiPagination } from "@/components/ui/data-table2";
 import { vipFetch, withQuery } from "@/lib/api";
+import { toCsv } from "@/lib/csv";
 
 // Update the interface to include raw date fields if not already present
+
+/**
+ * Headers and readers for the payments export, in file order.
+ *
+ * Every field goes through `toCsv`, which quotes it and neutralises
+ * spreadsheet formulas (see lib/csv.ts). `description`, `telegramLink` and
+ * `user.name` are all user-controlled free text.
+ */
+const PAYMENT_CSV_COLUMNS = [
+  ["id", (p: PaymentWithUser) => p.id],
+  ["amount", (p: PaymentWithUser) => p.amount],
+  ["currency", (p: PaymentWithUser) => p.currency],
+  ["paymentMethod", (p: PaymentWithUser) => p.paymentMethod],
+  ["status", (p: PaymentWithUser) => p.status || ""],
+  ["cregisId", (p: PaymentWithUser) => p.cregisId || ""],
+  ["amountPaid", (p: PaymentWithUser) => p.amountPaid || ""],
+  ["epayId", (p: PaymentWithUser) => p.epayId || ""],
+  ["telegramLink", (p: PaymentWithUser) => p.telegramLink || ""],
+  ["description", (p: PaymentWithUser) => p.description || ""],
+  ["createdAt", (p: PaymentWithUser) => p.createdAt],
+  ["updatedAt", (p: PaymentWithUser) => p.updatedAt],
+  ["user.id", (p: PaymentWithUser) => p.user.id],
+  ["user.name", (p: PaymentWithUser) => p.user.name],
+  ["user.email", (p: PaymentWithUser) => p.user.email],
+  ["user.phoneNumber", (p: PaymentWithUser) => p.user.phoneNumber],
+  ["user.country", (p: PaymentWithUser) => p.user.country],
+  ["package.id", (p: PaymentWithUser) => p.package.id],
+] as const;
+
+/** The exact file the download button writes. Exported so tests can parse it. */
+export function buildPaymentsCsv(
+  payments: readonly PaymentWithUser[]
+): string {
+  return toCsv([
+    PAYMENT_CSV_COLUMNS.map(([header]) => header),
+    ...payments.map((payment) =>
+      PAYMENT_CSV_COLUMNS.map(([, read]) => read(payment))
+    ),
+  ]);
+}
 
 const UserDataClient = () => {
   const [formattedUsers, setFormattedUsers] = useState<PaymentWithUser[]>([]);
@@ -194,21 +235,7 @@ const UserDataClient = () => {
   };
 
   const downloadCSV = () => {
-    let csv =
-      "id,amount,currency,paymentMethod,status,cregisId,amountPaid,epayId,telegramLink,description,createdAt,updatedAt,user.id,user.name,user.email,user.phoneNumber,user.country,package.id\n";
-    formattedUsers.forEach((user) => {
-      csv += `"${user.id}","${user.amount}","${user.currency}","${
-        user.paymentMethod
-      }","${user.status || ""}","${user.cregisId || ""}","${
-        user.amountPaid || ""
-      }","${user.epayId || ""}","${user.telegramLink || ""}","${
-        user.description || ""
-      }","${user.createdAt}","${user.updatedAt}","${user.user.id}","${
-        user.user.name
-      }","${user.user.email}","${user.user.phoneNumber}","${
-        user.user.country
-      }","${user.package.id}"\n`;
-    });
+    const csv = buildPaymentsCsv(formattedUsers);
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);

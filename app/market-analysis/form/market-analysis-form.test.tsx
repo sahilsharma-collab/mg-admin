@@ -12,8 +12,28 @@ vi.mock("@/lib/api", () => ({ api }));
 
 // The uploader is a drag/drop/paste widget over next/image; the payload the
 // form builds is what this suite is about, so it is stubbed to a marker.
+//
+// The stub keeps the one part of the real widget's contract the form depends
+// on: picking a file calls onChange(file, preview) where preview is a blob:
+// object URL, not a server URL (components/ui/image-upload.tsx:27-28). That is
+// what lets the upload-failure tests below distinguish "kept the old image"
+// from "persisted a URL that only resolves in this tab".
 vi.mock("@/components/ui/image-upload", () => ({
-  default: () => <div data-testid="image-upload" />,
+  default: ({ onChange }: { onChange: (file: File, preview: string) => void }) => (
+    <div data-testid="image-upload">
+      <button
+        type="button"
+        onClick={() =>
+          onChange(
+            new File(["binary"], "chart.png", { type: "image/png" }),
+            "blob:http://localhost/preview",
+          )
+        }
+      >
+        pick image
+      </button>
+    </div>
+  ),
 }));
 
 const { push, refresh } = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
@@ -149,5 +169,135 @@ describe("MarketAnalysisForm — edit", () => {
       imgUrl: "https://cdn.example.com/a.png",
     });
     expect(api.post).not.toHaveBeenCalled();
+  });
+});
+
+// ── The image upload is the only step that can fail between the operator's
+// click and the write, and it used to fail by destroying data: handleImageUpload
+// returns null (market-analysis-form.tsx:113-117), the payload sent
+// `imgUrl: imgUrl || null`, and the record's existing image was gone while the
+// toast said "Market Analysis updated."
+const pickImage = () =>
+  userEvent.setup().click(screen.getByRole("button", { name: "pick image" }));
+
+const uploadFails = () =>
+  api.post.mockImplementation((url: string) =>
+    url === "/api/upload"
+      ? Promise.reject(new Error("413 Payload Too Large"))
+      : Promise.resolve({ data: {} }),
+  );
+
+const uploadReturns = (fileUrl: string) =>
+  api.post.mockImplementation((url: string) =>
+    url === "/api/upload"
+      ? Promise.resolve({ data: { fileUrl } })
+      : Promise.resolve({ data: {} }),
+  );
+
+const loadedForEdit = async () => {
+  render(<MarketAnalysisForm maId="12" />);
+  await waitFor(() =>
+    expect(screen.getByPlaceholderText(/title/i)).toHaveValue("Nifty outlook"),
+  );
+};
+
+describe("MarketAnalysisForm — a failed image upload", () => {
+  it("writes nothing at all rather than wiping the record's image", async () => {
+    uploadFails();
+    await loadedForEdit();
+    await pickImage();
+    await submit();
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Failed to upload image."));
+    expect(api.put).not.toHaveBeenCalled();
+  });
+
+  it("never sends a null imgUrl over an image the operator did not remove", async () => {
+    uploadFails();
+    await loadedForEdit();
+    await pickImage();
+    await submit();
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    for (const call of api.put.mock.calls) {
+      expect(call[1].imgUrl).not.toBeNull();
+    }
+  });
+
+  it("does not persist the blob: preview URL as if it were the image", async () => {
+    uploadFails();
+    await loadedForEdit();
+    await pickImage();
+    await submit();
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    const sent = JSON.stringify([...api.put.mock.calls, ...api.post.mock.calls.slice(1)]);
+    expect(sent).not.toContain("blob:");
+  });
+
+  it("does not claim the record was updated", async () => {
+    uploadFails();
+    await loadedForEdit();
+    await pickImage();
+    await submit();
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("leaves the form on screen and submittable, so the edits survive", async () => {
+    uploadFails();
+    await loadedForEdit();
+    await pickImage();
+    await submit();
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(screen.getByRole("button", { name: /update/i })).toBeEnabled();
+  });
+
+  it("creates nothing when the upload fails on a new record", async () => {
+    uploadFails();
+    render(<MarketAnalysisForm />);
+    await userEvent.setup().type(screen.getByPlaceholderText(/title/i), "T");
+    await pickImage();
+    await submit();
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Failed to upload image."));
+    expect(api.post).toHaveBeenCalledWith("/api/upload", expect.anything(), expect.anything());
+    expect(api.post).not.toHaveBeenCalledWith("/api/market", expect.anything(), expect.anything());
+  });
+});
+
+// The other direction: a guard that refuses a *successful* upload, or refuses
+// the write outright, would pass every assertion above and still be a defect.
+describe("MarketAnalysisForm — a successful image upload", () => {
+  it("saves the newly uploaded URL on an existing record", async () => {
+    uploadReturns("https://cdn.example.com/new.png");
+    await loadedForEdit();
+    await pickImage();
+    await submit();
+
+    await waitFor(() => expect(api.put).toHaveBeenCalledOnce());
+    expect(api.put.mock.calls[0][1]).toEqual({
+      title: "Nifty outlook",
+      description: "Range bound",
+      imgUrl: "https://cdn.example.com/new.png",
+    });
+    expect(toast.success).toHaveBeenCalledWith("Market Analysis updated.");
+  });
+
+  it("saves the newly uploaded URL on a new record", async () => {
+    uploadReturns("https://cdn.example.com/new.png");
+    render(<MarketAnalysisForm />);
+    await userEvent.setup().type(screen.getByPlaceholderText(/title/i), "T");
+    await pickImage();
+    await submit();
+
+    await waitFor(() =>
+      expect(api.post).toHaveBeenCalledWith("/api/market", expect.anything(), expect.anything()),
+    );
+    const payload = api.post.mock.calls.find((c: unknown[]) => c[0] === "/api/market")![1];
+    expect(payload.imgUrl).toBe("https://cdn.example.com/new.png");
   });
 });

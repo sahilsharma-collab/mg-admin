@@ -12,6 +12,7 @@ import { Download } from "lucide-react";
 import { usePagination } from "@/context/pagination-context";
 import { DataTableWithApiPagination } from "@/components/ui/data-table2";
 import { apiFetch, withQuery } from "@/lib/api";
+import { toCsv } from "@/lib/csv";
 
 // Update the interface to include raw date fields
 export interface EnhancedReferralRequestColumn extends ReferralRequestColumn {
@@ -30,9 +31,37 @@ const formatDateTime = (dateString: string) => {
   return `${formattedDate} ${formattedTime}`;
 };
 
-// Escape a value for safe CSV output (wrap in quotes, double inner quotes)
-const escapeCsv = (value: unknown) =>
-  `"${String(value ?? "").replace(/"/g, '""')}"`;
+/**
+ * Headers and readers for the referral-request export, in file order.
+ *
+ * This file used to carry its own `escapeCsv`, which doubled embedded quotes
+ * but left a leading `=`/`+`/`-`/`@` live, so a crafted user name still
+ * executed on open. `toCsv` does both jobs — see lib/csv.ts.
+ */
+const REFERRAL_CSV_COLUMNS = [
+  ["ID", (r: ReferralRequestResponse) => r.id],
+  ["User ID", (r: ReferralRequestResponse) => r.userId],
+  ["Account ID", (r: ReferralRequestResponse) => r.exnessId],
+  ["Broker", (r: ReferralRequestResponse) => r.broker],
+  ["Status", (r: ReferralRequestResponse) => r.status],
+  ["Created At", (r: ReferralRequestResponse) => formatDateTime(r.createdAt)],
+  ["Updated At", (r: ReferralRequestResponse) => formatDateTime(r.updatedAt)],
+  ["User Name", (r: ReferralRequestResponse) => r.user?.name],
+  ["User Email", (r: ReferralRequestResponse) => r.user?.email],
+  ["User Exness ID", (r: ReferralRequestResponse) => r.user?.exnessId],
+] as const;
+
+/** The exact file the export button writes. Exported so tests can parse it. */
+export function buildReferralRequestsCsv(
+  requests: readonly ReferralRequestResponse[]
+): string {
+  return toCsv([
+    REFERRAL_CSV_COLUMNS.map(([header]) => header),
+    ...requests.map((request) =>
+      REFERRAL_CSV_COLUMNS.map(([, read]) => read(request))
+    ),
+  ]);
+}
 
 const ReferralRequestClient = () => {
   const [formattedRequests, setFormattedRequests] = useState<
@@ -260,28 +289,7 @@ const ReferralRequestClient = () => {
         pages.forEach((requests) => allRequests.push(...requests));
       }
 
-      // CSV header
-      let csv =
-        "ID,User ID,Account ID,Broker,Status,Created At,Updated At,User Name,User Email,User Exness ID\n";
-
-      // Add data rows
-      allRequests.forEach((request) => {
-        csv +=
-          [
-            request.id,
-            request.userId,
-            request.exnessId,
-            request.broker,
-            request.status,
-            formatDateTime(request.createdAt),
-            formatDateTime(request.updatedAt),
-            request.user?.name,
-            request.user?.email,
-            request.user?.exnessId,
-          ]
-            .map(escapeCsv)
-            .join(",") + "\n";
-      });
+      const csv = buildReferralRequestsCsv(allRequests);
 
       // Create download link
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });

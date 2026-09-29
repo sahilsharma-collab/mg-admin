@@ -38,6 +38,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { DeleteConfirmationModal } from "@/components/Modal/DeleteConformationModal";
 
 interface Reaction {
     id: number;
@@ -237,8 +238,20 @@ export default function PostPage({ postId }: any) {
         }
     };
 
-    const handleDeleteReply = async (replyId: number) => {
+    // Deleting a reply is irreversible and was the only destructive item in
+    // this menu that fired on the first click — its neighbour, Suspend User,
+    // has always armed a confirmation first. This reuses the panel's shared
+    // confirmation modal rather than a second bespoke dialog, so that the same
+    // action looks the same wherever an operator meets it.
+    const [replyToDelete, setReplyToDelete] = useState<number | null>(null);
+    const [deleteReplyLoading, setDeleteReplyLoading] = useState(false);
+
+    const handleDeleteReply = async () => {
+        const replyId = replyToDelete;
+        if (replyId === null) return;
+
         try {
+            setDeleteReplyLoading(true);
             const response = await apiFetch(
                 `/api/post/reply/${replyId}`,
                 {
@@ -272,6 +285,9 @@ export default function PostPage({ postId }: any) {
         } catch (error) {
             console.error("Error deleting reply:", error);
             toast.error("Failed to delete reply");
+        } finally {
+            setDeleteReplyLoading(false);
+            setReplyToDelete(null);
         }
     };
 
@@ -376,7 +392,7 @@ export default function PostPage({ postId }: any) {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuItem
-                                        onClick={() => handleDeleteReply(reply.id)}
+                                        onClick={() => setReplyToDelete(reply.id)}
                                         className="text-destructive"
                                     >
                                         Delete Reply
@@ -596,6 +612,15 @@ export default function PostPage({ postId }: any) {
                     </CardContent>
                 </Card>
             )}
+
+            {/* Delete Reply Confirmation Modal */}
+            <DeleteConfirmationModal
+                isOpen={replyToDelete !== null}
+                onClose={() => setReplyToDelete(null)}
+                onConfirm={handleDeleteReply}
+                loading={deleteReplyLoading}
+                warningNote="The reply and every nested reply under it disappear from the thread for good."
+            />
 
             {/* Suspend User Confirmation Dialog */}
             <Dialog

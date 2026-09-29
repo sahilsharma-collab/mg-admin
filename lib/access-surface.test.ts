@@ -3,6 +3,8 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { permissionForPath } from "./permissions";
+
 /**
  * Where the admin panel actually decides who may do what.
  *
@@ -45,6 +47,21 @@ describe("the ADMIN gate", () => {
     expect(withRoleLogic).toEqual(["app/api/auth/login/route.ts"]);
   });
 
+  it("is re-read for revenue only, in the one module that grants permissions", () => {
+    // The login route decides whether a cookie is issued at all. lib/server
+    // re-reads the live role because a cookie outlives a demotion, and revenue
+    // is the one place in the panel worth noticing that. Any third reader is a
+    // new surface that needs its own tests.
+    const withRoleLogic = walk(path.join(ROOT, "lib", "server")).filter((file) =>
+      /\brole\b/.test(read(file)),
+    );
+
+    expect(withRoleLogic.sort()).toEqual([
+      "lib/server/permissions.ts",
+      "lib/server/session.ts",
+    ]);
+  });
+
   it("runs before the cookie is issued, not after", () => {
     const source = read("app/api/auth/login/route.ts");
     const check = source.indexOf('role !== "ADMIN"');
@@ -75,7 +92,10 @@ describe("the ADMIN gate", () => {
   });
 });
 
-describe("the payments pages are gated only in the sidebar", () => {
+describe("the revenue pages are gated on the server", () => {
+  // The four addresses that used to be a render condition in the sidebar. They
+  // are a fallback in lib/server/permissions.ts now, overridden by
+  // REVENUE_ADMIN_EMAILS, and they must not reach the browser again.
   const ALLOWLIST = [
     "anish@boomingbulls.com",
     "sandeepsingh@boomingbulls.com",
@@ -83,34 +103,115 @@ describe("the payments pages are gated only in the sidebar", () => {
     "dexcetogaming@gmail.com",
   ];
 
-  it("keeps the allowlist in one client component", () => {
-    const sidebar = read("components/Sidebar/Sidebar.tsx");
-    for (const email of ALLOWLIST) expect(sidebar).toContain(email);
+  // Same split as lib/session-surface.test.ts: these two prefixes are the
+  // server half and never ship to the browser.
+  const SERVER_PREFIXES = ["app/api/", "lib/server/"];
+  const allSources = ["app", "components", "context", "lib"].flatMap((dir) =>
+    walk(path.join(ROOT, dir)),
+  );
+  const clientSources = allSources.filter(
+    (file) => !SERVER_PREFIXES.some((prefix) => file.startsWith(prefix)),
+  );
+
+  const pageRoute = (file: string) =>
+    "/" +
+    path
+      .dirname(path.relative("app", file))
+      .split(path.sep)
+      .filter((segment) => segment !== "." && !/^\(.*\)$/.test(segment))
+      .join("/");
+
+  const guardedPages = allSources.filter(
+    (file) =>
+      path.basename(file) === "page.tsx" &&
+      permissionForPath(pageRoute(file)) !== undefined,
+  );
+
+  it("holds the allowlist on the server, in one module", () => {
+    const source = read("lib/server/permissions.ts");
+    for (const email of ALLOWLIST) expect(source).toContain(email);
   });
 
-  it("has that allowlist nowhere else — not in any server route", () => {
-    const elsewhere = [...walk(path.join(ROOT, "app")), ...walk(path.join(ROOT, "lib"))]
-      .filter((file) => ALLOWLIST.some((email) => read(file).includes(email)));
+  it("has it in no file that reaches the browser — the sidebar included", () => {
+    // Inverted KNOWN GAP. This used to assert the opposite: that the addresses
+    // lived in components/Sidebar/Sidebar.tsx and nowhere else, which named the
+    // finance-privileged operators to anyone who viewed source.
+    const leaked = clientSources.filter((file) =>
+      ALLOWLIST.some((email) => read(file).includes(email)),
+    );
 
-    expect(elsewhere).toEqual([]);
+    expect(leaked).toEqual([]);
+  });
+
+  it("lets a deployment set the group without a rebuild", () => {
+    expect(read("lib/server/permissions.ts")).toContain(
+      "process.env.REVENUE_ADMIN_EMAILS",
+    );
+  });
+
+  it("decides the sidebar links on the permission, not on an address", () => {
+    const sidebar = read("components/Sidebar/Sidebar.tsx");
+
+    expect(sidebar).toContain('can(granted, "revenue:read")');
+    expect(sidebar).not.toMatch(/user\.email\s*===/);
+  });
+
+  it("found the revenue pages to check at all", () => {
+    // A route-derivation bug that matched nothing would make the guard test
+    // below pass over an empty list.
+    expect(guardedPages.sort()).toEqual([
+      "app/payment-dashboard/page.tsx",
+      "app/renewals/page.tsx",
+    ]);
   });
 
   it.each(["app/renewals/page.tsx", "app/payment-dashboard/page.tsx"])(
-    "records that %s carries no guard of its own",
+    "makes %s refuse on its own",
     (page) => {
-      // KNOWN GAP. The sidebar hides these links from operators outside the
-      // allowlist; the pages themselves are reachable by typing the URL, and
-      // they render customer names, emails, phone numbers and payment amounts.
-      // Moving the allowlist server-side is a product decision — when it is
-      // made, this expectation is the one to invert.
+      // Inverted KNOWN GAP. This used to assert that these pages carried no
+      // guard: the sidebar hid the links, and typing the URL reached the full
+      // renewals table plus a CSV of every customer's name, email, phone,
+      // country and payment amount.
       const source = read(page);
 
-      expect(source).not.toMatch(/useUserProfile|redirect|notFound|allowlist/);
-      expect(source).not.toMatch(/\bemail\b/);
+      expect(source).toContain('requirePermission("revenue:read")');
+      expect(source).toMatch(/from\s+["']@\/lib\/server\/guard["']/);
     },
   );
 
-  it("records that middleware does not single those pages out either", () => {
-    expect(read("middleware.ts")).not.toMatch(/renewals|payment-dashboard/);
+  it("guards every page under a permissioned route, including ones added later", () => {
+    // The prefix match in lib/permissions.ts covers nested routes, so a page
+    // added at /renewals/export is permissioned the moment it exists. Nothing
+    // enforces that at runtime — a page that forgets the call simply renders —
+    // so the build fails here instead.
+    const unguarded = guardedPages.filter(
+      (file) => !read(file).includes("requirePermission("),
+    );
+
+    expect(unguarded).toEqual([]);
+  });
+
+  it("keeps the grant source out of client components entirely", () => {
+    // What `server-only` would do if it were a dependency here: a "use client"
+    // file that imports lib/server would bundle the allowlist.
+    const importers = clientSources.filter(
+      (file) =>
+        /^["']use client["']/m.test(read(file)) &&
+        /from\s+["']@\/lib\/server\//.test(read(file)),
+    );
+
+    expect(importers).toEqual([]);
+  });
+
+  it("leaves middleware gating on the cookie alone, deliberately", () => {
+    // Not an oversight and not a gap. The session cookie is an opaque bearer
+    // token, so middleware could only learn who the caller is by spending it on
+    // /api/profile — a network round trip on every matched navigation, which
+    // would make the API's availability the panel's availability. The check
+    // lives in the page guards, which run once, on the server, per page.
+    const source = read("middleware.ts");
+
+    expect(source).not.toMatch(/renewals|payment-dashboard/);
+    expect(source).toContain('request.cookies.get("auth_token")');
   });
 });

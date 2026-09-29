@@ -122,10 +122,26 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
         try {
             setLoading(true);
 
-            // Upload image if a new file is selected
+            // Upload image if a new file is selected.
+            //
+            // handleImageUpload returns null on failure, having already toasted
+            // the error. Falling through with that null used to send
+            // `imgUrl: null` below, wiping the record's existing image — a
+            // destruction the operator never asked for, reported as a success.
+            // The form's own data.imgUrl is not a safe fallback either:
+            // ImageUpload replaces it with a blob: object URL the moment a file
+            // is picked (components/ui/image-upload.tsx:27-28), so keeping it
+            // would persist a URL that resolves to nothing outside this tab.
+            //
+            // So abort the submit, matching how the same failure is handled in
+            // app/update-profile/components/EditProfileModal.tsx:196-197.
+            // Nothing is written, nothing is destroyed, no success toast fires,
+            // and the edits stay on screen for a retry.
             let imgUrl = data.imgUrl;
             if (imageFile) {
-                imgUrl = await handleImageUpload(imageFile);
+                const uploadedUrl = await handleImageUpload(imageFile);
+                if (!uploadedUrl) return;
+                imgUrl = uploadedUrl;
             }
 
             // P3-8: pinned to the API's request contract, generated from its Zod

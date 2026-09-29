@@ -9,11 +9,41 @@ import { CellAction } from "./cell-actions";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { toCsv } from "@/lib/csv";
 
 // Update the interface to include raw date fields
 export interface EnhancedIssueColumn extends IssueColumn {
   createdAtRaw: Date;
   updatedAtRaw: Date;
+}
+
+/**
+ * Headers and readers for the reported-issues export, in file order.
+ *
+ * Issue titles, descriptions and remarks are free text, so they hold quotes,
+ * commas and newlines — and, just as easily, a leading `=` that a spreadsheet
+ * would execute. This file used to double quotes inline, which fixed the first
+ * problem and not the second; `toCsv` fixes both (see lib/csv.ts).
+ */
+const ISSUE_CSV_COLUMNS = [
+  ["Issue ID", (i: IssueColumn) => i.id],
+  ["Title", (i: IssueColumn) => i.title],
+  ["Description", (i: IssueColumn) => i.description],
+  ["User Name", (i: IssueColumn) => i.userName],
+  ["User Email", (i: IssueColumn) => i.userEmail],
+  ["Status", (i: IssueColumn) => i.status],
+  ["Remarks", (i: IssueColumn) => i.remarks || "N/A"],
+  ["Created At", (i: IssueColumn) => i.createdAt],
+  ["Updated At", (i: IssueColumn) => i.updatedAt],
+  ["Image URL", (i: IssueColumn) => i.image || "No image"],
+] as const;
+
+/** The exact file the export button writes. Exported so tests can parse it. */
+export function buildIssuesCsv(issues: readonly IssueColumn[]): string {
+  return toCsv([
+    ISSUE_CSV_COLUMNS.map(([header]) => header),
+    ...issues.map((issue) => ISSUE_CSV_COLUMNS.map(([, read]) => read(issue))),
+  ]);
 }
 
 const IssuesClient = () => {
@@ -89,35 +119,11 @@ const IssuesClient = () => {
   // is in its *parser* and this code only writes, so the practical risk was
   // low — but the dependency is dead, and every other export in this panel
   // (users, payments, renewals) already builds a CSV with no library at all.
-  // This one now matches them, and the package is gone.
+  // This one now matches them, and the package is gone. All five now share
+  // lib/csv.ts rather than each carrying their own escaping.
   const exportToCsv = () => {
     try {
-      const columns = [
-        ["Issue ID", (i: IssueColumn) => i.id],
-        ["Title", (i: IssueColumn) => i.title],
-        ["Description", (i: IssueColumn) => i.description],
-        ["User Name", (i: IssueColumn) => i.userName],
-        ["User Email", (i: IssueColumn) => i.userEmail],
-        ["Status", (i: IssueColumn) => i.status],
-        ["Remarks", (i: IssueColumn) => i.remarks || "N/A"],
-        ["Created At", (i: IssueColumn) => i.createdAt],
-        ["Updated At", (i: IssueColumn) => i.updatedAt],
-        ["Image URL", (i: IssueColumn) => i.image || "No image"],
-      ] as const;
-
-      // Issue descriptions and remarks are free text, so they contain quotes,
-      // commas and newlines. The other exports in this panel interpolate
-      // values straight into the string, which corrupts a row the moment one
-      // appears; doubling embedded quotes is what the format actually requires.
-      const cell = (value: unknown) =>
-        `"${String(value ?? "").replace(/"/g, '""')}"`;
-
-      const csv = [
-        columns.map(([header]) => cell(header)).join(","),
-        ...formattedIssues.map((issue) =>
-          columns.map(([, read]) => cell(read(issue))).join(","),
-        ),
-      ].join("\n");
+      const csv = buildIssuesCsv(formattedIssues);
 
       const filename = `reported-issues-${new Date().toISOString().split("T")[0]}.csv`;
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
