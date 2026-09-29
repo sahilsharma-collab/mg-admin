@@ -49,6 +49,15 @@ const DROP_FROM_REQUEST = new Set([
   "x-forwarded-host",
   "x-forwarded-proto",
   "x-real-ip",
+  // Set below from clientIdentityHeaders, for the same reason `authorization`
+  // is. The overwrite there only happens when a secret is configured *and* an
+  // x-forwarded-for is present; when either is missing, `clientIdentityHeaders`
+  // returns {} and a caller-supplied pair would otherwise be relayed to the API
+  // untouched — including from an unauthenticated caller on a PUBLIC_PATH. The
+  // API honours x-mg-client-ip whenever x-mg-proxy-secret matches, so this is
+  // the one header pair the caller must never get to speak for.
+  "x-mg-proxy-secret",
+  "x-mg-client-ip",
 ]);
 
 // `fetch` transparently decompresses, so the upstream's encoding headers no
