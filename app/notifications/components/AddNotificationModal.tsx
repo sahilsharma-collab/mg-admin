@@ -131,7 +131,35 @@ export const AddNotificationModal: React.FC<AddNotificationModalProps> = ({
                 throw new Error("Failed to send notification");
             }
 
-            toast.success("Notification sent successfully");
+            // Read the body, not just the status. The API answers 200 with
+            // "Notification stored but no users to notify" when the audience is
+            // empty, and returns successCount/failureCount when it is not — all
+            // of which was being discarded. So an operator saw a green
+            // "sent successfully" for a broadcast that reached nobody, and
+            // every partial failure was invisible. That is MG-BUG-005: "fails
+            // to trigger" with nothing on screen to say so.
+            const result = await response.json().catch(() => null);
+            const reached = Number(result?.data?.totalTokens ?? 0);
+            const delivered = Number(result?.data?.successCount ?? 0);
+            const failed = Number(result?.data?.failureCount ?? 0);
+
+            if (reached === 0) {
+                toast.error(
+                    "Saved, but no device received it — no push tokens matched.",
+                );
+            } else if (delivered === 0) {
+                toast.error(
+                    `Saved, but delivery failed for all ${reached.toLocaleString()} device(s).`,
+                );
+            } else if (failed > 0) {
+                toast.warning(
+                    `Sent to ${delivered.toLocaleString()} device(s); ${failed.toLocaleString()} failed.`,
+                );
+            } else {
+                toast.success(
+                    `Notification sent to ${delivered.toLocaleString()} device(s)`,
+                );
+            }
             onNotificationAdded();
             setNotificationData({ title: "", body: "" });
             closeAndReset();
