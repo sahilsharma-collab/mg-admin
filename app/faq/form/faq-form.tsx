@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import * as z from "zod";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-toastify";
-import Cookies from "js-cookie";
+import { api } from "@/lib/api";
+import type { CreateFaqInput } from "@/contracts/api-types";
 
 // Form Schema - question and answer are required
 const formSchema = z.object({
@@ -47,7 +48,6 @@ const FAQForm: React.FC<FAQFormProps> = ({ faqId }) => {
         ? "FAQ updated successfully."
         : "FAQ created successfully.";
     const action = isEdit ? "Update" : "Create";
-    const token = Cookies.get("auth_token");
 
     const form = useForm<FAQFormValues>({
         resolver: zodResolver(formSchema),
@@ -63,11 +63,10 @@ const FAQForm: React.FC<FAQFormProps> = ({ faqId }) => {
             const fetchFAQ = async () => {
                 try {
                     setFetching(true);
-                    const response = await axios.get(
-                        `${process.env.NEXT_PUBLIC_PROD_URL}/api/faq/${faqId}`,
+                    const response = await api.get(
+                        `/api/faq/${faqId}`,
                         {
                             headers: {
-                                Authorization: `Bearer ${token}`,
                                 "Content-Type": "application/json",
                             },
                         }
@@ -87,38 +86,39 @@ const FAQForm: React.FC<FAQFormProps> = ({ faqId }) => {
             };
             fetchFAQ();
         }
-    }, [faqId, isEdit, form, token]);
+    }, [faqId, isEdit, form]);
 
     // Handle Form Submission
     const onSubmit = async (data: FAQFormValues) => {
         try {
             setLoading(true);
 
-            const payload = {
+            // P3-8: pinned to the API's request contract, generated from its Zod
+            // schemas. A drift in either direction is a compile error here rather
+            // than a 400 in production. See contracts/README.md.
+            const payload: CreateFaqInput = {
                 question: data.question,
                 answer: data.answer,
             };
 
             if (isEdit && faqId) {
                 // Update FAQ
-                await axios.put(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/faq/${faqId}`,
+                await api.put(
+                    `/api/faq/${faqId}`,
                     payload,
                     {
                         headers: {
-                            Authorization: `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }
                 );
             } else {
                 // Create FAQ
-                await axios.post(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/faq`,
+                await api.post(
+                    "/api/faq",
                     payload,
                     {
                         headers: {
-                            Authorization: `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }
@@ -130,13 +130,13 @@ const FAQForm: React.FC<FAQFormProps> = ({ faqId }) => {
             toast.success(toastMessage);
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
-                console.log("Axios Error:", error.response?.data || error.message);
+                console.error("Axios Error:", error.response?.data || error.message);
                 toast.error(error.response?.data?.message || "Something went wrong.");
             } else if (error instanceof Error) {
-                console.log("Error:", error.message);
+                console.error("Error:", error.message);
                 toast.error(error.message || "Something went wrong.");
             } else {
-                console.log("Unknown Error:", error);
+                console.error("Unknown Error:", error);
                 toast.error("Something went wrong.");
             }
         } finally {

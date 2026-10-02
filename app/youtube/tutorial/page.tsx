@@ -1,12 +1,12 @@
 import React from 'react'
-import YouTubeTutorialClient from './components/client'
+import YouTubeVideoClient from '@/components/youtube/YouTubeVideoClient'
 
-const YoutubeGeneralPage = () => {
+const YouTubeTutorialPage = () => {
     return (
         <div>
-            <YouTubeTutorialClient />
+            <YouTubeVideoClient variant="tutorial" />
         </div>
     )
 }
 
-export default YoutubeGeneralPage
+export default YouTubeTutorialPage

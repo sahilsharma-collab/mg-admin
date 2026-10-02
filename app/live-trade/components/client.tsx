@@ -3,11 +3,11 @@ import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState, useCallback } from "react";
-import Cookies from "js-cookie";
 import { columns, LiveTradeColumn, LiveTradeResponseColumn } from "./columns";
 import { CellAction } from "./cell-actions";
 import { Row } from "@tanstack/react-table";
 import { toast } from "react-toastify";
+import { apiFetch } from "@/lib/api";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,7 +43,6 @@ const LiveTradeClient = () => {
     hasPreviousPage: false,
   });
   const router = useRouter();
-  const token = Cookies.get("auth_token");
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -60,12 +59,11 @@ const LiveTradeClient = () => {
   const fetchACUStatus = useCallback(async () => {
     try {
       setAcuLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/acu-status`,
+      const response = await apiFetch(
+        "/api/acu-status",
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         },
@@ -82,7 +80,7 @@ const LiveTradeClient = () => {
     } finally {
       setAcuLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     fetchACUStatus();
@@ -91,12 +89,11 @@ const LiveTradeClient = () => {
   const handleWarmup = async () => {
     try {
       setWarmingUp(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/warm-db`,
+      const response = await apiFetch(
+        "/api/warm-db",
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         },
@@ -119,12 +116,11 @@ const LiveTradeClient = () => {
   const handleCooldown = async () => {
     try {
       setCoolingDown(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/cool-db`,
+      const response = await apiFetch(
+        "/api/cool-db",
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         },
@@ -148,12 +144,11 @@ const LiveTradeClient = () => {
     async (page: number, limit: number) => {
       try {
         setLoading(true);
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_PROD_URL}/api/trade?page=${page}&limit=${limit}`,
+        const response = await apiFetch(
+          `/api/trade?page=${page}&limit=${limit}`,
           {
             method: "GET",
             headers: {
-              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           },
@@ -164,7 +159,6 @@ const LiveTradeClient = () => {
         }
 
         const data = await response.json();
-        console.log("Live Trade Data:", data);
 
         const formatDateTime = (dateString: string) => {
           const date = new Date(dateString);
@@ -216,7 +210,7 @@ const LiveTradeClient = () => {
         setLoading(false);
       }
     },
-    [token],
+    [],
   );
 
   useEffect(() => {

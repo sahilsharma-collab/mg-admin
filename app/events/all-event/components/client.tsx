@@ -3,26 +3,24 @@ import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
-import Cookies from 'js-cookie';
 import { columns, EventColumn } from './columns';
 import { CellAction } from './cell-actions';
 import { Row } from "@tanstack/react-table";
+import { apiFetch } from "@/lib/api";
 
 const EventClient = () => {
     const [formattedEvents, setFormattedEvents] = useState<EventColumn[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const router = useRouter();
-    const token = Cookies.get('auth_token');
     const [refreshCounter, setRefreshCounter] = useState(0);
 
     useEffect(() => {
         const fetchEvents = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`${process.env.NEXT_PUBLIC_PROD_URL}/api/event`, {
+                const response = await apiFetch("/api/event", {
                     method: "GET",
                     headers: {
-                        "Authorization": `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                 });
@@ -32,7 +30,6 @@ const EventClient = () => {
                 }
 
                 const data = await response.json();
-                console.log("Events Data:", data);
 
                 const formatDateTime = (dateString: string) => {
                     const date = new Date(dateString);
@@ -65,7 +62,7 @@ const EventClient = () => {
         };
 
         fetchEvents();
-    }, [refreshCounter, token]);
+    }, [refreshCounter]);
 
     const refreshData = () => {
         setRefreshCounter(prev => prev + 1);

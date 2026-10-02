@@ -1,6 +1,5 @@
 "use client";
 
-import axios from "axios";
 import { Copy, Edit, MoreHorizontal, Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -11,10 +10,10 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { MarketAnalysisColumn } from "./columns";
+import type { MarketAnalysisColumn } from "./columns";
 import { toast } from "react-toastify";
-import Cookies from 'js-cookie';
 import { DeleteConfirmationModal } from "@/components/Modal/DeleteConformationModal";
+import { api } from "@/lib/api";
 
 interface CellActionProps {
     data: MarketAnalysisColumn;
@@ -28,15 +27,13 @@ export const CellAction: React.FC<CellActionProps> = ({
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const router = useRouter();
-    const token = Cookies.get('auth_token');
 
     const handleDelete = async () => {
         try {
             setLoading(true);
 
-            await axios.delete(`${process.env.NEXT_PUBLIC_PROD_URL}/api/market/${data.id}`, {
+            await api.delete(`/api/market/${data.id}`, {
                 headers: {
-                    "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/json",
                 }
             });

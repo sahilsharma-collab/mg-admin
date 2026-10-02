@@ -10,10 +10,9 @@ import {
     SelectItem,
 } from "@/components/ui/select";
 import { toast } from "react-toastify";
-import axios from "axios";
 import { useState } from "react";
-import Cookies from 'js-cookie';
 import { CellAction } from "./cell-actions";
+import { api } from "@/lib/api";
 
 export interface ReferralReplyResponse {
     id: number;
@@ -54,7 +53,6 @@ const StatusCell = ({ value, rowData, refreshData }: {
     refreshData: () => void
 }) => {
     const [isUpdating, setIsUpdating] = useState(false);
-    const token = Cookies.get('auth_token');
 
     const handleStatusChange = async (newStatus: string) => {
         try {
@@ -67,12 +65,11 @@ const StatusCell = ({ value, rowData, refreshData }: {
             };
 
             // Call the API to update the status
-            const response = await axios.post(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/report/reply/handle`,
+            const response = await api.post(
+                "/api/post/report/reply/handle",
                 requestBody,
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                 }

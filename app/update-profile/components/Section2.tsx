@@ -45,11 +45,14 @@ const Section2 = () => {
         }
     })
 
-    // Form submission handler
-    const onSubmit = (values: z.infer<typeof passwordSchema>) => {
-        console.log(values)
-        // Add your password change logic here
-    }
+    // NOT IMPLEMENTED. This handler has never done anything: the form
+    // validates and then silently resolves, so an admin who submits it is told
+    // nothing and their password is unchanged. The API side exists already
+    // (POST /change-password, validated by changePasswordSchema) — wiring it up
+    // is a behaviour change, not a cleanup, so it is left for its own change.
+    // Takes no parameter because it uses none; react-hook-form passes the
+    // values regardless.
+    const onSubmit = () => {}
 
     return (
         <section className='w-2/3 rounded-lg border text-card-foreground shadow-sm p-4 md:p-7 border-[#00000033] bg-[#DBE7F7] dark:bg-[#4A87D833] dark:border-[#FFFFFF33]'>

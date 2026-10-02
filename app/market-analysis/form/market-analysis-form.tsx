@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import * as z from "zod";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-toastify";
-import Cookies from "js-cookie";
 import ImageUpload from "@/components/ui/image-upload";
+import { api } from "@/lib/api";
+import type { CreateMarketAnalysisInput } from "@/contracts/api-types";
 
 // Updated Form Schema - only title is required
 const formSchema = z.object({
@@ -48,7 +49,6 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
         ? "Market Analysis updated."
         : "Market Analysis created.";
     const action = isEdit ? "Update" : "Create";
-    const token = Cookies.get("auth_token");
 
     const form = useForm<MarketAnalysisFormValues>({
         resolver: zodResolver(formSchema),
@@ -65,11 +65,10 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
             const fetchMarketAnalysis = async () => {
                 try {
                     setFetching(true);
-                    const response = await axios.get(
-                        `${process.env.NEXT_PUBLIC_PROD_URL}/api/market/${maId}`,
+                    const response = await api.get(
+                        `/api/market/${maId}`,
                         {
                             headers: {
-                                Authorization: `Bearer ${token}`,
                                 "Content-Type": "application/json",
                             },
                         }
@@ -90,7 +89,7 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
             };
             fetchMarketAnalysis();
         }
-    }, [maId, isEdit, form, token]);
+    }, [maId, isEdit, form]);
 
     // Handle Image Upload
     const handleImageUpload = async (file: File | null) => {
@@ -100,12 +99,11 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
             const formData = new FormData();
             formData.append("image", file);
 
-            const response = await axios.post(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/upload`,
+            const response = await api.post(
+                "/api/upload",
                 formData,
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`,
                         "Content-Type": "multipart/form-data",
                     },
                 }
@@ -124,13 +122,32 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
         try {
             setLoading(true);
 
-            // Upload image if a new file is selected
+            // Upload image if a new file is selected.
+            //
+            // handleImageUpload returns null on failure, having already toasted
+            // the error. Falling through with that null used to send
+            // `imgUrl: null` below, wiping the record's existing image — a
+            // destruction the operator never asked for, reported as a success.
+            // The form's own data.imgUrl is not a safe fallback either:
+            // ImageUpload replaces it with a blob: object URL the moment a file
+            // is picked (components/ui/image-upload.tsx:27-28), so keeping it
+            // would persist a URL that resolves to nothing outside this tab.
+            //
+            // So abort the submit, matching how the same failure is handled in
+            // app/update-profile/components/EditProfileModal.tsx:196-197.
+            // Nothing is written, nothing is destroyed, no success toast fires,
+            // and the edits stay on screen for a retry.
             let imgUrl = data.imgUrl;
             if (imageFile) {
-                imgUrl = await handleImageUpload(imageFile);
+                const uploadedUrl = await handleImageUpload(imageFile);
+                if (!uploadedUrl) return;
+                imgUrl = uploadedUrl;
             }
 
-            const payload = {
+            // P3-8: pinned to the API's request contract, generated from its Zod
+            // schemas. A drift in either direction is a compile error here rather
+            // than a 400 in production. See contracts/README.md.
+            const payload: CreateMarketAnalysisInput = {
                 title: data.title,
                 description: data.description || null, // Send null if empty
                 imgUrl: imgUrl || null, // Send null if empty
@@ -138,24 +155,22 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
 
             if (isEdit && maId) {
                 // Update Market Analysis
-                await axios.put(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/market/${maId}`,
+                await api.put(
+                    `/api/market/${maId}`,
                     payload,
                     {
                         headers: {
-                            Authorization: `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }
                 );
             } else {
                 // Create Market Analysis
-                await axios.post(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/market`,
+                await api.post(
+                    "/api/market",
                     payload,
                     {
                         headers: {
-                            Authorization: `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }
@@ -167,13 +182,13 @@ const MarketAnalysisForm: React.FC<MarketAnalysisFormProps> = ({ maId }) => {
             toast.success(toastMessage);
         } catch (error: unknown) {
             if (error instanceof AxiosError) {
-                console.log("Axios Error:", error.response?.data || error.message);
+                console.error("Axios Error:", error.response?.data || error.message);
                 toast.error(error.response?.data?.message || "Something went wrong.");
             } else if (error instanceof Error) {
-                console.log("Error:", error.message);
+                console.error("Error:", error.message);
                 toast.error(error.message || "Something went wrong.");
             } else {
-                console.log("Unknown Error:", error);
+                console.error("Unknown Error:", error);
                 toast.error("Something went wrong.");
             }
         } finally {

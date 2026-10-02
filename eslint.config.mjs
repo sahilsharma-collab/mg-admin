@@ -10,6 +10,18 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  // `next lint` supplies these implicitly, but it is deprecated in Next 15 and
+  // a direct `eslint .` has no such defaults: without them ESLint walks .next/
+  // and reports ~14k errors from minified build output.
+  {
+    ignores: [
+      ".next/**",
+      "out/**",
+      "build/**",
+      "next-env.d.ts",
+      "e2e/redis/**",
+    ],
+  },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
 ];
 

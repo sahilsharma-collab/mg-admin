@@ -8,12 +8,12 @@ import {
   Search,
   X,
 } from "lucide-react";
-import Cookies from "js-cookie";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import PostCard from "./PostCard";
+import { apiFetch } from "@/lib/api";
 
 // Types
 interface Reaction {
@@ -62,7 +62,6 @@ const CommunityDashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [suspendLoading, setSuspendLoading] = useState(false);
   const [userToSuspend, setUserToSuspend] = useState<number | null>(null);
-  const token = Cookies.get("auth_token");
   const router = useRouter();
 
   const handlePostClick = useCallback((postId: number) => {
@@ -113,17 +112,15 @@ const CommunityDashboard = () => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        if (!token) {
+        const response = await apiFetch("/api/profile", {
+        });
+
+        if (response.status === 401) {
+          // The signed-out case, which the token-presence check used to cover
+          // before the session moved into an httpOnly cookie.
           toast.error("You are not logged in");
           return;
         }
-
-        const API_BASE_URL = process.env.NEXT_PUBLIC_PROD_URL;
-        const response = await fetch(`${API_BASE_URL}/api/profile`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
 
         if (!response.ok) {
           throw new Error("Failed to fetch profile");
@@ -143,13 +140,11 @@ const CommunityDashboard = () => {
     };
 
     fetchUserProfile();
-  }, [token]);
+  }, []);
 
   // Fetch posts based on active tab
   useEffect(() => {
     const fetchPosts = async () => {
-      if (!token) return;
-
       setLoading(true);
       setError(null);
 
@@ -157,16 +152,15 @@ const CommunityDashboard = () => {
         let endpoint = "";
 
         if (activeTab === "myPosts") {
-          endpoint = `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/my-posts`;
+          endpoint = "/api/post/my-posts";
         } else if (activeTab === "trendingPosts") {
-          endpoint = `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/trending`;
+          endpoint = "/api/post/trending";
         } else {
-          endpoint = `${process.env.NEXT_PUBLIC_PROD_URL}/api/post`;
+          endpoint = "/api/post";
         }
 
-        const response = await fetch(endpoint, {
+        const response = await apiFetch(endpoint, {
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         });
@@ -186,7 +180,7 @@ const CommunityDashboard = () => {
     };
 
     fetchPosts();
-  }, [activeTab, token]);
+  }, [activeTab]);
 
   // Filter posts based on search query
   const filteredPosts = posts.filter(post => {
@@ -229,16 +223,15 @@ const CommunityDashboard = () => {
       let endpoint = "";
 
       if (activeTab === "myPosts") {
-        endpoint = `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/my-post`;
+        endpoint = "/api/post/my-post";
       } else if (activeTab === "trendingPosts") {
-        endpoint = `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/trending`;
+        endpoint = "/api/post/trending";
       } else {
-        endpoint = `${process.env.NEXT_PUBLIC_PROD_URL}/api/post`;
+        endpoint = "/api/post";
       }
 
-      const response = await fetch(endpoint, {
+      const response = await apiFetch(endpoint, {
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
@@ -256,20 +249,15 @@ const CommunityDashboard = () => {
     } finally {
       setRefreshing(false);
     }
-  }, [activeTab, token]);
+  }, [activeTab]);
 
   // Handle post deletion
   const handleDeletePost = useCallback(async (postId: number) => {
-    if (!token) return;
-
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/${postId}`,
+      const response = await apiFetch(
+        `/api/post/${postId}`,
         {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
         }
       );
 
@@ -284,10 +272,10 @@ const CommunityDashboard = () => {
       console.error("Error deleting post:", error);
       toast.error("Failed to delete post");
     }
-  }, [token]);
+  }, []);
 
   const suspendUser = useCallback(async () => {
-    if (!token || !userToSuspend) {
+    if (!userToSuspend) {
       toast.error("User ID is required to suspend a user");
       return;
     }
@@ -295,13 +283,12 @@ const CommunityDashboard = () => {
     setSuspendLoading(true);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/profile/block/${userToSuspend}`,
+      const response = await apiFetch(
+        `/api/profile/block/${userToSuspend}`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({}),
         }
@@ -324,7 +311,7 @@ const CommunityDashboard = () => {
       setSuspendLoading(false);
       setUserToSuspend(null);
     }
-  }, [token, userToSuspend]);
+  }, [userToSuspend]);
 
   return (
     <div className="">
@@ -416,7 +403,6 @@ const CommunityDashboard = () => {
               suspendUser={suspendUser}
               suspendLoading={suspendLoading}
               formatTime={formatTime}
-              token={token}
               setUserToSuspend={setUserToSuspend}
             />
           ))

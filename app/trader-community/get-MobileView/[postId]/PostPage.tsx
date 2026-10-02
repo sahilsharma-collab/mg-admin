@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
-import Cookies from "js-cookie";
 import { toast } from "react-toastify";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -30,6 +29,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 import {
     Dialog,
     DialogContent,
@@ -38,6 +38,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { DeleteConfirmationModal } from "@/components/Modal/DeleteConformationModal";
 
 interface Reaction {
     id: number;
@@ -104,7 +105,6 @@ export default function PostPage({ postId }: any) {
     const [post, setPost] = useState<Post | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("details");
-    const token = Cookies.get("auth_token");
 
     const {
         register,
@@ -126,12 +126,11 @@ export default function PostPage({ postId }: any) {
         const fetchPost = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/${postId}`,
+                const response = await apiFetch(
+                    `/api/post/${postId}`,
                     {
                         method: "GET",
                         headers: {
-                            Authorization: `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }
@@ -152,7 +151,7 @@ export default function PostPage({ postId }: any) {
         };
 
         fetchPost();
-    }, [postId, token, setValue]);
+    }, [postId, setValue]);
 
     const formatDateTime = (dateString: string) => {
         const date = new Date(dateString);
@@ -163,7 +162,7 @@ export default function PostPage({ postId }: any) {
     const [suspendLoading, setSuspendLoading] = useState(false);
 
     const suspendUser = async () => {
-        if (!token || !userToSuspend) {
+        if (!userToSuspend) {
             toast.error("User ID is required to suspend a user");
             return;
         }
@@ -171,13 +170,12 @@ export default function PostPage({ postId }: any) {
         setSuspendLoading(true);
 
         try {
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/profile/block/${userToSuspend}`,
+            const response = await apiFetch(
+                `/api/profile/block/${userToSuspend}`,
                 {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
                     },
                     body: JSON.stringify({}),
                 }
@@ -218,12 +216,11 @@ export default function PostPage({ postId }: any) {
 
     const onSubmit = async (data: PostUpdateFormData) => {
         try {
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/${postId}/status`,
+            const response = await apiFetch(
+                `/api/post/${postId}/status`,
                 {
                     method: "PATCH",
                     headers: {
-                        Authorization: `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify(data),
@@ -241,15 +238,24 @@ export default function PostPage({ postId }: any) {
         }
     };
 
-    const handleDeleteReply = async (replyId: number) => {
+    // Deleting a reply is irreversible and was the only destructive item in
+    // this menu that fired on the first click — its neighbour, Suspend User,
+    // has always armed a confirmation first. This reuses the panel's shared
+    // confirmation modal rather than a second bespoke dialog, so that the same
+    // action looks the same wherever an operator meets it.
+    const [replyToDelete, setReplyToDelete] = useState<number | null>(null);
+    const [deleteReplyLoading, setDeleteReplyLoading] = useState(false);
+
+    const handleDeleteReply = async () => {
+        const replyId = replyToDelete;
+        if (replyId === null) return;
+
         try {
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/reply/${replyId}`,
+            setDeleteReplyLoading(true);
+            const response = await apiFetch(
+                `/api/post/reply/${replyId}`,
                 {
                     method: "DELETE",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
                 }
             );
 
@@ -279,6 +285,9 @@ export default function PostPage({ postId }: any) {
         } catch (error) {
             console.error("Error deleting reply:", error);
             toast.error("Failed to delete reply");
+        } finally {
+            setDeleteReplyLoading(false);
+            setReplyToDelete(null);
         }
     };
 
@@ -383,7 +392,7 @@ export default function PostPage({ postId }: any) {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuItem
-                                        onClick={() => handleDeleteReply(reply.id)}
+                                        onClick={() => setReplyToDelete(reply.id)}
                                         className="text-destructive"
                                     >
                                         Delete Reply
@@ -603,6 +612,15 @@ export default function PostPage({ postId }: any) {
                     </CardContent>
                 </Card>
             )}
+
+            {/* Delete Reply Confirmation Modal */}
+            <DeleteConfirmationModal
+                isOpen={replyToDelete !== null}
+                onClose={() => setReplyToDelete(null)}
+                onConfirm={handleDeleteReply}
+                loading={deleteReplyLoading}
+                warningNote="The reply and every nested reply under it disappear from the thread for good."
+            />
 
             {/* Suspend User Confirmation Dialog */}
             <Dialog

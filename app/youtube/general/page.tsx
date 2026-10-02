@@ -1,12 +1,12 @@
 import React from 'react'
-import YouTubeGeneralClient from './components/client'
+import YouTubeVideoClient from '@/components/youtube/YouTubeVideoClient'
 
-const YoutubeGeneralPage = () => {
+const YouTubeGeneralPage = () => {
     return (
         <div>
-            <YouTubeGeneralClient />
+            <YouTubeVideoClient variant="general" />
         </div>
     )
 }
 
-export default YoutubeGeneralPage
+export default YouTubeGeneralPage

@@ -5,8 +5,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, X, Camera, Loader2 } from "lucide-react";
-import axios from "axios";
-import Cookies from "js-cookie";
 import {
   Form,
   FormControl,
@@ -26,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useUserProfile } from "@/context/UserProfileContext";
 import { toast } from "react-toastify";
+import { api } from "@/lib/api";
 
 // Client-side only schema creation to avoid 'File is not defined' error
 const createProfileSchema = () => {
@@ -103,8 +102,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 }) => {
   const { user, updateProfile, loading: formLoading } = useUserProfile();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const getAuthToken = () => Cookies.get("auth_token");
-  const token = getAuthToken();
   const [imageUploading, setImageUploading] = useState(false);
 
   // Create schema dynamically
@@ -131,12 +128,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       const formData = new FormData();
       formData.append("image", file);
 
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/upload`,
+      const response = await api.post(
+        "/api/upload",
         formData,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
           },
         }

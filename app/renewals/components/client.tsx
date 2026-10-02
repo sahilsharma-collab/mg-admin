@@ -1,11 +1,54 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
-import Cookies from "js-cookie";
 import { columns, PaymentWithUser } from "./columns";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { usePagination } from "@/context/pagination-context";
 import { DataTableWithApiPagination } from "@/components/ui/data-table2";
+import { vipFetch, withQuery } from "@/lib/api";
+import { toCsv } from "@/lib/csv";
+
+/**
+ * Headers and readers for the renewals export, in file order.
+ *
+ * Every field goes through `toCsv`, which quotes it and neutralises
+ * spreadsheet formulas (see lib/csv.ts). `description`, `user.name` and
+ * `package.name` are all user- or operator-supplied free text.
+ */
+const RENEWAL_CSV_COLUMNS = [
+  ["id", (r: PaymentWithUser) => r.id],
+  ["amount", (r: PaymentWithUser) => r.amount],
+  ["currency", (r: PaymentWithUser) => r.currency],
+  ["paymentMethod", (r: PaymentWithUser) => r.paymentMethod],
+  ["status", (r: PaymentWithUser) => r.status],
+  ["cregisId", (r: PaymentWithUser) => r.cregisId || ""],
+  ["amountPaid", (r: PaymentWithUser) => r.amountPaid || ""],
+  ["telegramLink", (r: PaymentWithUser) => r.telegramLink || ""],
+  ["description", (r: PaymentWithUser) => r.description || ""],
+  ["createdAt", (r: PaymentWithUser) => r.createdAt],
+  ["updatedAt", (r: PaymentWithUser) => r.updatedAt],
+  ["utmSource", (r: PaymentWithUser) => r.utmSource || ""],
+  ["user.id", (r: PaymentWithUser) => r.user.id],
+  ["user.name", (r: PaymentWithUser) => r.user.name],
+  ["user.email", (r: PaymentWithUser) => r.user.email],
+  ["user.phoneNumber", (r: PaymentWithUser) => r.user.phoneNumber],
+  ["user.country", (r: PaymentWithUser) => r.user.country],
+  ["package.id", (r: PaymentWithUser) => r.package.id],
+  ["package.name", (r: PaymentWithUser) => r.package.name],
+  ["package.duration", (r: PaymentWithUser) => r.package.duration],
+] as const;
+
+/** The exact file the download button writes. Exported so tests can parse it. */
+export function buildRenewalsCsv(
+  renewals: readonly PaymentWithUser[]
+): string {
+  return toCsv([
+    RENEWAL_CSV_COLUMNS.map(([header]) => header),
+    ...renewals.map((renewal) =>
+      RENEWAL_CSV_COLUMNS.map(([, read]) => read(renewal))
+    ),
+  ]);
+}
 
 const RenewalsDataClient = () => {
   const [formattedRenewals, setFormattedRenewals] = useState<PaymentWithUser[]>(
@@ -15,7 +58,6 @@ const RenewalsDataClient = () => {
   const [totalRenewals, setTotalRenewals] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(0);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
-  const token = Cookies.get("auth_token");
   const { page, limit, setPage, setLimit, resetPagination } = usePagination();
   const [searchQuery, setSearchQuery] = useState("");
   const [dateRange, setDateRange] = useState<{
@@ -27,13 +69,6 @@ const RenewalsDataClient = () => {
   });
 
   const [paymentMethod, setPaymentMethod] = useState<string>("");
-
-  // Method options with display and API value mapping
-  //   const methodOptions = [
-  //     { display: "All Methods", value: "" },
-  //     { display: "UPI", value: "UPI" },
-  //     { display: "CRYPTO", value: "CRYPTO" },
-  //   ];
 
   // Handle initial loading only once
   useEffect(() => {
@@ -50,36 +85,18 @@ const RenewalsDataClient = () => {
   const fetchRenewals = useCallback(async () => {
     try {
       setLoading(true);
-      const url = new URL(
-        `${process.env.NEXT_PUBLIC_VIP_URL}/api/payment/renewals`
-      );
-      url.searchParams.append("page", page.toString());
-      url.searchParams.append("limit", limit.toString());
+      const path = withQuery("/api/payment/renewals", {
+        page,
+        limit,
+        email: searchQuery,
+        paymentMethod,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+      });
 
-      // Add search parameters if query exists (email only)
-      if (searchQuery) {
-        url.searchParams.append("email", searchQuery);
-      }
-
-      // Add payment method if set
-      if (paymentMethod) {
-        url.searchParams.append("paymentMethod", paymentMethod);
-      }
-
-      // Add date range parameters if they exist
-      if (dateRange.startDate) {
-        url.searchParams.append("startDate", dateRange.startDate);
-      }
-      if (dateRange.endDate) {
-        url.searchParams.append("endDate", dateRange.endDate);
-      }
-
-      const response = await fetch(url.toString(), {
+      const response = await vipFetch(path, {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       });
 
       if (!response.ok) {
@@ -135,7 +152,7 @@ const RenewalsDataClient = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, searchQuery, dateRange, paymentMethod, token]);
+  }, [page, limit, searchQuery, dateRange, paymentMethod]);
 
   useEffect(() => {
     if (isInitialized) {
@@ -160,12 +177,6 @@ const RenewalsDataClient = () => {
     setPage(1); // Reset to first page when changing date filters
   };
 
-  // Handle method change
-  //   const handleMethodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-  //     setPaymentMethod(e.target.value);
-  //     setPage(1); // Reset to first page when changing method
-  //   };
-
   // Clear all filters
   const handleClearFilters = () => {
     setSearchQuery("");
@@ -175,23 +186,7 @@ const RenewalsDataClient = () => {
   };
 
   const downloadCSV = () => {
-    let csv =
-      "id,amount,currency,paymentMethod,status,cregisId,amountPaid,telegramLink,description,createdAt,updatedAt,utmSource,user.id,user.name,user.email,user.phoneNumber,user.country,package.id,package.name,package.duration\n";
-    formattedRenewals.forEach((renewal) => {
-      csv += `"${renewal.id}","${renewal.amount}","${renewal.currency}","${
-        renewal.paymentMethod
-      }","${renewal.status}","${renewal.cregisId || ""}","${
-        renewal.amountPaid || ""
-      }","${renewal.telegramLink || ""}","${renewal.description || ""}","${
-        renewal.createdAt
-      }","${renewal.updatedAt}","${renewal.utmSource || ""}","${
-        renewal.user.id
-      }","${renewal.user.name}","${renewal.user.email}","${
-        renewal.user.phoneNumber
-      }","${renewal.user.country}","${renewal.package.id}","${
-        renewal.package.name
-      }","${renewal.package.duration}"\n`;
-    });
+    const csv = buildRenewalsCsv(formattedRenewals);
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);

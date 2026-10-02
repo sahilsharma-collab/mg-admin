@@ -1,10 +1,11 @@
 "use client";
 
-import axios from "axios";
-import Cookies from "js-cookie";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import axios from "axios";
+
+import { api } from "@/lib/api";
 
 interface UserProfile {
   id: number;
@@ -29,7 +30,7 @@ interface UserProfileContextType {
   loading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -48,26 +49,25 @@ export const UserProfileProvider = ({
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const getAuthToken = () => Cookies.get("auth_token");
-  const token = getAuthToken();
-
-  const fetchUserProfile = async (token?: string) => {
+  // The session lives in an httpOnly cookie the browser attaches on its own,
+  // so there is no token for this provider to hold, pass down, or key effects
+  // on. An unauthenticated call simply comes back 401.
+  const fetchUserProfile = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/profile`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await api.get("/api/profile");
 
       if (response.data.success) {
         setUser(response.data.user);
       }
     } catch (err) {
+      // 401 here is the ordinary signed-out case, not a failure worth showing:
+      // the proxy has already cleared the dead cookie and middleware will send
+      // the browser to /login on the next navigation.
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        setUser(null);
+        return;
+      }
       console.error("Failed to fetch profile:", err);
       setError("Failed to load user profile");
     } finally {
@@ -79,46 +79,20 @@ export const UserProfileProvider = ({
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setLoading(true);
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/auth/login`,
-        { email, password, deviceId: "web-pc" },
-        { headers: { "Content-Type": "application/json" } }
-      );
+      // The credential exchange happens entirely on the server. This route
+      // logs in, loads the profile, checks the ADMIN role and sets the session
+      // cookie; the token is never part of a response body, so it never enters
+      // this heap and no script on the origin can read it back.
+      const response = await axios.post("/api/auth/login", { email, password });
 
       if (response.data.success) {
-        const token = response.data.token;
-
-        // Fetch user profile to check role before completing login
-        const profileResponse = await axios.get(
-          `${process.env.NEXT_PUBLIC_PROD_URL}/api/profile`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        // Check if user has ADMIN role
-        if (
-          profileResponse.data.success &&
-          profileResponse.data.user?.role !== "ADMIN"
-        ) {
-          toast.error("ADMIN role not found. Access denied.");
-          return false;
-        }
-
-        Cookies.set("auth_token", token, {
-          expires: 30,
-          path: "/",
-        });
-        setUser(profileResponse.data.user);
+        setUser(response.data.user);
         toast.success("Logged in successfully");
         return true;
-      } else {
-        toast.error(response.data.message || "Login failed");
-        return false;
       }
+
+      toast.error(response.data.message || "Login failed");
+      return false;
     } catch (error) {
       console.error("Login error:", error);
       if (axios.isAxiosError(error)) {
@@ -132,24 +106,28 @@ export const UserProfileProvider = ({
     }
   };
 
-  const logout = () => {
-    Cookies.remove("auth_token");
+  const logout = async () => {
+    try {
+      // Revokes server-side and clears the cookie in one response. The cookie
+      // is cleared even if revocation fails, so a failed call can never leave
+      // an operator looking signed in.
+      const response = await axios.post("/api/auth/logout");
+      if (!response.data.revoked) {
+        toast.warn("Signed out locally; the server session may still be active.");
+      }
+    } catch (error) {
+      console.error("Logout failed:", error);
+      toast.warn("Signed out locally; the server session may still be active.");
+    }
+
     setUser(null);
-    toast.success("Logged out successfully");
     router.push("/login");
   };
 
   const updateProfile = async (data: Partial<UserProfile>) => {
     try {
       setLoading(true);
-      const token = getAuthToken();
-      if (!token) throw new Error("Not authenticated");
-
-      const response = await axios.put(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/profile`,
-        data,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await api.put("/api/profile", data);
 
       if (response.data.success) {
         setUser((prev) => ({ ...prev!, ...response.data.user }));
@@ -166,7 +144,7 @@ export const UserProfileProvider = ({
 
   // Initialize
   useEffect(() => {
-    fetchUserProfile(token);
+    fetchUserProfile();
   }, []);
 
   return (

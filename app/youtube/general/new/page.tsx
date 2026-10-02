@@ -1,12 +1,12 @@
 import React from 'react'
-import YouTubeGeneralForm from '../form/youtube-general-form'
+import YouTubeVideoForm from '@/components/youtube/YouTubeVideoForm'
 
-const YoutubeGeneralPage = () => {
+const YouTubeGeneralNewPage = () => {
     return (
         <div>
-            <YouTubeGeneralForm />
+            <YouTubeVideoForm variant="general" />
         </div>
     )
 }
 
-export default YoutubeGeneralPage
+export default YouTubeGeneralNewPage

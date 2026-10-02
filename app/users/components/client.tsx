@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
-import Cookies from "js-cookie";
 import { columns, UserColumn } from "./columns";
 import { CellAction } from "./cell-actions";
 import { Row } from "@tanstack/react-table";
@@ -8,12 +7,45 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { usePagination } from "@/context/pagination-context";
 import { DataTableWithApiPagination } from "@/components/ui/data-table2";
+import { apiFetch, withQuery } from "@/lib/api";
+import { toCsv } from "@/lib/csv";
 
 // Update the interface to include raw date fields if not already present
 export interface EnhancedUserColumn extends UserColumn {
   createdAtRaw: Date;
   updatedAtRaw: Date;
   emailVerified: boolean;
+}
+
+/**
+ * Headers and readers for the users export, in file order.
+ *
+ * Kept as data rather than a template string so every field goes through
+ * `toCsv`, which quotes it and neutralises spreadsheet formulas (see lib/csv.ts
+ * — a display name is user-controlled and may be either a quoted mess or a
+ * live `=HYPERLINK(...)` payload).
+ */
+const USER_CSV_COLUMNS = [
+  ["ID", (u: EnhancedUserColumn) => u.id],
+  ["Name", (u: EnhancedUserColumn) => u.name],
+  ["Email", (u: EnhancedUserColumn) => u.email],
+  ["Role", (u: EnhancedUserColumn) => u.role],
+  ["Phone", (u: EnhancedUserColumn) => u.phone || ""],
+  ["Exness ID", (u: EnhancedUserColumn) => u.exnessId || ""],
+  ["Created At", (u: EnhancedUserColumn) => u.createdAt],
+  ["Updated At", (u: EnhancedUserColumn) => u.updatedAt],
+  ["Exness Verified", (u: EnhancedUserColumn) => u.exnessVerified],
+  ["Email Verified", (u: EnhancedUserColumn) => u.emailVerified],
+] as const;
+
+/** The exact file the download button writes. Exported so tests can parse it. */
+export function buildUsersCsv(
+  users: readonly EnhancedUserColumn[]
+): string {
+  return toCsv([
+    USER_CSV_COLUMNS.map(([header]) => header),
+    ...users.map((user) => USER_CSV_COLUMNS.map(([, read]) => read(user))),
+  ]);
 }
 
 const UserDataClient = () => {
@@ -25,7 +57,6 @@ const UserDataClient = () => {
   const [totalPages, setTotalPages] = useState<number>(0);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const [refreshCounter, setRefreshCounter] = useState(0);
-  const token = Cookies.get("auth_token");
   const { page, limit, setPage, setLimit, resetPagination } = usePagination();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchField, setSearchField] = useState<string>("email"); // Default search field
@@ -52,35 +83,18 @@ const UserDataClient = () => {
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const url = new URL(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/profile/paginated/all`
-      );
-      url.searchParams.append("page", page.toString());
-      url.searchParams.append("limit", limit.toString());
+      const path = withQuery("/api/profile/paginated/all", {
+        page,
+        limit,
+        email: searchField === "email" ? searchQuery : null,
+        exnessId: searchField === "exnessId" ? searchQuery : null,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+      });
 
-      // Add search parameters if query exists
-      if (searchQuery) {
-        if (searchField === "email") {
-          url.searchParams.append("email", searchQuery);
-        } else if (searchField === "exnessId") {
-          url.searchParams.append("exnessId", searchQuery);
-        }
-      }
-
-      // Add date range parameters if they exist
-      if (dateRange.startDate) {
-        url.searchParams.append("startDate", dateRange.startDate);
-      }
-      if (dateRange.endDate) {
-        url.searchParams.append("endDate", dateRange.endDate);
-      }
-
-      const response = await fetch(url.toString(), {
+      const response = await apiFetch(path, {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       });
 
       if (!response.ok) {
@@ -101,7 +115,6 @@ const UserDataClient = () => {
         )}`;
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const formattedData: EnhancedUserColumn[] = data.users.map(
         (user: EnhancedUserColumn) => ({
           id: user.id,
@@ -127,7 +140,7 @@ const UserDataClient = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, searchQuery, searchField, dateRange, token]);
+  }, [page, limit, searchQuery, searchField, dateRange]);
 
   useEffect(() => {
     if (isInitialized) {
@@ -173,15 +186,7 @@ const UserDataClient = () => {
   };
 
   const downloadCSV = () => {
-    let csv =
-      "ID,Name,Email,Role,Phone,Exness ID,Created At,Updated At,Exness Verified,Email Verified\n";
-    formattedUsers.forEach((user) => {
-      csv += `"${user.id}","${user.name}","${user.email}","${user.role}","${
-        user.phone || ""
-      }","${user.exnessId || ""}","${user.createdAt}","${user.updatedAt}","${
-        user.exnessVerified
-      }","${user.emailVerified}"\n`;
-    });
+    const csv = buildUsersCsv(formattedUsers);
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);

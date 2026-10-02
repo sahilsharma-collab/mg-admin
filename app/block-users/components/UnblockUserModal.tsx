@@ -5,8 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "react-toastify";
-import Cookies from "js-cookie";
-import axios from "axios";
+import { api } from "@/lib/api";
 
 interface UnblockUserModalProps {
     isOpen: boolean;
@@ -26,18 +25,16 @@ export const UnblockUserModal: React.FC<UnblockUserModalProps> = ({
     onSuccess,
 }) => {
     const [loading, setLoading] = useState(false);
-    const token = Cookies.get("auth_token");
 
     const handleUnblock = async () => {
         try {
             setLoading(true);
 
-            const response = await axios.post(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/profile/unblock/${user.id}`,
+            const response = await api.post(
+                `/api/profile/unblock/${user.id}`,
                 {},
                 {
                     headers: {
-                        "Authorization": `Bearer ${token}`,
                         "Content-Type": "application/json",
                     }
                 }

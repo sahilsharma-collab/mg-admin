@@ -10,10 +10,9 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "react-toastify";
-import axios from "axios";
 import { useState } from "react";
-import Cookies from "js-cookie";
 import { RejectReasonModal } from "./RejectReasonModal";
+import { api } from "@/lib/api";
 
 export interface ReferralRequestResponse {
   id: number;
@@ -58,13 +57,12 @@ const StatusCell = ({
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
-  const token = Cookies.get("auth_token");
 
   const updateStatus = async (newStatus: string, rejectionReason?: string) => {
     try {
       setIsUpdating(true);
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_PROD_URL}/api/exness/verify`,
+      await api.post(
+        "/api/exness/verify",
         {
           requestId: requestId,
           status: newStatus,
@@ -73,7 +71,6 @@ const StatusCell = ({
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }

@@ -1,26 +1,24 @@
 "use client";
 import { DataTable } from '@/components/ui/data-table';
 import React, { useEffect, useState } from 'react';
-import Cookies from 'js-cookie';
 import { columns, CommunityPostColumn } from './columns';
 import { CellAction } from './cell-actions';
 import { Row } from "@tanstack/react-table";
 import { PostResponse } from '../../get-all/components/columns';
+import { apiFetch } from "@/lib/api";
 
 const CommunityGetMyClient = () => {
     const [formattedPosts, setFormattedPosts] = useState<CommunityPostColumn[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
-    const token = Cookies.get('auth_token');
     const [refreshCounter, setRefreshCounter] = useState(0);
 
     useEffect(() => {
         const fetchPosts = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`${process.env.NEXT_PUBLIC_PROD_URL}/api/post/my-posts`, {
+                const response = await apiFetch("/api/post/my-posts", {
                     method: "GET",
                     headers: {
-                        "Authorization": `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                 });
@@ -30,7 +28,6 @@ const CommunityGetMyClient = () => {
                 }
 
                 const data = await response.json();
-                console.log("Posts Data:", data);
 
                 const formatDateTime = (dateString: string) => {
                     const date = new Date(dateString);

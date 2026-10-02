@@ -3,9 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { format } from 'date-fns';
-import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
-import axios from 'axios';
 import {
     Select,
     SelectContent,
@@ -15,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { api } from "@/lib/api";
 
 interface ReplyReport {
     id: number;
@@ -45,18 +44,16 @@ const ReplyReportPage = ({ replyId }: { replyId: string }) => {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [status, setStatus] = useState("PENDING");
-    const token = Cookies.get('auth_token');
     const router = useRouter();
 
     useEffect(() => {
         const fetchReport = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get(
-                    `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/reply/report/${replyId}`,
+                const response = await api.get(
+                    `/api/post/reply/report/${replyId}`,
                     {
                         headers: {
-                            "Authorization": `Bearer ${token}`,
                             "Content-Type": "application/json",
                         },
                     }
@@ -77,7 +74,7 @@ const ReplyReportPage = ({ replyId }: { replyId: string }) => {
         };
 
         fetchReport();
-    }, [replyId, token]);
+    }, [replyId]);
 
     const formatDateTime = (dateString: string) => {
         const date = new Date(dateString);
@@ -107,12 +104,11 @@ const ReplyReportPage = ({ replyId }: { replyId: string }) => {
                 blockUser: true,
             };
 
-            const response = await axios.post(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/report/reply/handle`,
+            const response = await api.post(
+                "/api/post/report/reply/handle",
                 requestBody,
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                 }

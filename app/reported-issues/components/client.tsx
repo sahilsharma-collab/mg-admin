@@ -1,15 +1,15 @@
 "use client";
 import { DataTable } from "@/components/ui/data-table";
 import React, { useEffect, useState } from "react";
-import Cookies from "js-cookie";
 import { columns, IssueColumn, IssueResponseColumn } from "./columns";
 import { Row } from "@tanstack/react-table";
 import { toast } from "react-toastify";
 import Image from "next/image";
 import { CellAction } from "./cell-actions";
-import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import { apiFetch } from "@/lib/api";
+import { toCsv } from "@/lib/csv";
 
 // Update the interface to include raw date fields
 export interface EnhancedIssueColumn extends IssueColumn {
@@ -17,24 +17,51 @@ export interface EnhancedIssueColumn extends IssueColumn {
   updatedAtRaw: Date;
 }
 
+/**
+ * Headers and readers for the reported-issues export, in file order.
+ *
+ * Issue titles, descriptions and remarks are free text, so they hold quotes,
+ * commas and newlines — and, just as easily, a leading `=` that a spreadsheet
+ * would execute. This file used to double quotes inline, which fixed the first
+ * problem and not the second; `toCsv` fixes both (see lib/csv.ts).
+ */
+const ISSUE_CSV_COLUMNS = [
+  ["Issue ID", (i: IssueColumn) => i.id],
+  ["Title", (i: IssueColumn) => i.title],
+  ["Description", (i: IssueColumn) => i.description],
+  ["User Name", (i: IssueColumn) => i.userName],
+  ["User Email", (i: IssueColumn) => i.userEmail],
+  ["Status", (i: IssueColumn) => i.status],
+  ["Remarks", (i: IssueColumn) => i.remarks || "N/A"],
+  ["Created At", (i: IssueColumn) => i.createdAt],
+  ["Updated At", (i: IssueColumn) => i.updatedAt],
+  ["Image URL", (i: IssueColumn) => i.image || "No image"],
+] as const;
+
+/** The exact file the export button writes. Exported so tests can parse it. */
+export function buildIssuesCsv(issues: readonly IssueColumn[]): string {
+  return toCsv([
+    ISSUE_CSV_COLUMNS.map(([header]) => header),
+    ...issues.map((issue) => ISSUE_CSV_COLUMNS.map(([, read]) => read(issue))),
+  ]);
+}
+
 const IssuesClient = () => {
   const [formattedIssues, setFormattedIssues] = useState<EnhancedIssueColumn[]>(
     []
   );
   const [loading, setLoading] = useState<boolean>(true);
-  const token = Cookies.get("auth_token");
   const [refreshCounter, setRefreshCounter] = useState(0);
 
   useEffect(() => {
     const fetchIssues = async () => {
       try {
         setLoading(true);
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_PROD_URL}/api/issue`,
+        const response = await apiFetch(
+          "/api/issue",
           {
             method: "GET",
             headers: {
-              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           }
@@ -83,60 +110,36 @@ const IssuesClient = () => {
     };
 
     fetchIssues();
-  }, [refreshCounter, token]);
+  }, [refreshCounter]);
 
   const refreshData = () => setRefreshCounter((prev) => prev + 1);
 
-  // Excel export function
-  const exportToExcel = () => {
+  // P2-9. This used the `xlsx` package, which is unmaintained on npm and
+  // carries unfixed prototype-pollution and ReDoS advisories. The exploit path
+  // is in its *parser* and this code only writes, so the practical risk was
+  // low — but the dependency is dead, and every other export in this panel
+  // (users, payments, renewals) already builds a CSV with no library at all.
+  // This one now matches them, and the package is gone. All five now share
+  // lib/csv.ts rather than each carrying their own escaping.
+  const exportToCsv = () => {
     try {
-      // Prepare data for export (exclude unnecessary fields)
-      const exportData = formattedIssues.map((issue) => ({
-        "Issue ID": issue.id,
-        Title: issue.title,
-        Description: issue.description,
-        "User Name": issue.userName,
-        "User Email": issue.userEmail,
-        Status: issue.status,
-        Remarks: issue.remarks || "N/A",
-        "Created At": issue.createdAt,
-        "Updated At": issue.updatedAt,
-        "Image URL": issue.image || "No image",
-      }));
+      const csv = buildIssuesCsv(formattedIssues);
 
-      // Create workbook and worksheet
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(exportData);
+      const filename = `reported-issues-${new Date().toISOString().split("T")[0]}.csv`;
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
-      // Set column widths for better readability
-      const colWidths = [
-        { wch: 10 }, // Issue ID
-        { wch: 25 }, // Title
-        { wch: 40 }, // Description
-        { wch: 20 }, // User Name
-        { wch: 25 }, // User Email
-        { wch: 12 }, // Status
-        { wch: 30 }, // Remarks
-        { wch: 18 }, // Created At
-        { wch: 18 }, // Updated At
-        { wch: 30 }, // Image URL
-      ];
-      ws["!cols"] = colWidths;
-
-      // Add the worksheet to workbook
-      XLSX.utils.book_append_sheet(wb, ws, "Reported Issues");
-
-      // Generate filename with current date
-      const currentDate = new Date().toISOString().split("T")[0];
-      const filename = `reported-issues-${currentDate}.xlsx`;
-
-      // Write and download the file
-      XLSX.writeFile(wb, filename);
-
-      toast.success(`Excel file "${filename}" downloaded successfully!`);
+      toast.success(`"${filename}" downloaded successfully!`);
     } catch (error) {
-      console.error("Error exporting to Excel:", error);
-      toast.error("Failed to export data to Excel");
+      console.error("Error exporting issues:", error);
+      toast.error("Failed to export data");
     }
   };
 
@@ -210,14 +213,14 @@ const IssuesClient = () => {
           <div className="flex items-center justify-between w-full">
             <h1 className="text-xl font-semibold">Reported Issues</h1>
             <Button
-              onClick={exportToExcel}
+              onClick={exportToCsv}
               variant="outline"
               size="sm"
               className="flex items-center gap-2"
               disabled={loading || formattedIssues.length === 0}
             >
               <Download className="h-4 w-4" />
-              Export to Excel
+              Export to CSV
             </Button>
           </div>
         }

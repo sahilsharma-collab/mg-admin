@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   IconX,
@@ -27,6 +27,8 @@ import {
 } from "@tabler/icons-react";
 import { useTheme } from "@/context/theme-context";
 import { useUserProfile } from "@/context/UserProfileContext";
+import { can, type Permission } from "@/lib/permissions";
+import { grantedPermissions } from "@/lib/permissions-action";
 
 interface SidebarProps {
   onClose?: () => void;
@@ -43,6 +45,34 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const { theme } = useTheme();
   const { user } = useUserProfile();
 
+  // What this operator may reach is decided on the server; the sidebar only
+  // asks. It used to decide, by comparing user.email against four addresses
+  // written into this file — which put those addresses in the client bundle and
+  // made a render condition the panel's only access control.
+  //
+  // Hiding a link is UX. The refusal lives in lib/server/guard.ts, which the
+  // permissioned pages call before they render anything; drawing a link the
+  // operator may not follow would be untidy, not unsafe.
+  const [granted, setGranted] = useState<Permission[] | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    grantedPermissions()
+      .then((permissions) => {
+        if (active) setGranted(permissions);
+      })
+      .catch(() => {
+        // `can()` already reads null as "no"; this only stops an unhandled
+        // rejection if the action itself cannot be reached.
+        if (active) setGranted([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   if (!user) {
     return null; // or a loading state
   }
@@ -57,32 +87,27 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       href: "/payments",
       label: "VIP",
       icon: <IconVip stroke={2} />,
-      subLinks:
-        user.email === "anish@boomingbulls.com" ||
-        user.email === "sandeepsingh@boomingbulls.com" ||
-        user.email === "diwakarmandal001@gmail.com" ||
-        user.email === "dexcetogaming@gmail.com"
-          ? [
-              {
-                href: "/payments",
-                label: "All Payments",
-              },
-              {
-                href: "/renewals",
-                label: "All Renewals",
-              },
-
-              {
-                href: "/payment-dashboard",
-                label: "Payment Dashboard",
-              },
-            ]
-          : [
-              {
-                href: "/payments",
-                label: "All Payments",
-              },
-            ],
+      subLinks: can(granted, "revenue:read")
+        ? [
+            {
+              href: "/payments",
+              label: "All Payments",
+            },
+            {
+              href: "/renewals",
+              label: "All Renewals",
+            },
+            {
+              href: "/payment-dashboard",
+              label: "Payment Dashboard",
+            },
+          ]
+        : [
+            {
+              href: "/payments",
+              label: "All Payments",
+            },
+          ],
     },
     {
       href: "/market-analysis",

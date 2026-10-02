@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { NotificationColumn } from "./columns";
+import type { NotificationColumn } from "./columns";
 
 interface CellActionProps {
   data: NotificationColumn;

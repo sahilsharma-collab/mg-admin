@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle, Eye, MessageCircle, MoreHorizontal, Pin, ThumbsUp, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
+import { apiFetch } from "@/lib/api";
 
 interface PostCardProps {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,7 +18,6 @@ interface PostCardProps {
     suspendUser: () => void;
     suspendLoading: boolean;
     formatTime: (dateString: string) => string;
-    token?: string;
     setUserToSuspend: (userId: number | null) => void;
 }
 
@@ -32,7 +32,6 @@ const PostCard = ({
     suspendUser,
     suspendLoading,
     formatTime,
-    token,
     setUserToSuspend
 }: PostCardProps) => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -53,12 +52,9 @@ const PostCard = ({
     const fetchComments = async () => {
         setCommentsLoading(true);
         try {
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_PROD_URL}/api/post/${post.id}`,
+            const response = await apiFetch(
+                `/api/post/${post.id}`,
                 {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
                 }
             );
             if (!response.ok) throw new Error('Failed to fetch comments');

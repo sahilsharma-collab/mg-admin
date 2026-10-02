@@ -10,11 +10,11 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { CommunityPostColumn } from "./columns";
+import type { CommunityPostColumn } from "./columns";
 import { toast } from "react-toastify";
-import Cookies from 'js-cookie';
 import { DeleteConfirmationModal } from "@/components/Modal/DeleteConformationModal";
 import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
 
 interface CellActionProps {
     data: CommunityPostColumn;
@@ -27,16 +27,14 @@ export const CellAction: React.FC<CellActionProps> = ({
 }) => {
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const token = Cookies.get('auth_token');
     const router = useRouter();
 
     const handleDelete = async () => {
         try {
             setLoading(true);
 
-            await axios.delete(`${process.env.NEXT_PUBLIC_PROD_URL}/api/post/${data.id}`, {
+            await api.delete(`/api/post/${data.id}`, {
                 headers: {
-                    "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/json",
                 }
             });

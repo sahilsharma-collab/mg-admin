@@ -1,15 +1,54 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
-import Cookies from "js-cookie";
 import { columns, PaymentWithUser } from "./columns";
-// import { CellAction } from "./cell-actions";
-// import { Row } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { usePagination } from "@/context/pagination-context";
 import { DataTableWithApiPagination } from "@/components/ui/data-table2";
+import { vipFetch, withQuery } from "@/lib/api";
+import { toCsv } from "@/lib/csv";
 
 // Update the interface to include raw date fields if not already present
+
+/**
+ * Headers and readers for the payments export, in file order.
+ *
+ * Every field goes through `toCsv`, which quotes it and neutralises
+ * spreadsheet formulas (see lib/csv.ts). `description`, `telegramLink` and
+ * `user.name` are all user-controlled free text.
+ */
+const PAYMENT_CSV_COLUMNS = [
+  ["id", (p: PaymentWithUser) => p.id],
+  ["amount", (p: PaymentWithUser) => p.amount],
+  ["currency", (p: PaymentWithUser) => p.currency],
+  ["paymentMethod", (p: PaymentWithUser) => p.paymentMethod],
+  ["status", (p: PaymentWithUser) => p.status || ""],
+  ["cregisId", (p: PaymentWithUser) => p.cregisId || ""],
+  ["amountPaid", (p: PaymentWithUser) => p.amountPaid || ""],
+  ["epayId", (p: PaymentWithUser) => p.epayId || ""],
+  ["telegramLink", (p: PaymentWithUser) => p.telegramLink || ""],
+  ["description", (p: PaymentWithUser) => p.description || ""],
+  ["createdAt", (p: PaymentWithUser) => p.createdAt],
+  ["updatedAt", (p: PaymentWithUser) => p.updatedAt],
+  ["user.id", (p: PaymentWithUser) => p.user.id],
+  ["user.name", (p: PaymentWithUser) => p.user.name],
+  ["user.email", (p: PaymentWithUser) => p.user.email],
+  ["user.phoneNumber", (p: PaymentWithUser) => p.user.phoneNumber],
+  ["user.country", (p: PaymentWithUser) => p.user.country],
+  ["package.id", (p: PaymentWithUser) => p.package.id],
+] as const;
+
+/** The exact file the download button writes. Exported so tests can parse it. */
+export function buildPaymentsCsv(
+  payments: readonly PaymentWithUser[]
+): string {
+  return toCsv([
+    PAYMENT_CSV_COLUMNS.map(([header]) => header),
+    ...payments.map((payment) =>
+      PAYMENT_CSV_COLUMNS.map(([, read]) => read(payment))
+    ),
+  ]);
+}
 
 const UserDataClient = () => {
   const [formattedUsers, setFormattedUsers] = useState<PaymentWithUser[]>([]);
@@ -18,7 +57,6 @@ const UserDataClient = () => {
   const [totalPages, setTotalPages] = useState<number>(0);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const [refreshCounter, setRefreshCounter] = useState(0);
-  const token = Cookies.get("auth_token");
   const { page, limit, setPage, setLimit, resetPagination } = usePagination();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchField, setSearchField] = useState<string>("email"); // Default search field
@@ -63,41 +101,20 @@ const UserDataClient = () => {
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const url = new URL(`${process.env.NEXT_PUBLIC_VIP_URL}/api/payment`);
-      url.searchParams.append("page", page.toString());
-      url.searchParams.append("limit", limit.toString());
+      const path = withQuery("/api/payment", {
+        page,
+        limit,
+        email: searchField === "email" ? searchQuery : null,
+        orderId: searchField === "orderId" ? searchQuery : null,
+        status: paymentStatus,
+        paymentMethod,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+      });
 
-      // Add search parameters if query exists
-      if (searchQuery) {
-        if (searchField === "email") {
-          url.searchParams.append("email", searchQuery);
-        } else if (searchField === "orderId") {
-          url.searchParams.append("orderId", searchQuery);
-        }
-      }
-
-      // Add payment status and method if they are set
-      if (paymentStatus) {
-        url.searchParams.append("status", paymentStatus);
-      }
-      if (paymentMethod) {
-        url.searchParams.append("paymentMethod", paymentMethod);
-      }
-
-      // Add date range parameters if they exist
-      if (dateRange.startDate) {
-        url.searchParams.append("startDate", dateRange.startDate);
-      }
-      if (dateRange.endDate) {
-        url.searchParams.append("endDate", dateRange.endDate);
-      }
-
-      const response = await fetch(url.toString(), {
+      const response = await vipFetch(path, {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       });
 
       if (!response.ok) {
@@ -118,7 +135,6 @@ const UserDataClient = () => {
         )}`;
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const formattedData: PaymentWithUser[] = data.payments.map(
         (payment: PaymentWithUser) => ({
           id: payment.id,
@@ -163,7 +179,6 @@ const UserDataClient = () => {
     dateRange,
     paymentStatus,
     paymentMethod,
-    token,
   ]);
 
   useEffect(() => {
@@ -171,10 +186,6 @@ const UserDataClient = () => {
       fetchUsers();
     }
   }, [fetchUsers, isInitialized, refreshCounter]);
-
-  // const refreshData = () => {
-  //   setRefreshCounter((prev) => prev + 1);
-  // };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -224,21 +235,7 @@ const UserDataClient = () => {
   };
 
   const downloadCSV = () => {
-    let csv =
-      "id,amount,currency,paymentMethod,status,cregisId,amountPaid,epayId,telegramLink,description,createdAt,updatedAt,user.id,user.name,user.email,user.phoneNumber,user.country,package.id\n";
-    formattedUsers.forEach((user) => {
-      csv += `"${user.id}","${user.amount}","${user.currency}","${
-        user.paymentMethod
-      }","${user.status || ""}","${user.cregisId || ""}","${
-        user.amountPaid || ""
-      }","${user.epayId || ""}","${user.telegramLink || ""}","${
-        user.description || ""
-      }","${user.createdAt}","${user.updatedAt}","${user.user.id}","${
-        user.user.name
-      }","${user.user.email}","${user.user.phoneNumber}","${
-        user.user.country
-      }","${user.package.id}"\n`;
-    });
+    const csv = buildPaymentsCsv(formattedUsers);
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -252,18 +249,6 @@ const UserDataClient = () => {
     link.click();
     document.body.removeChild(link);
   };
-
-  const columnsWithActions = columns.map((col) => {
-    if (col.id === "actions") {
-      return {
-        ...col,
-        // cell: ({ row }: { row: Row<PaymentWithUser> }) => (
-        //   <CellAction data={row.original} onSuccess={refreshData} />
-        // ),
-      };
-    }
-    return col;
-  });
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
@@ -357,7 +342,7 @@ const UserDataClient = () => {
 
       <DataTableWithApiPagination
         redirectUrl=""
-        columns={columnsWithActions}
+        columns={columns}
         data={formattedUsers}
         loading={loading}
         title={

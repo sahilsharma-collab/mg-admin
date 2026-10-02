@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState, useCallback } from "react";
-import Cookies from "js-cookie";
 import {
   columns,
   MarketAnalysisColumn,
@@ -11,6 +10,7 @@ import {
 } from "./columns";
 import { CellAction } from "./cell-actions";
 import { Row } from "@tanstack/react-table";
+import { apiFetch } from "@/lib/api";
 
 interface PaginationInfo {
   currentPage: number;
@@ -35,7 +35,6 @@ const MarketAnalysisClient = () => {
     hasPreviousPage: false,
   });
   const router = useRouter();
-  const token = Cookies.get("auth_token");
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -44,12 +43,11 @@ const MarketAnalysisClient = () => {
     async (page: number, limit: number) => {
       try {
         setLoading(true);
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_PROD_URL}/api/market?page=${page}&limit=${limit}`,
+        const response = await apiFetch(
+          `/api/market?page=${page}&limit=${limit}`,
           {
             method: "GET",
             headers: {
-              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           }
@@ -60,7 +58,6 @@ const MarketAnalysisClient = () => {
         }
 
         const data = await response.json();
-        console.log("Market Analysis Data:", data);
 
         const formatDateTime = (dateString: string) => {
           const date = new Date(dateString);
@@ -113,7 +110,7 @@ const MarketAnalysisClient = () => {
         setLoading(false);
       }
     },
-    [token]
+    []
   );
 
   useEffect(() => {

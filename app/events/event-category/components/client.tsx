@@ -3,26 +3,24 @@ import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
-import Cookies from 'js-cookie';
 import { columns, EventCategoryColumn, EventCategoryResponseColumn } from './columns';
 import { CellAction } from './cell-actions';
 import { Row } from "@tanstack/react-table";
+import { apiFetch } from "@/lib/api";
 
 const EventCategoryClient = () => {
     const [formattedEventCategories, setFormattedEventCategories] = useState<EventCategoryColumn[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const router = useRouter();
-    const token = Cookies.get('auth_token');
     const [refreshCounter, setRefreshCounter] = useState(0);
 
     useEffect(() => {
         const fetchEventCategories = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`${process.env.NEXT_PUBLIC_PROD_URL}/api/event/category`, {
+                const response = await apiFetch("/api/event/category", {
                     method: "GET",
                     headers: {
-                        "Authorization": `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                 });
@@ -32,7 +30,6 @@ const EventCategoryClient = () => {
                 }
 
                 const data = await response.json();
-                console.log("Event Categories Data:", data);
 
                 const formatDateTime = (dateString: string) => {
                     const date = new Date(dateString);
@@ -64,7 +61,7 @@ const EventCategoryClient = () => {
         };
 
         fetchEventCategories();
-    }, [refreshCounter, token]);
+    }, [refreshCounter]);
 
     const refreshData = () => {
         setRefreshCounter(prev => prev + 1);
