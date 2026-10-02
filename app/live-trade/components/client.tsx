@@ -173,13 +173,25 @@ const LiveTradeClient = () => {
 
         const formattedData: LiveTradeColumn[] = data.LiveTrade.map(
           (trade: LiveTradeResponseColumn) => {
-            // Calculate total reactions from grouped reaction counts
-            const totalReactions = trade.reactionCounts
-              ? Object.values(trade.reactionCounts).reduce(
-                  (sum: number, count: number) => sum + count,
-                  0,
-                )
-              : 0;
+            // Calculate total reactions from grouped reaction counts.
+            //
+            // The `: 0` fallback could never fire: reactionCounts is always
+            // PRESENT, just `{}` when the cached trade carried no reactions, and
+            // `{}` is truthy — so the ternary always took the reduce branch and
+            // summed an empty object to zero. The market-analysis column looks
+            // correct only because it falls back to _count.reaction, which the
+            // trade API was not returning at all until now.
+            //
+            // Emptiness is checked explicitly, and _count.reaction is the
+            // backstop. (MG-BUG-004)
+            const totalReactions =
+              trade.reactionCounts &&
+              Object.keys(trade.reactionCounts).length > 0
+                ? Object.values(trade.reactionCounts).reduce(
+                    (sum: number, count: number) => sum + count,
+                    0,
+                  )
+                : (trade._count?.reaction ?? 0);
 
             return {
               id: trade.id,

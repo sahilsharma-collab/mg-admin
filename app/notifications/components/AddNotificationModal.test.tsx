@@ -10,7 +10,13 @@ vi.mock("@/lib/api", async (importOriginal) => {
   return { withQuery: actual.withQuery, apiFetch: (...a: unknown[]) => apiFetch(...a) };
 });
 
-const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+// `warning` is part of the mock because the modal now distinguishes a partial
+// delivery from a clean one. react-toastify declares it (dist/index.d.ts).
+const toast = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+}));
 vi.mock("react-toastify", () => ({ toast }));
 
 const onClose = vi.fn();
@@ -55,7 +61,16 @@ beforeEach(() => {
         json: async () => ({ pagination: { totalUsers: 12345 } }),
       });
     }
-    return Promise.resolve({ ok: true, json: async () => ({}) });
+    // The send endpoint's real success body. It was `{}`, which meant the
+    // suite could not tell a broadcast that reached 12,000 devices from one
+    // that reached none -- the modal reported success either way, which is the
+    // defect this shape now makes visible (MG-BUG-005).
+    return Promise.resolve({
+      ok: true,
+      json: async () => ({
+        data: { totalTokens: 2, successCount: 2, failureCount: 0 },
+      }),
+    });
   });
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -226,9 +241,74 @@ describe("AddNotificationModal — a deliberately confirmed broadcast goes out",
       title: "Markets closed Friday",
       body: "The desk is shut for the holiday.",
     });
-    expect(toast.success).toHaveBeenCalledWith("Notification sent successfully");
+    expect(toast.success).toHaveBeenCalledWith(
+      "Notification sent to 2 device(s)",
+    );
     expect(onNotificationAdded).toHaveBeenCalledOnce();
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+
+  // The whole point of MG-BUG-005: the API answers 200 with "stored but no
+  // users to notify", and the modal used to show a green success toast for it.
+  // An operator had no way to tell a delivered broadcast from a silent one.
+  it("reports a broadcast that reached nobody as a failure, not a success", async () => {
+    apiFetch.mockImplementation((path: string) =>
+      path.startsWith("/api/profile/paginated/all")
+        ? Promise.resolve({
+            ok: true,
+            json: async () => ({ pagination: { totalUsers: 12345 } }),
+          })
+        : Promise.resolve({
+            ok: true,
+            json: async () => ({
+              success: true,
+              message: "Notification stored but no users to notify",
+            }),
+          }),
+    );
+
+    renderModal();
+    await compose();
+    await review();
+    await screen.findByText(/confirm broadcast/i);
+    await arm();
+    await userEvent.setup().click(sendButton());
+
+    await waitFor(() => expect(sends()).toHaveLength(1));
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith(
+      expect.stringMatching(/no push tokens matched/i),
+    );
+  });
+
+  it("surfaces a partial delivery instead of calling it a clean send", async () => {
+    apiFetch.mockImplementation((path: string) =>
+      path.startsWith("/api/profile/paginated/all")
+        ? Promise.resolve({
+            ok: true,
+            json: async () => ({ pagination: { totalUsers: 12345 } }),
+          })
+        : Promise.resolve({
+            ok: true,
+            json: async () => ({
+              data: { totalTokens: 10, successCount: 7, failureCount: 3 },
+            }),
+          }),
+    );
+
+    renderModal();
+    await compose();
+    await review();
+    await screen.findByText(/confirm broadcast/i);
+    await arm();
+    await userEvent.setup().click(sendButton());
+
+    await waitFor(() => expect(sends()).toHaveLength(1));
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.warning).toHaveBeenCalledWith(
+      expect.stringMatching(/7 device\(s\); 3 failed/),
+    );
   });
 
   it("Enter on a wrong phrase says what is needed instead of sending", async () => {
