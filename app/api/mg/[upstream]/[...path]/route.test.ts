@@ -235,6 +235,15 @@ describe("proxy header hygiene", () => {
     expect(forwarded().get(header)).toBeNull();
   });
 
+  it("asks the upstream for an identity encoding so the body is never a compressed blob", async () => {
+    await call(GET, "main", ["api", "profile"], {
+      cookie: SESSION,
+      headers: { "accept-encoding": "gzip, deflate, br" },
+    });
+
+    expect(forwarded().get("accept-encoding")).toBe("identity");
+  });
+
   it("strips a caller-supplied proxy secret rather than relaying a guess", async () => {
     await call(GET, "main", ["api", "profile"], {
       cookie: SESSION,

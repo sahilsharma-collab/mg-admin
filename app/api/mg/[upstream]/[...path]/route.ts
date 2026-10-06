@@ -159,6 +159,15 @@ const proxy = async (
   });
   if (token) headers.set("authorization", `Bearer ${token}`);
 
+  // Ask the upstream for an uncompressed body. We strip content-encoding from
+  // the response (DROP_FROM_RESPONSE) on the assumption that fetch has already
+  // decompressed it — but that only holds for encodings this runtime's fetch
+  // understands. On production the upstream (behind Cloudflare) answered with
+  // brotli that the server's Node did not decompress, so a header-less but still
+  // compressed body reached the browser as binary garbage. Forcing identity
+  // makes the body plain on every host, so the strip is always correct.
+  headers.set("accept-encoding", "identity");
+
   for (const [key, value] of Object.entries(
     clientIdentityHeaders(request.headers.get("x-forwarded-for")),
   )) {
