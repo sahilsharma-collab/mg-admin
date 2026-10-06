@@ -75,6 +75,14 @@ const DROP_FROM_RESPONSE = new Set([
 
 const METHODS_WITHOUT_BODY = new Set(["GET", "HEAD"]);
 
+// Set on any response where a *presented* session was rejected (missing cookie
+// on a protected path, or a token the API answered 401 to). middleware.ts gates
+// on the cookie's presence alone, so without a signal the browser stays on a
+// page that looks logged in while every write 401s. The api client in
+// lib/api.ts reads this and redirects to /login. A validation 401 on a public
+// path (a wrong reset code) never carries it, so it never bounces that caller.
+const SESSION_EXPIRED_HEADER = "x-mg-auth-expired";
+
 // The two endpoints the login page reaches before a session exists. Someone
 // who has forgotten their password has no cookie by definition, so requiring
 // one here would make password reset unreachable.
@@ -135,7 +143,9 @@ const proxy = async (
   const isPublic = PUBLIC_PATHS.has(`${upstream}:${path.join("/")}`);
   const token = request.cookies.get(AUTH_COOKIE)?.value;
   if (!token && !isPublic) {
-    return json(401, "Not authenticated.");
+    const res = json(401, "Not authenticated.");
+    res.headers.set(SESSION_EXPIRED_HEADER, "1");
+    return res;
   }
 
   const url = buildUpstreamUrl(base, path, request.nextUrl.search);
@@ -202,6 +212,9 @@ const proxy = async (
   // (a wrong reset code, say) says nothing about the caller's session.
   if (token && upstreamResponse.status === 401) {
     response.cookies.set(AUTH_COOKIE, "", { ...authCookieOptions(), maxAge: 0 });
+    // A dead session, not an ordinary 401: let the client redirect to /login
+    // rather than surface a silent write failure.
+    response.headers.set(SESSION_EXPIRED_HEADER, "1");
   }
 
   return response;

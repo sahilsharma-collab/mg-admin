@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { isAxiosError } from "axios";
 
 /**
  * The one place the admin panel talks to a backend.
@@ -20,12 +20,71 @@ const VIP = "/api/mg/vip";
 export const api = axios.create({ baseURL: MAIN });
 export const vipApi = axios.create({ baseURL: VIP });
 
-/** Fetch wrappers. Same interface as bare fetch — returns a Response. */
-export const apiFetch = (path: string, init?: RequestInit) =>
-  fetch(`${MAIN}${path}`, init);
+/**
+ * Redirect to /login when the proxy reports a dead session.
+ *
+ * The proxy (app/api/mg/[upstream]/[...path]/route.ts) clears the cookie on a
+ * rejected session and tags the response with `x-mg-auth-expired`. middleware.ts
+ * routes on the cookie's *presence* alone, so a request whose session died —
+ * the token expired, an admin was blocked or demoted, Redis evicted it — leaves
+ * the operator on a page that still looks logged in while every write 401s. That
+ * is the "image upload failed for no reason" report. We bounce to /login on that
+ * exact signal, and only that signal: an ordinary validation 401 (a wrong
+ * password-reset code on a public path) never carries the header.
+ */
+const SESSION_EXPIRED_HEADER = "x-mg-auth-expired";
+let redirectingToLogin = false;
 
-export const vipFetch = (path: string, init?: RequestInit) =>
-  fetch(`${VIP}${path}`, init);
+const sessionExpired = (headerValue: unknown, status: number): boolean =>
+  status === 401 && Boolean(headerValue);
+
+const redirectToLogin = (): void => {
+  if (typeof window === "undefined") return; // never during SSR
+  if (redirectingToLogin) return; // one redirect even if many requests 401 at once
+  if (window.location.pathname.startsWith("/login")) return; // no loop
+  redirectingToLogin = true;
+  window.location.assign("/login");
+};
+
+for (const client of [api, vipApi]) {
+  client.interceptors.response.use(
+    (response) => response,
+    (error: unknown) => {
+      if (
+        isAxiosError(error) &&
+        error.response &&
+        sessionExpired(
+          error.response.headers?.[SESSION_EXPIRED_HEADER],
+          error.response.status,
+        )
+      ) {
+        redirectToLogin();
+      }
+      return Promise.reject(error);
+    },
+  );
+}
+
+/**
+ * Fetch wrappers. Same interface as bare fetch — returns a Response. A fetch
+ * does not throw on 401, so the session-expiry check is applied here too, before
+ * the Response is handed back.
+ */
+export const apiFetch = async (path: string, init?: RequestInit) => {
+  const response = await fetch(`${MAIN}${path}`, init);
+  if (sessionExpired(response.headers.get(SESSION_EXPIRED_HEADER), response.status)) {
+    redirectToLogin();
+  }
+  return response;
+};
+
+export const vipFetch = async (path: string, init?: RequestInit) => {
+  const response = await fetch(`${VIP}${path}`, init);
+  if (sessionExpired(response.headers.get(SESSION_EXPIRED_HEADER), response.status)) {
+    redirectToLogin();
+  }
+  return response;
+};
 
 type QueryValue = string | number | boolean | null | undefined;
 

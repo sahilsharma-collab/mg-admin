@@ -66,6 +66,8 @@ describe("proxy authentication", () => {
 
     expect(response.status).toBe(401);
     expect(fetchMock).not.toHaveBeenCalled();
+    // Tagged so the api client redirects a cookie-less caller to /login.
+    expect(response.headers.get("x-mg-auth-expired")).toBe("1");
   });
 
   it("refuses an unauthenticated write", async () => {
@@ -327,6 +329,8 @@ describe("proxy response handling", () => {
     const header = response.headers.get("set-cookie") ?? "";
     expect(header).toMatch(/auth_token=;/);
     expect(header.toLowerCase()).toContain("max-age=0");
+    // Tagged so the api client redirects to /login instead of a silent failure.
+    expect(response.headers.get("x-mg-auth-expired")).toBe("1");
   });
 
   it("leaves the cookie alone on a 401 from a public path, which says nothing about it", async () => {
@@ -338,6 +342,8 @@ describe("proxy response handling", () => {
     });
 
     expect(response.headers.get("set-cookie")).toBeNull();
+    // A wrong reset code is not a dead session, so it must not bounce to /login.
+    expect(response.headers.get("x-mg-auth-expired")).toBeNull();
   });
 
   it("answers 502 when the upstream cannot be reached", async () => {
