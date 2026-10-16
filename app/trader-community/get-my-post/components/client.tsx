@@ -4,10 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { columns, CommunityPostColumn } from './columns';
 import { CellAction } from './cell-actions';
 import { Row } from "@tanstack/react-table";
+import { useRouter } from "next/navigation";
 import { PostResponse } from '../../get-all/components/columns';
 import { apiFetch } from "@/lib/api";
+import { Button } from "@/components/ui/button";
 
 const CommunityGetMyClient = () => {
+    const router = useRouter();
     const [formattedPosts, setFormattedPosts] = useState<CommunityPostColumn[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [refreshCounter, setRefreshCounter] = useState(0);
@@ -92,6 +95,14 @@ const CommunityGetMyClient = () => {
                 data={formattedPosts}
                 loading={loading}
                 title={<h1 className="text-xl font-semibold">Community Posts List</h1>}
+                actionButton={
+                    <Button
+                        onClick={() => router.push(`/trader-community/get-my-post/new`)}
+                        className="bg-[#0ABAB5] rounded-full px-6 hover:bg-[#089e99] transition-colors dark:text-white"
+                    >
+                        Add Post
+                    </Button>
+                }
             />
         </div>
     );
